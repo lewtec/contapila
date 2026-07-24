@@ -9,14 +9,20 @@ import (
 func TestDumpUnknownDialect(t *testing.T) {
 	_, _, err := runCLI(t, "dump", "nope-v1", "x.pdf")
 	if err == nil {
-		t.Fatal("expected error")
+		t.Fatal("expected error for unknown dump subcommand")
 	}
-	msg := err.Error()
-	if !strings.Contains(msg, "unknown dialect") {
+	if !strings.Contains(err.Error(), `unknown command "nope-v1"`) {
 		t.Fatalf("err=%v", err)
 	}
-	if !strings.Contains(msg, "pdf-dslipak-v1") {
-		t.Fatalf("expected dialect list in error, got %q", msg)
+}
+
+func TestDumpMissingDialect(t *testing.T) {
+	_, _, err := runCLI(t, "dump")
+	if err == nil {
+		t.Fatal("expected error for bare dump")
+	}
+	if !strings.Contains(err.Error(), "missing dialect") {
+		t.Fatalf("err=%v", err)
 	}
 }
 
@@ -31,5 +37,19 @@ func TestDumpPDFFixture(t *testing.T) {
 	}
 	if !strings.Contains(stdout, `"type":"document"`) {
 		t.Fatalf("missing document node: %s", stdout)
+	}
+}
+
+func TestDumpXLSXFixture(t *testing.T) {
+	path := filepath.Join("..", "..", "internal", "dump", "xlsxexcelizev1", "testdata", "sample.xlsx")
+	stdout, _, err := runCLI(t, "dump", "xlsx-excelize-v1", path)
+	if err != nil {
+		t.Fatalf("dump: %v", err)
+	}
+	if !strings.Contains(stdout, `"dialect":"xlsx-excelize-v1"`) {
+		t.Fatalf("stdout: %s", stdout)
+	}
+	if !strings.Contains(stdout, `"type":"workbook"`) {
+		t.Fatalf("missing workbook node: %s", stdout)
 	}
 }

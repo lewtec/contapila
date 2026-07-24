@@ -2,36 +2,46 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/lucasew/contapila-go/internal/dump"
-	_ "github.com/lucasew/contapila-go/internal/dump/pdfdslipakv1"
-	_ "github.com/lucasew/contapila-go/internal/dump/xlsxexcelizev1"
+	"github.com/lucasew/contapila-go/internal/dump/pdfdslipakv1"
+	"github.com/lucasew/contapila-go/internal/dump/xlsxexcelizev1"
 	"github.com/spf13/cobra"
 )
 
 func dumpCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "dump <dialect> <path>",
+	cmd := &cobra.Command{
+		Use:   "dump",
 		Short: "Dump a source document as a versioned JSON element tree",
 		Long: `Dump PDF or spreadsheet structure as compact JSON for stdlib-only extract scripts.
 
-Dialect ids are $format-$lib-v$n (also present in the JSON envelope):
-
-` + dialectHelp() + `
+Each dialect is a subcommand ($format-$lib-v$n), also present in the JSON envelope.
 
 Output is one compact JSON object on stdout:
 
   {"dialect":"…","source":"<path-as-given>","data":{"type":"…","children":[…]}}
 
 Pipe into a language-stdlib script, then into contapila ingest as JSONL directives.`,
-		Args: cobra.ExactArgs(2),
+		// Parent is not a leaf: require a dialect subcommand (Cobra resolves those first).
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dialect, path := args[0], args[1]
-			if _, ok := dump.Lookup(dialect); !ok {
-				return fmt.Errorf("unknown dialect %q\n\n%s", dialect, dumpUsageHint())
-			}
-			data, err := dump.Extract(dialect, path)
+			return fmt.Errorf("missing dialect subcommand (see contapila dump --help)")
+		},
+	}
+	cmd.AddCommand(
+		dumpDialectCmd(pdfdslipakv1.Dialect, pdfdslipakv1.Extract),
+		dumpDialectCmd(xlsxexcelizev1.Dialect, xlsxexcelizev1.Extract),
+	)
+	return cmd
+}
+
+func dumpDialectCmd(dialect string, extract dump.Extractor) *cobra.Command {
+	return &cobra.Command{
+		Use:   dialect + " <path>",
+		Short: "Dump with dialect " + dialect,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			data, err := extract(args[0])
 			if err != nil {
 				return err
 			}
@@ -42,24 +52,5 @@ Pipe into a language-stdlib script, then into contapila ingest as JSONL directiv
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), string(out))
 			return err
 		},
-		SilenceUsage: true,
 	}
-}
-
-func dialectHelp() string {
-	ids := dump.Dialects()
-	if len(ids) == 0 {
-		return "  (no dialects registered)"
-	}
-	var b strings.Builder
-	for _, id := range ids {
-		b.WriteString("  - ")
-		b.WriteString(id)
-		b.WriteByte('\n')
-	}
-	return b.String()
-}
-
-func dumpUsageHint() string {
-	return "Usage: contapila dump <dialect> <path>\nKnown dialects:\n" + dialectHelp()
 }
