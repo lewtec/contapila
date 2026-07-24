@@ -61,6 +61,39 @@
     return splits.map(fmtDate);
   }
 
+  /**
+   * How many ordinal indices between labeled ticks so each label has ~minPx of width.
+   * Data series stay full length — only axis splits thin out.
+   */
+  function labelStride(n, chartW, minPx) {
+    if (n <= 1) return 1;
+    var maxLabels = Math.max(2, Math.floor(chartW / minPx));
+    return Math.max(1, Math.ceil(n / maxLabels));
+  }
+
+  /**
+   * Pick ordinal split indices: every `stride`, always include first and last.
+   * Used as uPlot axes[0].splits so all bars remain; only ticks/labels subsample.
+   * If the final stride tick sits too close to the last bin, replace it with last
+   * (avoids "2026-03" + "2026-06" jammed at the end).
+   */
+  function ordinalLabelSplits(n, stride) {
+    if (n <= 0) return [];
+    if (stride <= 1) {
+      var all = [];
+      for (var i = 0; i < n; i++) all.push(i);
+      return all;
+    }
+    var out = [];
+    var last = n - 1;
+    for (var j = 0; j < n; j += stride) out.push(j);
+    if (out[out.length - 1] !== last) {
+      if (last - out[out.length - 1] < stride) out[out.length - 1] = last;
+      else out.push(last);
+    }
+    return out;
+  }
+
   function baseOpts(el, theme, height) {
     return {
       width: measureWidth(el),
@@ -76,8 +109,10 @@
           grid: { stroke: theme.grid, width: 1 },
           ticks: { stroke: theme.grid },
           values: fmtDateAxis,
-          size: 48,
-          gap: 6,
+          size: 40,
+          gap: 4,
+          // Prefer fewer time ticks over rotated dense labels (uPlot default space is 50).
+          space: 72,
         },
         {
           stroke: theme.text,
@@ -113,6 +148,7 @@
       return null;
     }
     var opts = baseOpts(el, theme, payload.height);
+    // Full series always; space on the X axis (baseOpts) thins date ticks only.
     opts.series = [
       xSeries(null),
       {
@@ -151,6 +187,12 @@
       x: { time: false, range: [-0.5, n - 0.5] },
       y: {},
     };
+    // All bars stay in the series; only axis splits/labels are subsampled.
+    var chartW = measureWidth(el);
+    var stride = labelStride(n, chartW, 72); // ~YYYY-MM + gap
+    opts.axes[0].splits = function () {
+      return ordinalLabelSplits(n, stride);
+    };
     opts.axes[0].values = function (_u, splits) {
       return splits.map(function (s) {
         var i = Math.round(s);
@@ -158,17 +200,9 @@
         return labels[i];
       });
     };
-    // Dense bins: rotate X labels 90° anticlockwise so they don't overlap.
-    var chartW = measureWidth(el);
-    var dense = n >= 10 || (n > 0 && chartW / n < 56);
-    if (dense) {
-      opts.axes[0].rotate = Math.PI / 2; // 90° CCW
-      opts.axes[0].size = 88;
-      opts.axes[0].gap = 8;
-      opts.padding = [8, 12, 4, 12];
-    } else {
-      opts.axes[0].size = 56;
-    }
+    opts.axes[0].rotate = 0;
+    opts.axes[0].size = 40;
+    opts.axes[0].gap = 4;
     opts.series = [
       {
         label: "Period",
