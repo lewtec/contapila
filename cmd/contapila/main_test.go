@@ -62,7 +62,7 @@ func newTestRoot() *cobra.Command {
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable debug logging on stderr")
 	root.AddCommand(
 		statusCmd(), checkCmd(), balancesCmd(), journalCmd(), pnlCmd(),
-		networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), desktopCmd(), lspCmd(),
+		networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), desktopCmd(), lspCmd(), dumpCmd(),
 	)
 	return root
 }
@@ -73,10 +73,12 @@ func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 	workDir = ""
 	verbose = false
+	dumpPassword = ""
 	logLevel.Set(slog.LevelInfo)
 	t.Cleanup(func() {
 		workDir = ""
 		verbose = false
+		dumpPassword = ""
 		logLevel.Set(slog.LevelInfo)
 	})
 
