@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/filesys"
@@ -36,6 +37,30 @@ type Project struct {
 
 const ProjectMarker = "contapila.cue"
 const LedgerEntrypoint = "main.beancount"
+
+// resolveProjectJournalPath resolves a project_journals path under root.
+// SPEC: paths are relative to the project root. Absolute paths and ".."
+// components that escape the root are rejected so a hostile contapila.cue
+// cannot pull arbitrary files into prices/stream injection.
+func resolveProjectJournalPath(root, rel string) (abs string, err error) {
+	if rel == "" {
+		return "", fmt.Errorf("project_journals path is empty")
+	}
+	if filepath.IsAbs(rel) {
+		return "", fmt.Errorf("project_journals path must be relative to project root: %q", rel)
+	}
+	cleaned := filepath.Clean(rel)
+	if cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(os.PathSeparator)) {
+		return "", fmt.Errorf("project_journals path escapes project root: %q", rel)
+	}
+	abs = filepath.Join(root, cleaned)
+	// Double-check after Join (Windows volume quirks, odd cleans).
+	relToRoot, err := filepath.Rel(root, abs)
+	if err != nil || relToRoot == ".." || strings.HasPrefix(relToRoot, ".."+string(os.PathSeparator)) {
+		return "", fmt.Errorf("project_journals path escapes project root: %q", rel)
+	}
+	return abs, nil
+}
 
 func findRoot(fsys filesys.FS, startDir string) (string, error) {
 	curr, err := filepath.Abs(startDir)
@@ -133,7 +158,10 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 	)
 
 	for _, j := range journals {
-		abs := filepath.Join(root, j.Path)
+		abs, err := resolveProjectJournalPath(root, j.Path)
+		if err != nil {
+			return nil, err
+		}
 		info, err := fsys.Stat(abs)
 		switch {
 		case os.IsNotExist(err):
