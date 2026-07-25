@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -109,6 +110,18 @@ func (s *Server) loadProject() (*project.Project, *prices.DB, error) {
 	return p, pdb, nil
 }
 
+// withSecurityHeaders sets baseline browser hardening headers on every response.
+func withSecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		// Layout uses small inline scripts for theme bootstrap; static charts load from /static.
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	// Built CSS (daisyUI themes via @plugin) — correct text/css MIME.
@@ -123,7 +136,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /l/{ledger}/{$}", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/l/"+r.PathValue("ledger")+"/check", http.StatusFound)
 	})
-	return mux
+	return withSecurityHeaders(mux)
 }
 
 type pageData struct {
@@ -235,7 +248,8 @@ type nwRow struct {
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	p, _, err := s.loadProject()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("web handler", "err", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	data := pageData{
@@ -920,7 +934,8 @@ func (s *Server) render(w http.ResponseWriter, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if err := c.Render(context.Background(), w); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("web render", "err", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
 }
 
