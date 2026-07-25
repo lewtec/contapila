@@ -1,9 +1,7 @@
 package web
 
 templ LedgerPage(d pageData) {
-	@appLayout(d) {
-		@periodMeta(d)
-		@pageError(d.Error)
+	@reportLayout(d) {
 		switch d.Page {
 			case "check":
 				@checkBody(d)
@@ -157,7 +155,7 @@ templ networthBody(d pageData) {
 									{ r.Value }
 									if d.OpCurrency != "" {
 										{ " " }
-										<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, d.OpCurrency, d.Time)) }>{ d.OpCurrency }</a>
+										@commodityLink(d.LedgerName, d.OpCurrency, d.Time, true)
 									}
 								</td>
 								<td class="text-[0.65rem] text-warning">
@@ -200,25 +198,11 @@ templ documentsBody(d pageData) {
 									style={ "padding-left: " + r.PadLeft }
 								}
 							>
-								if r.IsRollup {
-									<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
-								} else {
-									<span class="inline-block w-5" aria-hidden="true"></span>
-								}
+								@treeToggle(r.IsRollup)
 								if r.IsDoc {
-									if r.Href != "" {
-										<a class="link link-hover link-primary" href={ templ.SafeURL(r.Href) } title={ r.Path }>{ r.Name }</a>
-									} else {
-										<span class="text-base-content/80" title={ r.Path }>{ r.Name }</span>
-									}
+									@fileLink(r.Href, r.Path, r.Name, true)
 								} else if r.Account != "" {
-									<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(d.LedgerName, r.Account, d.Time)) } title={ r.Account }>
-										if r.Name != "" {
-											{ r.Name }
-										} else {
-											{ r.Account }
-										}
-									</a>
+									@accountLink(d.LedgerName, r.Account, d.Time, r.Name)
 								} else {
 									<span>{ r.Name }</span>
 								}
@@ -226,16 +210,10 @@ templ documentsBody(d pageData) {
 							<td class="text-right font-mono tabular text-xs text-base-content/70">{ r.Date }</td>
 							<td class="font-mono text-xs">
 								if !r.IsDoc && !r.IsRollup && (r.Href != "" || r.FileName != "") {
-									if r.Href != "" {
-										<a class="link link-hover link-primary" href={ templ.SafeURL(r.Href) } title={ r.Path }>
-											if r.FileName != "" {
-												{ r.FileName }
-											} else {
-												{ r.Name }
-											}
-										</a>
+									if r.FileName != "" {
+										@fileLink(r.Href, r.Path, r.FileName, false)
 									} else {
-										<span title={ r.Path }>{ r.FileName }</span>
+										@fileLink(r.Href, r.Path, r.Name, false)
 									}
 								}
 							</td>
@@ -272,13 +250,13 @@ templ pricesBody(d pageData) {
 					for _, s := range d.PriceSeries {
 						<tr>
 							<td class="font-mono text-xs">
-								<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, s.Base, d.Time)) }>{ s.Base }</a>
+								@commodityLink(d.LedgerName, s.Base, d.Time, false)
 							</td>
 							<td class="text-right tabular text-xs">{ fmtInt(s.Count) }</td>
 							<td class="font-mono tabular text-xs text-base-content/70">{ s.FirstDate }</td>
 							<td class="font-mono tabular text-xs text-base-content/70">{ s.LastDate }</td>
 							<td class="text-right tabular text-xs font-medium font-mono">
-								{ s.LastRate } <a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, s.Quote, d.Time)) }>{ s.Quote }</a>
+								@rateWithQuote(s.LastRate, s.Quote, d.LedgerName, d.Time)
 							</td>
 							<td class="text-xs text-base-content/70">
 								@metaInline(s.LastMeta)

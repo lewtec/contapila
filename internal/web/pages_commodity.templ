@@ -1,9 +1,7 @@
 package web
 
 templ CommodityPage(d pageData) {
-	@appLayout(d) {
-		@periodMeta(d)
-		@pageError(d.Error)
+	@reportLayout(d) {
 		@chartPanel(d)
 		if len(d.CommodityMeta) > 0 {
 			<section class="mb-4">
@@ -13,10 +11,9 @@ templ CommodityPage(d pageData) {
 		}
 		if len(d.CommodityPrices) > 0 {
 			<section class="mb-4">
-				<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">
-					Prices
+				@sectionTitleExtra("Prices") {
 					<a class="ml-2 font-normal normal-case tracking-normal link link-hover link-primary text-xs" href={ templ.SafeURL(ledgerURL(d.LedgerName, "prices", d.Time)) }>all pairs</a>
-				</h2>
+				}
 				<div class="overflow-x-auto border border-base-300 max-h-64 overflow-y-auto">
 					<table class="table table-xs table-zebra">
 						<thead class="sticky top-0 bg-base-100">
@@ -31,7 +28,7 @@ templ CommodityPage(d pageData) {
 								<tr>
 									<td class="font-mono tabular text-xs text-base-content/70">{ p.Date }</td>
 									<td class="text-right tabular text-xs font-medium font-mono">
-										{ p.Rate } <a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, p.Quote, d.Time)) }>{ p.Quote }</a>
+										@rateWithQuote(p.Rate, p.Quote, d.LedgerName, d.Time)
 									</td>
 									<td class="text-xs text-base-content/70">
 										@metaInline(p.Metadata)
@@ -57,15 +54,5 @@ templ CommodityPage(d pageData) {
 			@sectionTitle("Journal")
 			@journalList(d)
 		</section>
-	}
-}
-
-// metaInline renders key=value pairs comma-separated (prices tables).
-templ metaInline(rows []metaKV) {
-	for i, m := range rows {
-		if i > 0 {
-			{ ", " }
-		}
-		<span class="font-mono">{ m.Key }</span>={ m.Value }
 	}
 }

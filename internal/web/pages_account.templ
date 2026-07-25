@@ -1,9 +1,7 @@
 package web
 
 templ AccountPage(d pageData) {
-	@appLayout(d) {
-		@periodMeta(d)
-		@pageError(d.Error)
+	@reportLayout(d) {
 		@chartPanel(d)
 		if len(d.AccountMeta) > 0 || len(d.AccountCurrencies) > 0 {
 			<section class="mb-4">
@@ -19,16 +17,13 @@ templ AccountPage(d pageData) {
 											if i > 0 {
 												{ " " }
 											}
-											<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, c, d.Time)) }>{ c }</a>
+											@commodityLink(d.LedgerName, c, d.Time, false)
 										}
 									</td>
 								</tr>
 							}
 							for _, m := range d.AccountMeta {
-								<tr>
-									<td class="text-[0.65rem] uppercase tracking-wide text-base-content/50 w-32">{ m.Key }</td>
-									<td class="font-mono text-xs">{ m.Value }</td>
-								</tr>
+								@metaKVTableRow(m.Key, m.Value)
 							}
 						</tbody>
 					</table>
@@ -63,11 +58,7 @@ templ AccountPage(d pageData) {
 								<tr>
 									<td class="font-mono tabular text-xs text-base-content/70">{ doc.Date }</td>
 									<td class="font-mono text-xs">
-										if doc.Href != "" {
-											<a class="link link-hover link-primary" href={ templ.SafeURL(doc.Href) } title={ doc.Path }>{ doc.Name }</a>
-										} else {
-											<span title={ doc.Path }>{ doc.Name }</span>
-										}
+										@fileLink(doc.Href, doc.Path, doc.Name, false)
 									</td>
 								</tr>
 							}

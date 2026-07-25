@@ -109,11 +109,9 @@ templ breadcrumbs(d pageData) {
 			</ul>
 		</div>
 		if d.LedgerName != "" && d.Page == "account" && d.AccountName != "" {
-			<span class="breadcrumbs-sep opacity-40 mx-1.5 shrink-0 text-[0.65rem]" aria-hidden="true">›</span>
-			<span class="min-w-0 flex-1 overflow-x-auto font-mono text-xs whitespace-nowrap py-0" title={ d.AccountName }>{ d.AccountName }</span>
+			@breadcrumbTail(d.AccountName)
 		} else if d.LedgerName != "" && d.Page == "commodity" && d.CommodityName != "" {
-			<span class="breadcrumbs-sep opacity-40 mx-1.5 shrink-0 text-[0.65rem]" aria-hidden="true">›</span>
-			<span class="min-w-0 flex-1 overflow-x-auto font-mono text-xs whitespace-nowrap py-0" title={ d.CommodityName }>{ d.CommodityName }</span>
+			@breadcrumbTail(d.CommodityName)
 		}
 	</div>
 }
@@ -143,6 +141,18 @@ templ navItem(d pageData, page, label string) {
 	</li>
 }
 
+templ sidebarCurrentEntity(title, name string) {
+	<li class="menu-title px-3 py-2 mt-1 text-[0.65rem]"><span>{ title }</span></li>
+	<li class="w-full">
+		<span class="menu-active rounded-none w-full font-mono text-[0.7rem] break-all">{ name }</span>
+	</li>
+}
+
+templ breadcrumbTail(name string) {
+	<span class="breadcrumbs-sep opacity-40 mx-1.5 shrink-0 text-[0.65rem]" aria-hidden="true">›</span>
+	<span class="min-w-0 flex-1 overflow-x-auto font-mono text-xs whitespace-nowrap py-0" title={ name }>{ name }</span>
+}
+
 templ sidebarNav(d pageData) {
 	if d.LedgerName != "" {
 		<ul class="menu menu-sm w-full p-0 gap-0 rounded-none">
@@ -155,16 +165,10 @@ templ sidebarNav(d pageData) {
 			@navItem(d, "documents", "Documents")
 			@navItem(d, "prices", "Prices")
 			if d.Page == "account" {
-				<li class="menu-title px-3 py-2 mt-1 text-[0.65rem]"><span>Account</span></li>
-				<li class="w-full">
-					<span class="menu-active rounded-none w-full font-mono text-[0.7rem] break-all">{ d.AccountName }</span>
-				</li>
+				@sidebarCurrentEntity("Account", d.AccountName)
 			}
 			if d.Page == "commodity" {
-				<li class="menu-title px-3 py-2 mt-1 text-[0.65rem]"><span>Commodity</span></li>
-				<li class="w-full">
-					<span class="menu-active rounded-none w-full font-mono text-[0.7rem] break-all">{ d.CommodityName }</span>
-				</li>
+				@sidebarCurrentEntity("Commodity", d.CommodityName)
 			}
 		</ul>
 	} else if len(d.Ledgers) > 0 {
