@@ -1,0 +1,275 @@
+package web
+
+import (
+	"github.com/lucasew/contapila-go/internal/ast"
+	"github.com/lucasew/contapila-go/internal/engine"
+)
+
+templ pageError(err string) {
+	if err != "" {
+		<div role="alert" class="alert alert-error alert-soft py-2 text-xs mb-3"><span>{ err }</span></div>
+	}
+}
+
+templ periodMeta(d pageData) {
+	if d.OpCurrency != "" || d.PeriodLabel != "" || d.AsOf != "" {
+		<p class="mb-3 text-xs text-base-content/60 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+			if d.OpCurrency != "" {
+				<span class="font-mono">{ d.OpCurrency }</span>
+			}
+			if d.PeriodLabel != "" {
+				<span class="font-mono text-base-content/80" title={ d.Time }>{ d.PeriodLabel }</span>
+			}
+			if d.AsOf != "" {
+				<span>as of { d.AsOf }</span>
+			}
+		</p>
+	}
+}
+
+templ sectionTitle(title string) {
+	<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">{ title }</h2>
+}
+
+// metaMapTable renders a key/value table. indent adds left margin for posting-level meta.
+templ metaMapTable(meta ast.Metadata, indent bool) {
+	if len(meta) > 0 {
+		<table
+			class={
+				"w-auto border-collapse font-mono text-[0.65rem] leading-tight",
+				templ.KV("mt-0.5", !indent),
+				templ.KV("ml-2 font-normal", indent),
+			}
+		>
+			<tbody>
+				for k, v := range meta {
+					<tr>
+						<td class="py-0 pr-1.5 pl-0 text-right font-semibold align-baseline whitespace-nowrap">{ k }</td>
+						<td
+							class={
+								"py-0 pl-0 text-left align-baseline",
+								templ.KV("text-base-content/70 font-normal", !indent),
+								templ.KV("text-base-content/60", indent),
+							}
+						>{ v }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// treeAccountCell is the collapsible account column shared by balances / PnL / networth trees.
+templ treeAccountCell(row balanceRow, ledger, timeFilter string) {
+	<td
+		class="font-mono text-xs"
+		if row.PadLeft != "" {
+			style={ "padding-left: " + row.PadLeft }
+		}
+	>
+		if row.IsRollup {
+			<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
+		} else {
+			<span class="inline-block w-5" aria-hidden="true"></span>
+		}
+		<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(ledger, row.Account, timeFilter)) } title={ row.Account }>
+			if row.Name != "" {
+				{ row.Name }
+			} else {
+				{ row.Account }
+			}
+		</a>
+	</td>
+}
+
+// treeAccountCellNW is the same cell for net-worth rows (same shape as balanceRow fields used).
+templ treeAccountCellNW(row nwRow, ledger, timeFilter string) {
+	@treeAccountCell(balanceRow{
+		Account:  row.Account,
+		Name:     row.Name,
+		IsRollup: row.IsRollup,
+		PadLeft:  row.PadLeft,
+	}, ledger, timeFilter)
+}
+
+templ pnlTreeScript() {
+	<script src="/static/pnl-tree.js" defer></script>
+}
+
+templ emptyNote(msg string) {
+	<p class="text-xs text-base-content/60">{ msg }</p>
+}
+
+// borderTable wraps a table in the standard overflow + border frame.
+templ borderTable() {
+	<div class="overflow-x-auto border border-base-300">
+		{ children... }
+	</div>
+}
+
+// amountCommodityRows: account page balance / activity (amount + commodity link).
+templ amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) {
+	if len(rows) == 0 {
+		@emptyNote(emptyMsg)
+	} else {
+		@borderTable() {
+			<table class="table table-xs">
+				<tbody>
+					for _, r := range rows {
+						<tr>
+							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
+							<td class="font-mono text-xs">
+								<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(ledger, r.Commodity, timeFilter)) }>{ r.Commodity }</a>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
+}
+
+// accountAmountRows: commodity page balance / activity (account link + amount).
+templ accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) {
+	if len(rows) == 0 {
+		@emptyNote(emptyMsg)
+	} else {
+		@borderTable() {
+			<table class="table table-xs">
+				<thead>
+					<tr>
+						<th>Account</th>
+						<th class="text-right">Amount</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, r := range rows {
+						<tr>
+							<td class="font-mono text-xs">
+								<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(ledger, r.Account, timeFilter)) }>{ r.Account }</a>
+							</td>
+							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
+}
+
+// pnlSideTree: income or expenses column on the PnL report.
+templ pnlSideTree(title string, rows []balanceRow, ledger, timeFilter, emptyMsg string) {
+	<section>
+		@sectionTitle(title)
+		if len(rows) == 0 {
+			@emptyNote(emptyMsg)
+		} else {
+			@borderTable() {
+				<table class="table table-xs pnl-tree" data-pnl-tree>
+					<tbody>
+						for _, r := range rows {
+							<tr
+								class={ templ.KV("font-semibold bg-base-200/40", r.IsRollup) }
+								data-account={ r.Account }
+							>
+								@treeAccountCell(r, ledger, timeFilter)
+								<td class="text-right tabular text-xs whitespace-nowrap">
+									{ r.Amount }
+									if r.Commodity != "" {
+										<span class="font-mono text-base-content/60"> { r.Commodity }</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		}
+	</section>
+}
+
+// metaKVRows: ordered key/value pairs (account open meta, commodity meta).
+templ metaKVRows(rows []metaKV) {
+	@borderTable() {
+		<table class="table table-xs">
+			<tbody>
+				for _, m := range rows {
+					<tr>
+						<td class="text-[0.65rem] uppercase tracking-wide text-base-content/50 w-32">{ m.Key }</td>
+						<td class="font-mono text-xs">{ m.Value }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// journalList renders journal entries with optional account/commodity highlight.
+templ journalList(d pageData) {
+	if len(d.Journal) == 0 {
+		@emptyNote("No journal entries in this range.")
+	} else {
+		<div class="border border-base-300 divide-y divide-base-300">
+			for _, e := range d.Journal {
+				@journalEntry(e, d)
+			}
+		</div>
+	}
+}
+
+templ journalEntry(e engine.JournalEntry, d pageData) {
+	<article class="px-2 py-1.5">
+		<div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+			<time class="font-mono tabular text-base-content/70">{ e.Date.Format("2006-01-02") }</time>
+			if d.Page == "journal" {
+				<span class="text-[0.65rem] uppercase tracking-wide opacity-50">{ e.Kind }</span>
+			}
+			if e.Payee != "" {
+				<span class="font-medium">{ e.Payee }</span>
+			}
+			if e.Payee != "" && e.Narration != "" {
+				<span class="opacity-40">·</span>
+			}
+			if e.Narration != "" {
+				<span
+					class={
+						templ.KV("text-base-content/80", e.Payee != ""),
+						templ.KV("font-medium", e.Payee == ""),
+					}
+				>{ e.Narration }</span>
+			}
+			if e.Comment != "" {
+				<span class="text-base-content/60">{ e.Comment }</span>
+			}
+			if d.Page == "journal" && e.Account != "" {
+				<span class="font-mono text-[0.7rem]">{ e.Account }</span>
+			}
+		</div>
+		@metaMapTable(e.Metadata, false)
+		if len(e.Postings) > 0 {
+			<ul class="mt-0.5 space-y-0 font-mono text-xs">
+				for _, p := range e.Postings {
+					<li
+						class={
+							"leading-5",
+							templ.KV("text-primary font-semibold", journalPostingHighlight(p, d)),
+						}
+					>
+						<div class="flex flex-wrap justify-between gap-2">
+							<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(d.LedgerName, p.Account, d.Time)) }>{ p.Account }</a>
+							if p.Units != nil {
+								<span class="tabular text-base-content/90">
+									{
+									p.Units.Number.FloatString(4) + " "
+								}
+									<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, p.Units.Commodity, d.Time)) }>{ p.Units.Commodity }</a>
+								</span>
+							}
+						</div>
+						@metaMapTable(p.Metadata, true)
+					</li>
+				}
+			</ul>
+		}
+	</article>
+}

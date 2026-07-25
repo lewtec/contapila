@@ -1,0 +1,308 @@
+package web
+
+templ LedgerPage(d pageData) {
+	@appLayout(d) {
+		@periodMeta(d)
+		@pageError(d.Error)
+		switch d.Page {
+			case "check":
+				@checkBody(d)
+			case "balances":
+				@balancesBody(d)
+			case "journal":
+				@journalList(d)
+			case "pnl":
+				@pnlBody(d)
+			case "networth":
+				@networthBody(d)
+			case "documents":
+				@documentsBody(d)
+			case "prices":
+				@pricesBody(d)
+		}
+	}
+}
+
+templ checkBody(d pageData) {
+	if d.OK {
+		<div role="alert" class="alert alert-success alert-soft py-2 text-xs mb-3">
+			<span class="font-medium">Check passed</span>
+			<span class="opacity-80">No hard errors.</span>
+		</div>
+	} else {
+		<div role="alert" class="alert alert-error alert-soft py-2 text-xs mb-3">
+			<span class="font-medium">Check failed</span>
+		</div>
+	}
+	if len(d.Diags) > 0 {
+		@borderTable() {
+			<table class="table table-xs">
+				<thead>
+					<tr>
+						<th class="w-16">Sev</th>
+						<th>Message</th>
+						<th>Location</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, dg := range d.Diags {
+						<tr>
+							<td>
+								if dg.IsError() {
+									<span class="text-error font-medium text-xs">error</span>
+								} else {
+									<span class="text-warning font-medium text-xs">warn</span>
+								}
+							</td>
+							<td class="max-w-xl text-xs">{ dg.Message }</td>
+							<td class="font-mono text-[0.7rem] opacity-60">{ dg.Location() }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	} else {
+		@emptyNote("No diagnostics.")
+	}
+}
+
+templ balancesBody(d pageData) {
+	if len(d.BalanceRows) == 0 {
+		@emptyNote("No balances for this as-of date.")
+	} else {
+		@borderTable() {
+			<table class="table table-xs pnl-tree" data-pnl-tree>
+				<thead>
+					<tr>
+						<th>Account</th>
+						<th class="text-right">Amount</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, r := range d.BalanceRows {
+						<tr
+							class={ templ.KV("font-semibold bg-base-200/40", r.IsRollup) }
+							data-account={ treeDataAccount(r.Path, r.Account) }
+						>
+							@treeAccountCell(r, d.LedgerName, d.Time)
+							<td class="text-right tabular text-xs font-medium whitespace-nowrap">
+								if r.Amount != "" {
+									{ r.Amount }
+									if r.Commodity != "" {
+										{ " " }
+										<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
+									}
+								} else if r.Commodity != "" && !r.IsRollup {
+									<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+		@pnlTreeScript()
+	}
+}
+
+templ pnlBody(d pageData) {
+	@chartPanel(d)
+	<p class="mb-2 text-[0.65rem] text-base-content/50">
+		Beancount signs: income credits are negative, expenses debits positive. Amounts in
+		if d.OpCurrency != "" {
+			{ d.OpCurrency }
+		} else {
+			native units
+		}
+		.
+	</p>
+	<div class="grid gap-4 md:grid-cols-2">
+		@pnlSideTree("Income", d.IncomeRows, d.LedgerName, d.Time, "No income postings.")
+		@pnlSideTree("Expenses", d.ExpenseRows, d.LedgerName, d.Time, "No expense postings.")
+	</div>
+	@pnlTreeScript()
+}
+
+templ networthBody(d pageData) {
+	if d.Error == "" {
+		@chartPanel(d)
+		<div class="mb-3 flex items-baseline gap-3 border border-base-300 bg-base-200 px-3 py-2">
+			<div>
+				<div class="text-[0.65rem] uppercase tracking-wide text-base-content/50">Net worth</div>
+				<div class="money-highlight text-xl font-semibold tabular leading-tight">{ d.NetWorthTot }</div>
+				<div class="text-xs text-base-content/60">
+					{ d.OpCurrency }
+					if d.AsOf != "" {
+						{ " · " + d.AsOf }
+					}
+				</div>
+			</div>
+		</div>
+		if len(d.NetWorthRows) == 0 {
+			@emptyNote("No asset/liability positions.")
+		} else {
+			@borderTable() {
+				<table class="table table-xs pnl-tree" data-pnl-tree>
+					<thead>
+						<tr>
+							<th>Account</th>
+							<th class="text-right">Units</th>
+							<th class="text-right">Value</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, r := range d.NetWorthRows {
+							<tr
+								class={ templ.KV("font-semibold bg-base-200/40", r.IsRollup) }
+								data-account={ r.Path }
+							>
+								@treeAccountCellNW(r, d.LedgerName, d.Time)
+								<td class="text-right tabular text-xs font-medium whitespace-nowrap">
+									if r.Units != "" {
+										{ r.Units }
+										if r.Commodity != "" {
+											{ " " }
+											<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
+										}
+									} else if r.Commodity != "" && !r.IsRollup {
+										<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
+									}
+								</td>
+								<td class="text-right tabular text-xs font-medium whitespace-nowrap">
+									{ r.Value }
+									if d.OpCurrency != "" {
+										{ " " }
+										<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, d.OpCurrency, d.Time)) }>{ d.OpCurrency }</a>
+									}
+								</td>
+								<td class="text-[0.65rem] text-warning">
+									if r.Unpriced {
+										no px
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+			@pnlTreeScript()
+		}
+	}
+}
+
+templ documentsBody(d pageData) {
+	if len(d.Documents) == 0 {
+		@emptyNote("No documents for this ledger.")
+	} else {
+		@borderTable() {
+			<table class="table table-xs pnl-tree" data-pnl-tree>
+				<thead>
+					<tr>
+						<th>Account</th>
+						<th class="text-right">Date</th>
+						<th>File</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, r := range d.Documents {
+						<tr
+							class={ templ.KV("font-semibold bg-base-200/40", r.IsRollup) }
+							data-account={ treeDataAccount(r.TreePath, r.Account) }
+						>
+							<td
+								class="font-mono text-xs"
+								if r.PadLeft != "" {
+									style={ "padding-left: " + r.PadLeft }
+								}
+							>
+								if r.IsRollup {
+									<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
+								} else {
+									<span class="inline-block w-5" aria-hidden="true"></span>
+								}
+								if r.IsDoc {
+									if r.Href != "" {
+										<a class="link link-hover link-primary" href={ templ.SafeURL(r.Href) } title={ r.Path }>{ r.Name }</a>
+									} else {
+										<span class="text-base-content/80" title={ r.Path }>{ r.Name }</span>
+									}
+								} else if r.Account != "" {
+									<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(d.LedgerName, r.Account, d.Time)) } title={ r.Account }>
+										if r.Name != "" {
+											{ r.Name }
+										} else {
+											{ r.Account }
+										}
+									</a>
+								} else {
+									<span>{ r.Name }</span>
+								}
+							</td>
+							<td class="text-right font-mono tabular text-xs text-base-content/70">{ r.Date }</td>
+							<td class="font-mono text-xs">
+								if !r.IsDoc && !r.IsRollup && (r.Href != "" || r.FileName != "") {
+									if r.Href != "" {
+										<a class="link link-hover link-primary" href={ templ.SafeURL(r.Href) } title={ r.Path }>
+											if r.FileName != "" {
+												{ r.FileName }
+											} else {
+												{ r.Name }
+											}
+										</a>
+									} else {
+										<span title={ r.Path }>{ r.FileName }</span>
+									}
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+		@pnlTreeScript()
+	}
+}
+
+templ pricesBody(d pageData) {
+	<p class="mb-2 text-xs text-base-content/60">Shared project prices (<span class="font-mono">prices.beancount</span>) — last write wins per day. Open a base commodity for its full price chart.</p>
+	if d.Error == "" {
+		@chartPanel(d)
+	}
+	if len(d.PriceSeries) == 0 {
+		@emptyNote("No prices loaded.")
+	} else {
+		@borderTable() {
+			<table class="table table-xs table-zebra">
+				<thead>
+					<tr>
+						<th>Base</th>
+						<th class="text-right">Points</th>
+						<th>First</th>
+						<th>Last</th>
+						<th class="text-right">Last price</th>
+						<th>Last meta</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, s := range d.PriceSeries {
+						<tr>
+							<td class="font-mono text-xs">
+								<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, s.Base, d.Time)) }>{ s.Base }</a>
+							</td>
+							<td class="text-right tabular text-xs">{ fmtInt(s.Count) }</td>
+							<td class="font-mono tabular text-xs text-base-content/70">{ s.FirstDate }</td>
+							<td class="font-mono tabular text-xs text-base-content/70">{ s.LastDate }</td>
+							<td class="text-right tabular text-xs font-medium font-mono">
+								{ s.LastRate } <a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, s.Quote, d.Time)) }>{ s.Quote }</a>
+							</td>
+							<td class="text-xs text-base-content/70">
+								@metaInline(s.LastMeta)
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
+}

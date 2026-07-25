@@ -9,8 +9,8 @@ svu = "3.3.0"
 run = "go mod tidy && go get -v ./... && bun install"
 
 [tasks.codegen]
-description = "Rebuild embedded web CSS"
-run = "bun run build:css"
+description = "Generate templ components and rebuild embedded web CSS"
+run = "go tool templ generate ./internal/web/ && bun run build:css"
 
 [tasks.format]
 description = "Format Go packages"
