@@ -117,7 +117,15 @@ func parsePlusDaily(plus string) (*big.Rat, bool) {
 		return nil, false
 	}
 	daily := math.Pow(base, 1/days) - 1
-	return new(big.Rat).SetFloat64(daily), true
+	if math.IsNaN(daily) || math.IsInf(daily, 0) {
+		return nil, false
+	}
+	r := new(big.Rat).SetFloat64(daily)
+	if r == nil {
+		// SetFloat64 returns nil for non-finite values.
+		return nil, false
+	}
+	return r, true
 }
 
 func stripSpaces(s string) string {
