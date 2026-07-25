@@ -1,0 +1,84 @@
+package web
+
+templ AccountPage(d pageData) {
+	@appLayout(d) {
+		@periodMeta(d)
+		@pageError(d.Error)
+		@chartPanel(d)
+		if len(d.AccountMeta) > 0 || len(d.AccountCurrencies) > 0 {
+			<section class="mb-4">
+				@sectionTitle("Open / metadata")
+				@borderTable() {
+					<table class="table table-xs">
+						<tbody>
+							if len(d.AccountCurrencies) > 0 {
+								<tr>
+									<td class="text-[0.65rem] uppercase tracking-wide text-base-content/50 w-32">currencies</td>
+									<td class="font-mono text-xs">
+										for i, c := range d.AccountCurrencies {
+											if i > 0 {
+												{ " " }
+											}
+											<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, c, d.Time)) }>{ c }</a>
+										}
+									</td>
+								</tr>
+							}
+							for _, m := range d.AccountMeta {
+								<tr>
+									<td class="text-[0.65rem] uppercase tracking-wide text-base-content/50 w-32">{ m.Key }</td>
+									<td class="font-mono text-xs">{ m.Value }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</section>
+		}
+		<div class="grid gap-4 md:grid-cols-2 mb-4">
+			<section>
+				@sectionTitle("Balance")
+				@amountCommodityRows(d.AccountBalances, d.LedgerName, d.Time, "Zero / never posted.")
+			</section>
+			<section>
+				@sectionTitle("Change in period")
+				@amountCommodityRows(d.AccountActivity, d.LedgerName, d.Time, "No activity.")
+			</section>
+		</div>
+		<section class="mb-4">
+			@sectionTitle("Documents")
+			if len(d.AccountDocs) == 0 {
+				@emptyNote("No documents for this account.")
+			} else {
+				@borderTable() {
+					<table class="table table-xs">
+						<thead>
+							<tr>
+								<th>Date</th>
+								<th>File</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, doc := range d.AccountDocs {
+								<tr>
+									<td class="font-mono tabular text-xs text-base-content/70">{ doc.Date }</td>
+									<td class="font-mono text-xs">
+										if doc.Href != "" {
+											<a class="link link-hover link-primary" href={ templ.SafeURL(doc.Href) } title={ doc.Path }>{ doc.Name }</a>
+										} else {
+											<span title={ doc.Path }>{ doc.Name }</span>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			}
+		</section>
+		<section>
+			@sectionTitle("Journal")
+			@journalList(d)
+		</section>
+	}
+}

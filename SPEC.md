@@ -2,7 +2,7 @@
 
 Status: MVP implementation in progress (tree-sitter grammar wired via modernc-tree-sitter/ccgo-tree-sitter).
 
-Contapila is a self-contained **Go** reimplementation of a Beancount-class ledger engine plus a Fava-class read-only web UI (headless `web` or **eletrocromo** desktop shell) and an optional **language server**: **one binary** (Cobra CLI + HTTP server with Go templates + `contapila lsp` + `contapila desktop`). Philosophy is **Helix, not Neovim**: good defaults, batteries included, no plugin system, poetic license on tooling.
+Contapila is a self-contained **Go** reimplementation of a Beancount-class ledger engine plus a Fava-class read-only web UI (headless `web` or **eletrocromo** desktop shell) and an optional **language server**: **one binary** (Cobra CLI + HTTP server with templ + `contapila lsp` + `contapila desktop`). Philosophy is **Helix, not Neovim**: good defaults, batteries included, no plugin system, poetic license on tooling.
 
 ---
 
@@ -72,7 +72,7 @@ Ledger argument is the **directory name** under the project root (see §4). Proj
 ### 3.2 Web server
 
 - **Read-only** viewer over the same `*Ledger` APIs as the CLI.
-- **Go templates** (server-rendered).
+- **templ** components (server-rendered HTML).
 - **`web`:** default bind `127.0.0.1:8765` (`--addr`); no app-window shell. No multi-user auth story (local tool).
 - **`desktop`:** same HTTP handler as `web`; no `--addr`. Bind, one-shot token auth, and window lifetime are owned by **[eletrocromo](https://github.com/lewtec/eletrocromo)** (`App.ID` = `br.tec.lew.contapila`). Never fall back to the system browser or to `web --addr` if Helium is missing.
 - **Live reload** (watch ledger includes + prices + config): nice-to-have, not blocking first server slice.
@@ -667,7 +667,7 @@ Golden fixtures should emphasize average-cost stock buys/partial sells, pads, in
 
 - Exact CUE prelude schema field names and class set.
 - Exact Cobra flag set (dates, output formats).
-- HTTP routes and template structure.
+- HTTP routes and templ component structure.
 - Whether `contapila init` scaffolds root + empty cue + sample ledger dirs.
 - Tolerance combination rules when a transaction touches multiple commodities.
 - Optional `option "booking_method"` surface once more methods exist.

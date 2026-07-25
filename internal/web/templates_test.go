@@ -2,8 +2,11 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"path/filepath"
 	"testing"
+
+	"github.com/a-h/templ"
 
 	"github.com/lucasew/contapila-go/internal/engine"
 )
@@ -18,6 +21,7 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_ = s
 	// Render a few pages that use partials
 	for _, page := range []string{"balances", "pnl", "networth", "journal", "documents"} {
 		data := pageData{
@@ -26,7 +30,7 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 			OpCurrency: "BRL", PeriodLabel: "2024", Time: "2024",
 		}
 		var buf bytes.Buffer
-		if err := s.Tmpl.ExecuteTemplate(&buf, "ledger.html", data); err != nil {
+		if err := LedgerPage(data).Render(context.Background(), &buf); err != nil {
 			t.Fatalf("%s: %v", page, err)
 		}
 		if buf.Len() < 100 {
@@ -34,15 +38,25 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 		}
 	}
 	// account + commodity
-	for _, name := range []string{"account.html", "commodity.html"} {
-		data := pageData{
+	for _, page := range []templ.Component{
+		AccountPage(pageData{
 			Title: "x", Page: "account", LedgerName: "personal",
 			Ledgers: []string{"personal"}, AccountName: "Assets:Cash",
-			CommodityName: "BRL",
-		}
+		}),
+		CommodityPage(pageData{
+			Title: "x", Page: "commodity", LedgerName: "personal",
+			Ledgers: []string{"personal"}, CommodityName: "BRL",
+		}),
+		IndexPage(pageData{
+			Title: "Ledgers", Page: "home", Ledgers: []string{"personal"}, ProjectRoot: p.Root,
+		}),
+	} {
 		var buf bytes.Buffer
-		if err := s.Tmpl.ExecuteTemplate(&buf, name, data); err != nil {
-			t.Fatalf("%s: %v", name, err)
+		if err := page.Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		if buf.Len() < 100 {
+			t.Fatalf("short render %d", buf.Len())
 		}
 	}
 }

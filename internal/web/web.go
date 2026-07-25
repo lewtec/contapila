@@ -1,10 +1,12 @@
 package web
 
+//go:generate go tool templ generate
+
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -17,6 +19,7 @@ import (
 	"time"
 
 	"cuelang.org/go/cue"
+	"github.com/a-h/templ"
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
@@ -27,9 +30,6 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
-//go:embed templates/*
-var templateFS embed.FS
-
 //go:embed all:static
 var staticFS embed.FS
 
@@ -38,7 +38,6 @@ type Server struct {
 	// discovery, and journals are reloaded from disk on every request so F5
 	// always reflects current files — no process-lifetime cache of project state.
 	Root string
-	Tmpl *template.Template
 }
 
 func Listen(p *project.Project, pdb *prices.DB, defaultLedger string, addr string) error {
@@ -67,63 +66,10 @@ func Listen(p *project.Project, pdb *prices.DB, defaultLedger string, addr strin
 // call-site compatibility; request handlers reload project + prices from disk
 // via engine.OpenProject on every request (not cached on Server).
 func New(p *project.Project, _ *prices.DB) (*Server, error) {
-	funcMap := template.FuncMap{
-		"eq":          func(a, b string) bool { return a == b },
-		"queryEscape": url.QueryEscape,
-		"jsonStr": func(s string) template.JS {
-			b, err := json.Marshal(s)
-			if err != nil {
-				return template.JS(`""`)
-			}
-			return template.JS(b)
-		},
-		// dict builds a map for partials that need row + page fields, e.g.
-		// {{template "tree-account-cell" dict "Row" . "Ledger" $.LedgerName "Time" $.Time}}
-		"dict": func(kv ...any) (map[string]any, error) {
-			if len(kv)%2 != 0 {
-				return nil, fmt.Errorf("dict: need even number of args")
-			}
-			m := make(map[string]any, len(kv)/2)
-			for i := 0; i < len(kv); i += 2 {
-				k, ok := kv[i].(string)
-				if !ok {
-					return nil, fmt.Errorf("dict: key must be string")
-				}
-				m[k] = kv[i+1]
-			}
-			return m, nil
-		},
-		"ledgerURL": func(ledger, page, timeFilter string) string {
-			u := "/l/" + url.PathEscape(ledger) + "/" + url.PathEscape(page)
-			if timeFilter != "" {
-				u += "?time=" + url.QueryEscape(timeFilter)
-			}
-			return u
-		},
-		"accountURL": func(ledger, account, timeFilter string) string {
-			// Keep ":" readable in URLs; escape only reserved bits.
-			u := "/l/" + url.PathEscape(ledger) + "/account/" + url.PathEscape(account)
-			if timeFilter != "" {
-				u += "?time=" + url.QueryEscape(timeFilter)
-			}
-			return u
-		},
-		"commodityURL": func(ledger, commodity, timeFilter string) string {
-			u := "/l/" + url.PathEscape(ledger) + "/commodity/" + url.PathEscape(commodity)
-			if timeFilter != "" {
-				u += "?time=" + url.QueryEscape(timeFilter)
-			}
-			return u
-		},
-	}
-	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
-	if err != nil {
-		return nil, err
-	}
 	if p == nil || p.Root == "" {
 		return nil, fmt.Errorf("web: project root is required")
 	}
-	return &Server{Root: p.Root, Tmpl: tmpl}, nil
+	return &Server{Root: p.Root}, nil
 }
 
 // loadProject reloads contapila.cue, project_journals, prices, and ledger discovery.
@@ -190,10 +136,10 @@ type pageData struct {
 	CommodityActivity []balanceRow
 	CommodityMeta     []metaKV
 	CommodityPrices   []pricePointRow // price history for this base commodity
-	// Charts (uPlot): ChartJSON is safe JSON embedded in the page.
+	// Charts (uPlot): ChartJSON is pre-marshaled JSON embedded in the page.
 	ChartID    string
 	ChartTitle string
-	ChartJSON  template.JS
+	ChartJSON  string
 	NeedCharts bool
 }
 
@@ -270,7 +216,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		Ledgers:     engine.LedgerNames(p),
 		ProjectRoot: p.Root,
 	}
-	s.render(w, "index.html", data)
+	s.render(w, IndexPage(data))
 }
 
 // pageTimeQuery is shared time-filter + as-of resolution for ledger/account/commodity pages.
@@ -447,7 +393,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.render(w, "ledger.html", data)
+	s.render(w, LedgerPage(data))
 }
 
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
@@ -494,7 +440,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if perr != nil {
 		data.Error = perr.Error()
-		s.render(w, "account.html", data)
+		s.render(w, AccountPage(data))
 		return
 	}
 
@@ -538,11 +484,11 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 			data.ChartJSON = js
 		}
 	}
-	s.render(w, "account.html", data)
+	s.render(w, AccountPage(data))
 }
 
 // chartLineJSON builds uPlot line payload (event series, op currency).
-func chartLineJSON(pts []engine.SeriesPoint, currency, label string) (template.JS, error) {
+func chartLineJSON(pts []engine.SeriesPoint, currency, label string) (string, error) {
 	if len(pts) == 0 {
 		return "", nil
 	}
@@ -562,14 +508,14 @@ func chartLineJSON(pts []engine.SeriesPoint, currency, label string) (template.J
 	if err != nil {
 		return "", err
 	}
-	return template.JS(b), nil
+	return string(b), nil
 }
 
 // chartPriceJSON builds a stepped line of market prices for base commodity.
 // Prefers preferQuote (usually op currency); otherwise first series by quote name.
 // Points outside [from,to] are dropped when bounds are set; zero bounds = full series.
 // If the filter removes every point, falls back to the full series so the chart still shows.
-func chartPriceJSON(db *prices.DB, base, preferQuote string, from, to time.Time) (template.JS, string, error) {
+func chartPriceJSON(db *prices.DB, base, preferQuote string, from, to time.Time) (string, string, error) {
 	if db == nil || base == "" {
 		return "", "", nil
 	}
@@ -639,12 +585,12 @@ func chartPriceJSON(db *prices.DB, base, preferQuote string, from, to time.Time)
 	if err != nil {
 		return "", "", err
 	}
-	return template.JS(b), chosen.Quote, nil
+	return string(b), chosen.Quote, nil
 }
 
 // chartBarsJSON builds uPlot diverging bar payload.
 // X is ordinal (0..n-1), not unix time — avoids time-scale bar width/overlap artifacts.
-func chartBarsJSON(bars []engine.BarPoint, currency string) (template.JS, error) {
+func chartBarsJSON(bars []engine.BarPoint, currency string) (string, error) {
 	if len(bars) == 0 {
 		return "", nil
 	}
@@ -672,7 +618,7 @@ func chartBarsJSON(bars []engine.BarPoint, currency string) (template.JS, error)
 	if err != nil {
 		return "", err
 	}
-	return template.JS(raw), nil
+	return string(raw), nil
 }
 
 func ratFloat(r *big.Rat) float64 {
@@ -922,7 +868,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 	}
 	if perr != nil {
 		data.Error = perr.Error()
-		s.render(w, "commodity.html", data)
+		s.render(w, CommodityPage(data))
 		return
 	}
 
@@ -971,7 +917,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 		}
 		data.ChartJSON = js
 	}
-	s.render(w, "commodity.html", data)
+	s.render(w, CommodityPage(data))
 }
 
 func priceSeriesRows(db *prices.DB) []priceSeriesRow {
@@ -1078,10 +1024,10 @@ func mergeCUECommodityMeta(cfg cue.Value, commodity string, rows []metaKV) []met
 	return append(rows, extra...)
 }
 
-func (s *Server) render(w http.ResponseWriter, name string, data pageData) {
+func (s *Server) render(w http.ResponseWriter, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if err := s.Tmpl.ExecuteTemplate(w, name, data); err != nil {
+	if err := c.Render(context.Background(), w); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

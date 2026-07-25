@@ -72,7 +72,7 @@ navbar/topbar, drawer, menu, table, alert, badge, breadcrumbs, input, theme-cont
 ## Charts (uPlot, vendored)
 
 - Assets: `internal/web/static/vendor/uplot/` — update with `./scripts/vendor-uplot.sh [ver]`
-- Glue: `static/charts.js` + template partials `charts.html` (`chart-assets`, `chart-panel`)
+- Glue: `static/charts.js` + templ components in `charts.templ` (`chartAssets`, `chartPanel`)
 - **Net worth** / **account**: stepped line, one point per balance-changing event, **op currency**, price ≤ event date
 - **Income statement**: diverging bars (income up, expenses down); bin from time filter (year→month, month→day, multi-year→year)
 - Hierarchy/treemap: not yet (can add another lib later without rewriting series APIs)

@@ -1,0 +1,71 @@
+package web
+
+templ CommodityPage(d pageData) {
+	@appLayout(d) {
+		@periodMeta(d)
+		@pageError(d.Error)
+		@chartPanel(d)
+		if len(d.CommodityMeta) > 0 {
+			<section class="mb-4">
+				@sectionTitle("Metadata")
+				@metaKVRows(d.CommodityMeta)
+			</section>
+		}
+		if len(d.CommodityPrices) > 0 {
+			<section class="mb-4">
+				<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">
+					Prices
+					<a class="ml-2 font-normal normal-case tracking-normal link link-hover link-primary text-xs" href={ templ.SafeURL(ledgerURL(d.LedgerName, "prices", d.Time)) }>all pairs</a>
+				</h2>
+				<div class="overflow-x-auto border border-base-300 max-h-64 overflow-y-auto">
+					<table class="table table-xs table-zebra">
+						<thead class="sticky top-0 bg-base-100">
+							<tr>
+								<th>Date</th>
+								<th class="text-right">Price</th>
+								<th>Meta</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, p := range d.CommodityPrices {
+								<tr>
+									<td class="font-mono tabular text-xs text-base-content/70">{ p.Date }</td>
+									<td class="text-right tabular text-xs font-medium font-mono">
+										{ p.Rate } <a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, p.Quote, d.Time)) }>{ p.Quote }</a>
+									</td>
+									<td class="text-xs text-base-content/70">
+										@metaInline(p.Metadata)
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		}
+		<div class="grid gap-4 md:grid-cols-2 mb-4">
+			<section>
+				@sectionTitle("Balance by account")
+				@accountAmountRows(d.CommodityBalances, d.LedgerName, d.Time, "Zero / never held.")
+			</section>
+			<section>
+				@sectionTitle("Change in period")
+				@accountAmountRows(d.CommodityActivity, d.LedgerName, d.Time, "No activity.")
+			</section>
+		</div>
+		<section>
+			@sectionTitle("Journal")
+			@journalList(d)
+		</section>
+	}
+}
+
+// metaInline renders key=value pairs comma-separated (prices tables).
+templ metaInline(rows []metaKV) {
+	for i, m := range rows {
+		if i > 0 {
+			{ ", " }
+		}
+		<span class="font-mono">{ m.Key }</span>={ m.Value }
+	}
+}
