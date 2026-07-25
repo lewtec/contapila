@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -30,7 +29,7 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 			OpCurrency: "BRL", PeriodLabel: "2024", Time: "2024",
 		}
 		var buf bytes.Buffer
-		if err := LedgerPage(data).Render(context.Background(), &buf); err != nil {
+		if err := LedgerPage(data).Render(t.Context(), &buf); err != nil {
 			t.Fatalf("%s: %v", page, err)
 		}
 		if buf.Len() < 100 {
@@ -52,7 +51,7 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 		}),
 	} {
 		var buf bytes.Buffer
-		if err := page.Render(context.Background(), &buf); err != nil {
+		if err := page.Render(t.Context(), &buf); err != nil {
 			t.Fatalf("render: %v", err)
 		}
 		if buf.Len() < 100 {

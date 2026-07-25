@@ -49,27 +49,27 @@ func Load(userCue []byte, userFilename string, discovered []Ledger, pricePairs [
 
 	preludeBytes, err := fs.ReadFile(PreludeFilename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read embedded prelude: %w", err)
+		return nil, fmt.Errorf("read embedded prelude: %w", err)
 	}
 
 	prelude := ctx.CompileBytes(preludeBytes, cue.Filename(PreludeFilename))
 	if err := prelude.Err(); err != nil {
-		return nil, fmt.Errorf("failed to compile prelude: %w", err)
+		return nil, fmt.Errorf("compile prelude: %w", err)
 	}
 
 	gen := ctx.CompileString(encodeLedgersCUE(discovered), cue.Filename("ledgers.gen.cue"))
 	if err := gen.Err(); err != nil {
-		return nil, fmt.Errorf("failed to compile discovered ledgers: %w", err)
+		return nil, fmt.Errorf("compile discovered ledgers: %w", err)
 	}
 
 	pairs := ctx.CompileString(encodePricePairsCUE(pricePairs), cue.Filename("price_pairs.gen.cue"))
 	if err := pairs.Err(); err != nil {
-		return nil, fmt.Errorf("failed to compile price pairs: %w", err)
+		return nil, fmt.Errorf("compile price pairs: %w", err)
 	}
 
 	user := ctx.CompileBytes(userCue, cue.Filename(userFilename))
 	if err := user.Err(); err != nil {
-		return nil, fmt.Errorf("failed to compile user config: %w", err)
+		return nil, fmt.Errorf("compile user config: %w", err)
 	}
 
 	unified := prelude.Unify(gen).Unify(pairs).Unify(user)
@@ -96,7 +96,7 @@ func ProjectJournals(v cue.Value) ([]ProjectJournal, error) {
 	}
 	iter, err := list.List()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list project_journals: %w", err)
+		return nil, fmt.Errorf("list project_journals: %w", err)
 	}
 	var out []ProjectJournal
 	for iter.Next() {

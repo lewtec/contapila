@@ -126,7 +126,7 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 	// Discover ledgers first so CUE can type #LedgerName from the filesystem.
 	ledgers, err := discoverLedgers(fsys, root)
 	if err != nil {
-		return nil, fmt.Errorf("failed to discover ledgers: %w", err)
+		return nil, fmt.Errorf("discover ledgers: %w", err)
 	}
 	discovered := make([]config.Ledger, 0, len(ledgers))
 	for _, l := range ledgers {
@@ -142,12 +142,12 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 	// First unify without price_pairs so we can read project_journals defaults.
 	cfg, err := config.Load(cueBytes, cuePath, discovered, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
+		return nil, fmt.Errorf("load config: %w", err)
 	}
 
 	journals, err := config.ProjectJournals(cfg.Value)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read project_journals: %w", err)
+		return nil, fmt.Errorf("read project_journals: %w", err)
 	}
 	var (
 		pricePairs     []config.PricePair
@@ -210,7 +210,7 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 	if len(pricePairs) > 0 {
 		cfg2, err := config.Load(cueBytes, cuePath, discovered, pricePairs)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load config with price pairs: %w", err)
+			return nil, fmt.Errorf("load config with price pairs: %w", err)
 		}
 		cfg = cfg2
 	}

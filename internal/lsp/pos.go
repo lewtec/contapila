@@ -129,8 +129,5 @@ func byteColToUTF16(text string, line1, byteCol int) int {
 }
 
 func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
+	return max(a, b)
 }

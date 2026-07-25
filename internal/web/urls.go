@@ -74,10 +74,7 @@ func chartAriaLabel(d pageData) string {
 }
 
 func treeDataAccount(path, account string) string {
-	if path != "" {
-		return path
-	}
-	return account
+	return cmp.Or(path, account)
 }
 
 func fmtInt(n int) string {

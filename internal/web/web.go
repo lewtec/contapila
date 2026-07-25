@@ -936,17 +936,11 @@ func treePadLeft(depth int) string {
 }
 
 func treeLabel(name, account string) string {
-	if name != "" {
-		return name
-	}
-	return account
+	return cmp.Or(name, account)
 }
 
 func treePath(path, account string) string {
-	if path != "" {
-		return path
-	}
-	return account
+	return cmp.Or(path, account)
 }
 
 func buildBalanceTreeRows(lines []engine.BalanceTreeLine) []balanceRow {
