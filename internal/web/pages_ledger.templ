@@ -86,15 +86,7 @@ templ balancesBody(d pageData) {
 						>
 							@treeAccountCell(r, d.LedgerName, d.Time)
 							<td class="text-right tabular text-xs font-medium whitespace-nowrap">
-								if r.Amount != "" {
-									{ r.Amount }
-									if r.Commodity != "" {
-										{ " " }
-										<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
-									}
-								} else if r.Commodity != "" && !r.IsRollup {
-									<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
-								}
+								@amountWithCommodityLink(r.Amount, r.Commodity, d.LedgerName, d.Time, r.IsRollup)
 							</td>
 						</tr>
 					}
@@ -159,15 +151,7 @@ templ networthBody(d pageData) {
 							>
 								@treeAccountCellNW(r, d.LedgerName, d.Time)
 								<td class="text-right tabular text-xs font-medium whitespace-nowrap">
-									if r.Units != "" {
-										{ r.Units }
-										if r.Commodity != "" {
-											{ " " }
-											<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
-										}
-									} else if r.Commodity != "" && !r.IsRollup {
-										<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(d.LedgerName, r.Commodity, d.Time)) }>{ r.Commodity }</a>
-									}
+									@amountWithCommodityLink(r.Units, r.Commodity, d.LedgerName, d.Time, r.IsRollup)
 								</td>
 								<td class="text-right tabular text-xs font-medium whitespace-nowrap">
 									{ r.Value }
