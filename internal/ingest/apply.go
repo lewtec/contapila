@@ -157,7 +157,9 @@ func directiveMeta(d ast.Directive) ast.Meta {
 // WriteFileAtomic writes data to path via temp file + rename.
 // Creates parent directories as needed. Creates the file only when writing.
 // The temp file is fsynced before rename so a crash after rename cannot leave
-// an empty/partial journal that only lived in the page cache.
+// an empty/partial journal that only lived in the page cache. After rename the
+// parent directory is fsynced so the directory entry itself is durable; file
+// Sync alone does not guarantee that the rename is on stable storage.
 func WriteFileAtomic(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	if dir != "" && dir != "." {
@@ -182,5 +184,21 @@ func WriteFileAtomic(path string, data []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpName, path)
+	if err := os.Rename(tmpName, path); err != nil {
+		return err
+	}
+	return syncDir(dir)
+}
+
+// syncDir fsyncs a directory so recent renames/creates are durable.
+func syncDir(dir string) error {
+	if dir == "" {
+		dir = "."
+	}
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = d.Close() }()
+	return d.Sync()
 }
