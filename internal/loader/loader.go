@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
@@ -78,18 +79,28 @@ func loadOne(fsys filesys.FS, path string, out *[]ast.Directive, diags *diag.Lis
 }
 
 func expandInclude(fsys filesys.FS, baseDir, pattern string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
+	pattern = strings.TrimSpace(pattern)
+	if pattern == "" {
+		diags.Error(baseDir, 0, "include path is empty")
+		return fmt.Errorf("include path is empty")
+	}
 	target := pattern
 	if !filepath.IsAbs(pattern) {
 		target = filepath.Join(baseDir, pattern)
 	}
 
 	if !hasGlob(pattern) {
-		if _, err := fsys.Stat(target); err != nil {
+		info, err := fsys.Stat(target)
+		if err != nil {
 			if os.IsNotExist(err) {
 				diags.Error(baseDir, 0, fmt.Sprintf("include missing: %s", pattern))
 				return fmt.Errorf("include missing: %s", pattern)
 			}
 			return err
+		}
+		if info.IsDir() {
+			diags.Error(baseDir, 0, fmt.Sprintf("include is a directory: %s", pattern))
+			return fmt.Errorf("include is a directory: %s", pattern)
 		}
 		return loadOne(fsys, target, out, diags, seen, stack)
 	}
