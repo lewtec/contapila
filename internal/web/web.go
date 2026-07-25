@@ -282,43 +282,17 @@ func parsePageTimeQuery(q url.Values, now time.Time, fromTo, explicitAsOf bool) 
 func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("ledger")
 	page := r.PathValue("page")
-	proj, pdb, err := s.loadProject()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	proj, pdb, l, tq, ok := s.openLedgerRequest(w, r, name)
+	if !ok {
 		return
 	}
-	l, err := engine.OpenLedger(proj, pdb, name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	q := r.URL.Query()
-	tq, err := parsePageTimeQuery(q, time.Now(), true, true)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	timeStr, pr, perr, asOf, asOfStr := tq.Time, tq.Period, tq.PeriodErr, tq.AsOf, tq.AsOfStr
-
-	data := pageData{
-		Title:       name + " · " + page,
-		Page:        page,
-		LedgerName:  name,
-		Ledgers:     engine.LedgerNames(proj),
-		ProjectRoot: proj.Root,
-		OpCurrency:  l.OpCurrency,
-		Diags:       l.Diags,
-		HasErrors:   l.Diags.HasErrors(),
-		HasWarnings: l.Diags.HasWarnings(),
-		OK:          !l.Diags.HasErrors(),
-		AsOf:        asOfStr,
-		Time:        timeStr,
-		PeriodLabel: tq.PeriodLabel,
-	}
-	if perr != nil {
-		data.Error = perr.Error()
-	}
+	data := basePageData(proj, l, name, name+" · "+page, page, tq)
+	data.Diags = l.Diags
+	data.HasErrors = l.Diags.HasErrors()
+	data.HasWarnings = l.Diags.HasWarnings()
+	data.OK = !l.Diags.HasErrors()
 
 	switch page {
 	case "check":
@@ -334,14 +308,10 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 			inc, exp := l.PnLTree(pr.Start, pr.End)
 			data.IncomeRows = buildPnLRows(inc)
 			data.ExpenseRows = buildPnLRows(exp)
-			from, to := pr.Start, pr.End
-			kind := period.ChartBin(timeStr, pr)
-			bars := l.PnLBars(from, to, kind)
-			if js, err := chartBarsJSON(bars, l.OpCurrency); err == nil && js != "" {
-				data.NeedCharts = true
-				data.ChartID = "chart-pnl"
-				data.ChartTitle = "Income vs expenses"
-				data.ChartJSON = js
+			kind := period.ChartBin(tq.Time, pr)
+			bars := l.PnLBars(pr.Start, pr.End, kind)
+			if js, err := chartBarsJSON(bars, l.OpCurrency); err == nil {
+				setChart(&data, "chart-pnl", "Income vs expenses", js)
 			}
 		}
 	case "networth":
@@ -352,13 +322,9 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 			data.NetWorthTot = total.FloatString(2)
 			data.NetWorthRows = buildNetWorthRows(tree)
 			// Event series over filter range (or full history if open).
-			pts, serr := l.NetWorthSeries(pr.Start, pr.End)
-			if serr == nil {
-				if js, jerr := chartLineJSON(pts, l.OpCurrency, "Net worth"); jerr == nil && js != "" {
-					data.NeedCharts = true
-					data.ChartID = "chart-networth"
-					data.ChartTitle = "Net worth over time"
-					data.ChartJSON = js
+			if pts, serr := l.NetWorthSeries(pr.Start, pr.End); serr == nil {
+				if js, jerr := chartLineJSON(pts, l.OpCurrency, "Net worth"); jerr == nil {
+					setChart(&data, "chart-networth", "Net worth over time", js)
 				}
 			}
 		}
@@ -367,7 +333,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	case "prices":
 		data.PriceSeries = priceSeriesRows(pdb)
 		// Chart the busiest base (or ?base=) so the prices report is not table-only.
-		base := q.Get("base")
+		base := r.URL.Query().Get("base")
 		if base == "" {
 			var bestN int
 			for _, row := range data.PriceSeries {
@@ -378,15 +344,12 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if base != "" {
-			if js, quote, jerr := chartPriceJSON(pdb, base, l.OpCurrency, time.Time{}, time.Time{}); jerr == nil && js != "" {
-				data.NeedCharts = true
-				data.ChartID = "chart-prices"
+			if js, quote, jerr := chartPriceJSON(pdb, base, l.OpCurrency, time.Time{}, time.Time{}); jerr == nil {
+				title := base + " price"
 				if quote != "" {
-					data.ChartTitle = base + " price (" + quote + ")"
-				} else {
-					data.ChartTitle = base + " price"
+					title = base + " price (" + quote + ")"
 				}
-				data.ChartJSON = js
+				setChart(&data, "chart-prices", title, js)
 			}
 		}
 	default:
@@ -403,73 +366,25 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid account path encoding", http.StatusBadRequest)
 		return
 	}
-	// Wildcard may use slashes if any; join
 	if account == "" {
 		http.NotFound(w, r)
 		return
 	}
-	proj, pdb, err := s.loadProject()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	proj, _, l, tq, ok := s.openLedgerRequest(w, r, name)
+	if !ok {
 		return
 	}
-	l, err := engine.OpenLedger(proj, pdb, name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	// Same time query surface as ledger: ?time=, from/to, and as-of.
-	tq, err := parsePageTimeQuery(r.URL.Query(), time.Now(), true, true)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	timeStr, pr, perr, asOf := tq.Time, tq.Period, tq.PeriodErr, tq.AsOf
+	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := pageData{
-		Title:       account,
-		Page:        "account",
-		LedgerName:  name,
-		Ledgers:     engine.LedgerNames(proj),
-		ProjectRoot: proj.Root,
-		OpCurrency:  l.OpCurrency,
-		Time:        timeStr,
-		PeriodLabel: tq.PeriodLabel,
-		AsOf:        tq.AsOfStr,
-		AccountName: account,
-	}
+	data := basePageData(proj, l, name, account, "account", tq)
+	data.AccountName = account
 	if perr != nil {
-		data.Error = perr.Error()
 		s.render(w, AccountPage(data))
 		return
 	}
 
-	// balances for this account
-	bals := l.AccountBalances(account, asOf)
-	var brow []balanceRow
-	var comms []string
-	for c := range bals {
-		comms = append(comms, c)
-	}
-	sort.Strings(comms)
-	for _, c := range comms {
-		brow = append(brow, balanceRow{Account: account, Commodity: c, Amount: bals[c].FloatString(4)})
-	}
-	data.AccountBalances = brow
-
-	// activity in period
-	act := l.AccountActivity(account, pr.Start, pr.End)
-	comms = nil
-	for c := range act {
-		comms = append(comms, c)
-	}
-	sort.Strings(comms)
-	var arow []balanceRow
-	for _, c := range comms {
-		arow = append(arow, balanceRow{Account: account, Commodity: c, Amount: act[c].FloatString(4)})
-	}
-	data.AccountActivity = arow
-
+	data.AccountBalances = amountMapRows(l.AccountBalances(account, asOf), account, "", 4)
+	data.AccountActivity = amountMapRows(l.AccountActivity(account, pr.Start, pr.End), account, "", 4)
 	data.Journal = l.JournalForAccount(account, pr.Start, pr.End)
 	data.AccountDocs = documentRows(l.DocumentsForAccount(account))
 	if info, ok := l.Accounts[account]; ok {
@@ -477,11 +392,8 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 		data.AccountCurrencies = info.Currencies
 	}
 	if pts, err := l.AccountSeries(account, pr.Start, pr.End); err == nil {
-		if js, jerr := chartLineJSON(pts, l.OpCurrency, "Balance"); jerr == nil && js != "" {
-			data.NeedCharts = true
-			data.ChartID = "chart-account"
-			data.ChartTitle = "Balance over time"
-			data.ChartJSON = js
+		if js, jerr := chartLineJSON(pts, l.OpCurrency, "Balance"); jerr == nil {
+			setChart(&data, "chart-account", "Balance over time", js)
 		}
 	}
 	s.render(w, AccountPage(data))
@@ -836,66 +748,21 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	proj, pdb, err := s.loadProject()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	proj, pdb, l, tq, ok := s.openLedgerRequest(w, r, name)
+	if !ok {
 		return
 	}
-	l, err := engine.OpenLedger(proj, pdb, name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	// Same time query surface as ledger: ?time=, from/to, and as-of.
-	tq, err := parsePageTimeQuery(r.URL.Query(), time.Now(), true, true)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	timeStr, pr, perr, asOf := tq.Time, tq.Period, tq.PeriodErr, tq.AsOf
+	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := pageData{
-		Title:         commodity,
-		Page:          "commodity",
-		LedgerName:    name,
-		Ledgers:       engine.LedgerNames(proj),
-		ProjectRoot:   proj.Root,
-		OpCurrency:    l.OpCurrency,
-		Time:          timeStr,
-		PeriodLabel:   tq.PeriodLabel,
-		AsOf:          tq.AsOfStr,
-		CommodityName: commodity,
-	}
+	data := basePageData(proj, l, name, commodity, "commodity", tq)
+	data.CommodityName = commodity
 	if perr != nil {
-		data.Error = perr.Error()
 		s.render(w, CommodityPage(data))
 		return
 	}
 
-	bals := l.CommodityBalances(commodity, asOf)
-	var accts []string
-	for a := range bals {
-		accts = append(accts, a)
-	}
-	sort.Strings(accts)
-	for _, a := range accts {
-		data.CommodityBalances = append(data.CommodityBalances, balanceRow{
-			Account: a, Commodity: commodity, Amount: bals[a].FloatString(4),
-		})
-	}
-
-	act := l.CommodityActivity(commodity, pr.Start, pr.End)
-	accts = nil
-	for a := range act {
-		accts = append(accts, a)
-	}
-	sort.Strings(accts)
-	for _, a := range accts {
-		data.CommodityActivity = append(data.CommodityActivity, balanceRow{
-			Account: a, Commodity: commodity, Amount: act[a].FloatString(4),
-		})
-	}
-
+	data.CommodityBalances = amountMapRows(l.CommodityBalances(commodity, asOf), "", commodity, 4)
+	data.CommodityActivity = amountMapRows(l.CommodityActivity(commodity, pr.Start, pr.End), "", commodity, 4)
 	data.Journal = l.JournalForCommodity(commodity, pr.Start, pr.End)
 	if info, ok := l.Commodities[commodity]; ok {
 		data.CommodityMeta = metaRows(info.Metadata)
@@ -907,15 +774,12 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 	data.CommodityPrices = commodityPriceRows(pdb, commodity)
 	// Price chart uses full history (not the journal time filter). Filtering prices
 	// by "month" / current year often empties the chart even when history exists.
-	if js, quote, jerr := chartPriceJSON(pdb, commodity, l.OpCurrency, time.Time{}, time.Time{}); jerr == nil && js != "" {
-		data.NeedCharts = true
-		data.ChartID = "chart-commodity-price"
+	if js, quote, jerr := chartPriceJSON(pdb, commodity, l.OpCurrency, time.Time{}, time.Time{}); jerr == nil {
+		title := "Price"
 		if quote != "" {
-			data.ChartTitle = "Price (" + quote + ")"
-		} else {
-			data.ChartTitle = "Price"
+			title = "Price (" + quote + ")"
 		}
-		data.ChartJSON = js
+		setChart(&data, "chart-commodity-price", title, js)
 	}
 	s.render(w, CommodityPage(data))
 }

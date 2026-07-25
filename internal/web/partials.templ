@@ -59,6 +59,20 @@ templ metaMapTable(meta ast.Metadata, indent bool) {
 	}
 }
 
+// amountWithCommodityLink is the units/amount cell used by balances and net-worth trees:
+// amount text plus optional commodity link, or commodity-only when amount is empty on a leaf.
+templ amountWithCommodityLink(amount, commodity, ledger, timeFilter string, isRollup bool) {
+	if amount != "" {
+		{ amount }
+		if commodity != "" {
+			{ " " }
+			<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(ledger, commodity, timeFilter)) }>{ commodity }</a>
+		}
+	} else if commodity != "" && !isRollup {
+		<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(ledger, commodity, timeFilter)) }>{ commodity }</a>
+	}
+}
+
 // treeAccountCell is the collapsible account column shared by balances / PnL / networth trees.
 templ treeAccountCell(row balanceRow, ledger, timeFilter string) {
 	<td
