@@ -133,6 +133,34 @@ func TestWriteFileAtomic(t *testing.T) {
 	}
 }
 
+func TestWriteFileAtomicOverwrite(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "out.beancount")
+	if err := os.WriteFile(path, []byte("old\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteFileAtomic(path, []byte("new content\n")); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != "new content\n" {
+		t.Fatalf("%q", b)
+	}
+	// No leftover temp files from CreateTemp prefix.
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range ents {
+		if strings.HasPrefix(e.Name(), ".contapila-ingest-") {
+			t.Fatalf("leftover temp %q", e.Name())
+		}
+	}
+}
+
 func TestDuplicateIDLastWins(t *testing.T) {
 	in := strings.Join([]string{
 		`{"type":"custom","date":"2025-04-03","id":"x","custom_type":"index","values":[{"text":"CDI"},{"number":"0.1"}]}`,
