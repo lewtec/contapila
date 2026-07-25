@@ -125,6 +125,18 @@ func TestLSP_DefinitionCompletionHover(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("didChange: %v", err)
 	}
+	// DidChange is a notification; wait until overlay has the partial or completion
+	// sees the trailing empty line of src as date context (flake under load).
+	deadline = time.Now().Add(2 * time.Second)
+	for {
+		if text, ok := srv.session.docText(mainPath); ok && text == partial {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("timeout waiting for didChange overlay")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 	// snapshot may still be last-good with accounts
 	off := len(partial)
 	cpos := offsetToPos(partial, off)
