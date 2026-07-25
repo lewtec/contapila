@@ -5,6 +5,16 @@ import (
 	"github.com/lucasew/contapila-go/internal/engine"
 )
 
+// reportLayout is the shared shell for every ledger-scoped page:
+// app chrome + period meta + error banner, then page body.
+templ reportLayout(d pageData) {
+	@appLayout(d) {
+		@periodMeta(d)
+		@pageError(d.Error)
+		{ children... }
+	}
+}
+
 templ pageError(err string) {
 	if err != "" {
 		<div role="alert" class="alert alert-error alert-soft py-2 text-xs mb-3"><span>{ err }</span></div>
@@ -29,6 +39,48 @@ templ periodMeta(d pageData) {
 
 templ sectionTitle(title string) {
 	<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">{ title }</h2>
+}
+
+// sectionTitleExtra is a section heading that can host an inline action (e.g. "all pairs").
+templ sectionTitleExtra(title string) {
+	<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">
+		{ title }
+		{ children... }
+	</h2>
+}
+
+templ accountLink(ledger, account, timeFilter, label string) {
+	<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(ledger, account, timeFilter)) } title={ account }>
+		if label != "" {
+			{ label }
+		} else {
+			{ account }
+		}
+	</a>
+}
+
+templ commodityLink(ledger, commodity, timeFilter string, mono bool) {
+	<a
+		class={ "link link-hover link-primary", templ.KV("font-mono", mono) }
+		href={ templ.SafeURL(commodityURL(ledger, commodity, timeFilter)) }
+	>{ commodity }</a>
+}
+
+// rateWithQuote is "1.23 USD" with the quote commodity linked (prices tables).
+templ rateWithQuote(rate, quote, ledger, timeFilter string) {
+	{ rate } { " " }
+	@commodityLink(ledger, quote, timeFilter, false)
+}
+
+// fileLink is a document path: linked when Href is set, plain span otherwise.
+templ fileLink(href, path, name string, muted bool) {
+	if href != "" {
+		<a class="link link-hover link-primary" href={ templ.SafeURL(href) } title={ path }>{ name }</a>
+	} else if muted {
+		<span class="text-base-content/80" title={ path }>{ name }</span>
+	} else {
+		<span title={ path }>{ name }</span>
+	}
 }
 
 // metaMapTable renders a key/value table. indent adds left margin for posting-level meta.
@@ -59,17 +111,54 @@ templ metaMapTable(meta ast.Metadata, indent bool) {
 	}
 }
 
-// amountWithCommodityLink is the units/amount cell used by balances and net-worth trees:
-// amount text plus optional commodity link, or commodity-only when amount is empty on a leaf.
+templ metaKVTableRow(key, value string) {
+	<tr>
+		<td class="text-[0.65rem] uppercase tracking-wide text-base-content/50 w-32">{ key }</td>
+		<td class="font-mono text-xs">{ value }</td>
+	</tr>
+}
+
+// metaKVRows: ordered key/value pairs (commodity meta, etc.).
+templ metaKVRows(rows []metaKV) {
+	@borderTable() {
+		<table class="table table-xs">
+			<tbody>
+				for _, m := range rows {
+					@metaKVTableRow(m.Key, m.Value)
+				}
+			</tbody>
+		</table>
+	}
+}
+
+// metaInline renders key=value pairs comma-separated (prices tables).
+templ metaInline(rows []metaKV) {
+	for i, m := range rows {
+		if i > 0 {
+			{ ", " }
+		}
+		<span class="font-mono">{ m.Key }</span>={ m.Value }
+	}
+}
+
+// amountWithCommodityLink is the units/amount cell used by balances and net-worth trees.
 templ amountWithCommodityLink(amount, commodity, ledger, timeFilter string, isRollup bool) {
 	if amount != "" {
 		{ amount }
 		if commodity != "" {
 			{ " " }
-			<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(ledger, commodity, timeFilter)) }>{ commodity }</a>
+			@commodityLink(ledger, commodity, timeFilter, true)
 		}
 	} else if commodity != "" && !isRollup {
-		<a class="link link-hover link-primary font-mono" href={ templ.SafeURL(commodityURL(ledger, commodity, timeFilter)) }>{ commodity }</a>
+		@commodityLink(ledger, commodity, timeFilter, true)
+	}
+}
+
+templ treeToggle(isRollup bool) {
+	if isRollup {
+		<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
+	} else {
+		<span class="inline-block w-5" aria-hidden="true"></span>
 	}
 }
 
@@ -81,22 +170,12 @@ templ treeAccountCell(row balanceRow, ledger, timeFilter string) {
 			style={ "padding-left: " + row.PadLeft }
 		}
 	>
-		if row.IsRollup {
-			<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
-		} else {
-			<span class="inline-block w-5" aria-hidden="true"></span>
-		}
-		<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(ledger, row.Account, timeFilter)) } title={ row.Account }>
-			if row.Name != "" {
-				{ row.Name }
-			} else {
-				{ row.Account }
-			}
-		</a>
+		@treeToggle(row.IsRollup)
+		@accountLink(ledger, row.Account, timeFilter, row.Name)
 	</td>
 }
 
-// treeAccountCellNW is the same cell for net-worth rows (same shape as balanceRow fields used).
+// treeAccountCellNW adapts nwRow to the shared tree account cell.
 templ treeAccountCellNW(row nwRow, ledger, timeFilter string) {
 	@treeAccountCell(balanceRow{
 		Account:  row.Account,
@@ -133,7 +212,7 @@ templ amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string
 						<tr>
 							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
 							<td class="font-mono text-xs">
-								<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(ledger, r.Commodity, timeFilter)) }>{ r.Commodity }</a>
+								@commodityLink(ledger, r.Commodity, timeFilter, false)
 							</td>
 						</tr>
 					}
@@ -160,7 +239,7 @@ templ accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) 
 					for _, r := range rows {
 						<tr>
 							<td class="font-mono text-xs">
-								<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(ledger, r.Account, timeFilter)) }>{ r.Account }</a>
+								@accountLink(ledger, r.Account, timeFilter, "")
 							</td>
 							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
 						</tr>
@@ -200,22 +279,6 @@ templ pnlSideTree(title string, rows []balanceRow, ledger, timeFilter, emptyMsg 
 			}
 		}
 	</section>
-}
-
-// metaKVRows: ordered key/value pairs (account open meta, commodity meta).
-templ metaKVRows(rows []metaKV) {
-	@borderTable() {
-		<table class="table table-xs">
-			<tbody>
-				for _, m := range rows {
-					<tr>
-						<td class="text-[0.65rem] uppercase tracking-wide text-base-content/50 w-32">{ m.Key }</td>
-						<td class="font-mono text-xs">{ m.Value }</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	}
 }
 
 // journalList renders journal entries with optional account/commodity highlight.
@@ -270,13 +333,11 @@ templ journalEntry(e engine.JournalEntry, d pageData) {
 						}
 					>
 						<div class="flex flex-wrap justify-between gap-2">
-							<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(d.LedgerName, p.Account, d.Time)) }>{ p.Account }</a>
+							@accountLink(d.LedgerName, p.Account, d.Time, "")
 							if p.Units != nil {
 								<span class="tabular text-base-content/90">
-									{
-									p.Units.Number.FloatString(4) + " "
-								}
-									<a class="link link-hover link-primary" href={ templ.SafeURL(commodityURL(d.LedgerName, p.Units.Commodity, d.Time)) }>{ p.Units.Commodity }</a>
+									{ p.Units.Number.FloatString(4) + " " }
+									@commodityLink(d.LedgerName, p.Units.Commodity, d.Time, false)
 								</span>
 							}
 						</div>
