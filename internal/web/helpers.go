@@ -1,6 +1,7 @@
 package web
 
 import (
+	"log/slog"
 	"math/big"
 	"net/http"
 	"sort"
@@ -18,7 +19,8 @@ func (s *Server) openLedgerRequest(w http.ResponseWriter, r *http.Request, ledge
 ) {
 	proj, pdb, err := s.loadProject()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("web load project", "err", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	l, err = engine.OpenLedger(proj, pdb, ledgerName)
