@@ -40,11 +40,13 @@ func init() {
 }
 
 // Extract opens path and returns the document element tree.
+// The underlying file is closed before return (success or error after open).
 func Extract(path string, opts dump.Options) (dump.ExtractedData, error) {
-	r, err := openPDF(path, opts.Password)
+	r, f, err := openPDF(path, opts.Password)
 	if err != nil {
 		return dump.ExtractedData{}, fmt.Errorf("open pdf: %w", err)
 	}
+	defer f.Close()
 
 	doc := &tnode{Type: "document"}
 	n := r.NumPage()
@@ -361,15 +363,17 @@ func rectProps(v pdf.Value) []any {
 	return out
 }
 
-func openPDF(path, password string) (*pdf.Reader, error) {
+// openPDF returns a Reader and the file it reads from. Caller must Close the
+// file when finished with the Reader (pdf.Reader has no Close of its own).
+func openPDF(path, password string) (*pdf.Reader, *os.File, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fi, err := f.Stat()
 	if err != nil {
 		f.Close()
-		return nil, err
+		return nil, nil, err
 	}
 	// NewReaderEncrypted tries empty owner/user first, then calls pw until "".
 	triedUser := false
@@ -383,8 +387,7 @@ func openPDF(path, password string) (*pdf.Reader, error) {
 	r, err := pdf.NewReaderEncrypted(f, fi.Size(), pw)
 	if err != nil {
 		f.Close()
-		return nil, err
+		return nil, nil, err
 	}
-	// Reader keeps f alive (same as pdf.Open); no explicit close API.
-	return r, nil
+	return r, f, nil
 }
