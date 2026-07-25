@@ -3,6 +3,7 @@ package web
 //go:generate go tool templ generate
 
 import (
+	"cmp"
 	"context"
 	"embed"
 	"encoding/json"
