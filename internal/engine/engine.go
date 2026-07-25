@@ -216,6 +216,19 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	}, nil
 }
 
+// canonicalPath returns an absolute, symlink-resolved path when possible so
+// stream journal inject dedupes the same file reached via different links.
+func canonicalPath(path string) string {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return filepath.Clean(path)
+	}
+	if real, err := filepath.EvalSymlinks(abs); err == nil {
+		return real
+	}
+	return abs
+}
+
 // injectProjectStreamJournals prepends prelude project_journals (role stream) into the ledger.
 // Paths already present in the stream (via include) are skipped to avoid double-load.
 func injectProjectStreamJournals(fsys filesys.FS, p *project.Project, stream []ast.Directive) ([]ast.Directive, diag.List) {
@@ -232,18 +245,11 @@ func injectProjectStreamJournals(fsys filesys.FS, p *project.Project, stream []a
 		if f == "" {
 			continue
 		}
-		fr, err := filepath.Abs(f)
-		if err != nil {
-			fr = f
-		}
-		present[fr] = true
+		present[canonicalPath(f)] = true
 	}
 	var prefix []ast.Directive
 	for _, j := range p.StreamJournals {
-		abs, err := filepath.Abs(j.Path)
-		if err != nil {
-			abs = j.Path
-		}
+		abs := canonicalPath(j.Path)
 		if present[abs] {
 			continue
 		}
