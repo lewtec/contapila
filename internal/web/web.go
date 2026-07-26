@@ -81,6 +81,7 @@ func Listen(p *project.Project, pdb *prices.DB, defaultLedger string, addr strin
 
 	select {
 	case <-ctx.Done():
+		// Parent must not be the signal ctx: it is already canceled in this branch.
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
@@ -259,7 +260,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		Ledgers:     engine.LedgerNames(p),
 		ProjectRoot: p.Root,
 	}
-	s.render(w, IndexPage(data))
+	s.render(r.Context(), w, IndexPage(data))
 }
 
 // pageTimeQuery is shared time-filter + as-of resolution for ledger/account/commodity pages.
@@ -399,7 +400,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.render(w, LedgerPage(data))
+	s.render(r.Context(), w, LedgerPage(data))
 }
 
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
@@ -422,7 +423,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	data := basePageData(proj, l, name, account, "account", tq)
 	data.AccountName = account
 	if perr != nil {
-		s.render(w, AccountPage(data))
+		s.render(r.Context(), w, AccountPage(data))
 		return
 	}
 
@@ -439,7 +440,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 			setChart(&data, "chart-account", "Balance over time", js)
 		}
 	}
-	s.render(w, AccountPage(data))
+	s.render(r.Context(), w, AccountPage(data))
 }
 
 // chartLineJSON builds uPlot line payload (event series, op currency).
@@ -800,7 +801,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 	data := basePageData(proj, l, name, commodity, "commodity", tq)
 	data.CommodityName = commodity
 	if perr != nil {
-		s.render(w, CommodityPage(data))
+		s.render(r.Context(), w, CommodityPage(data))
 		return
 	}
 
@@ -824,7 +825,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 		}
 		setChart(&data, "chart-commodity-price", title, js)
 	}
-	s.render(w, CommodityPage(data))
+	s.render(r.Context(), w, CommodityPage(data))
 }
 
 func priceSeriesRows(db *prices.DB) []priceSeriesRow {
@@ -931,10 +932,10 @@ func mergeCUECommodityMeta(cfg cue.Value, commodity string, rows []metaKV) []met
 	return append(rows, extra...)
 }
 
-func (s *Server) render(w http.ResponseWriter, c templ.Component) {
+func (s *Server) render(ctx context.Context, w http.ResponseWriter, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if err := c.Render(context.Background(), w); err != nil {
+	if err := c.Render(ctx, w); err != nil {
 		slog.Error("web render", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
