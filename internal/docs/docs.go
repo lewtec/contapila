@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/ast"
+	"errors"
 )
 
 // ByAccountDir is the account document folder under each ledger's docs/.
@@ -30,7 +31,7 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, error) {
 	root := filepath.Join(projectRoot, ledger, "docs", ByAccountDir)
 	info, err := os.Stat(root)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err

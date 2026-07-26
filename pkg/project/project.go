@@ -10,6 +10,8 @@ import (
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/prices"
+	"errors"
+	"io/fs"
 )
 
 type Ledger struct {
@@ -164,7 +166,7 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 		}
 		info, err := fsys.Stat(abs)
 		switch {
-		case os.IsNotExist(err):
+		case errors.Is(err, fs.ErrNotExist):
 			if j.Missing == "warn" {
 				slog.Warn("project journal missing", "path", abs, "role", j.Role)
 			}

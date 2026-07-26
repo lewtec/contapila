@@ -12,6 +12,8 @@ import (
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/parser"
 	"github.com/lucasew/contapila-go/internal/source"
+	"errors"
+	"io/fs"
 )
 
 // LoadFile parses a file and expands includes depth-first (disk).
@@ -92,7 +94,7 @@ func expandInclude(fsys filesys.FS, baseDir, pattern string, out *[]ast.Directiv
 	if !hasGlob(pattern) {
 		info, err := fsys.Stat(target)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, fs.ErrNotExist) {
 				diags.Error(baseDir, 0, fmt.Sprintf("include missing: %s", pattern))
 				return fmt.Errorf("include missing: %s", pattern)
 			}
