@@ -138,7 +138,7 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 	cuePath := filepath.Join(root, ProjectMarker)
 	cueBytes, err := fsys.ReadFile(cuePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %w", ProjectMarker, err)
+		return nil, fmt.Errorf("read %s: %w", ProjectMarker, err)
 	}
 
 	// First unify without price_pairs so we can read project_journals defaults.
@@ -176,7 +176,7 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 			}
 			continue
 		case err != nil:
-			return nil, fmt.Errorf("failed to stat %s: %w", abs, err)
+			return nil, fmt.Errorf("stat %s: %w", abs, err)
 		}
 
 		if info.Size() == 0 {
