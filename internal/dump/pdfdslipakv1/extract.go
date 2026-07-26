@@ -25,6 +25,7 @@
 package pdfdslipakv1
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -34,6 +35,12 @@ import (
 
 // Dialect is the CLI/JSON id for this extractor.
 const Dialect = "pdf-dslipak-v1"
+
+// Sentinel errors for extract failures (wrap with page/context via fmt.Errorf %w).
+var (
+	ErrPageMissing      = errors.New("missing")
+	ErrContentInterpret = errors.New("content interpret")
+)
 
 func init() {
 	dump.Register(Dialect, Extract)
@@ -53,7 +60,7 @@ func Extract(path string, opts dump.Options) (dump.ExtractedData, error) {
 	for i := 1; i <= n; i++ {
 		p := r.Page(i)
 		if p.V.IsNull() {
-			return dump.ExtractedData{}, fmt.Errorf("page %d: missing", i)
+			return dump.ExtractedData{}, fmt.Errorf("page %d: %w", i, ErrPageMissing)
 		}
 		page, err := extractPage(p, i)
 		if err != nil {
@@ -112,7 +119,11 @@ func extractPage(p pdf.Page, num int) (*tnode, error) {
 func walkContent(strm pdf.Value, root *tnode) (err error) {
 	defer func() {
 		if rec := recover(); rec != nil {
-			err = fmt.Errorf("content interpret: %v", rec)
+			if e, ok := rec.(error); ok {
+				err = fmt.Errorf("%w: %w", ErrContentInterpret, e)
+			} else {
+				err = fmt.Errorf("%w: %v", ErrContentInterpret, rec)
+			}
 		}
 	}()
 
