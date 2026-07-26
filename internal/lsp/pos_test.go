@@ -199,4 +199,3 @@ func TestByteOffsetRoundTripWithRange(t *testing.T) {
 		}
 	}
 }
-
