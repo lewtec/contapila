@@ -137,7 +137,7 @@ func journalStringField(item cue.Value, field string) (string, error) {
 		if !fv.Exists() {
 			return "", nil
 		}
-		return "", fmt.Errorf("failed to decode project_journals.%s: %w", field, err)
+		return "", fmt.Errorf("decode project_journals.%s: %w", field, err)
 	}
 	return s, nil
 }
