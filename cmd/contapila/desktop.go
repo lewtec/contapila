@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -59,7 +58,9 @@ deep-link). Project root is discovered from -C / the process working directory
 				handler = rootDeepLinkHandler(handler, name)
 			}
 
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			// Parent cmd.Context() (same pattern as lspCmd) so cancel propagates
+			// if the command tree is torn down; signals still cancel as before.
+			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
 			app := eletrocromo.App{
