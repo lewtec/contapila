@@ -52,6 +52,9 @@ type Session struct {
 
 	client protocol.Client
 
+	// life is the server/connection context; rebuilds cancel when it is done.
+	life context.Context
+
 	// rebuild scheduling
 	dirty     bool
 	timer     *time.Timer
@@ -77,6 +80,16 @@ func newSession() *Session {
 func (s *Session) setClient(c protocol.Client) {
 	s.mu.Lock()
 	s.client = c
+	s.mu.Unlock()
+}
+
+// setLife binds rebuild cancellation to the server/connection context.
+func (s *Session) setLife(ctx context.Context) {
+	if ctx == nil {
+		return
+	}
+	s.mu.Lock()
+	s.life = ctx
 	s.mu.Unlock()
 }
 
@@ -122,11 +135,16 @@ func (s *Session) scheduleRebuild() {
 		s.mu.Unlock()
 		return
 	}
+	if s.life == nil {
+		// not bound to a server yet; keep dirty for a later schedule
+		s.mu.Unlock()
+		return
+	}
 	s.dirty = false
 	if s.cancelBld != nil {
 		s.cancelBld()
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(s.life)
 	s.cancelBld = cancel
 	s.gen++
 	gen := s.gen
@@ -375,7 +393,7 @@ func uriToPath(u uri.URI) string {
 }
 
 // parseBuffer publishes parse diagnostics for one file; returns whether parse had errors.
-func (s *Session) parseBuffer(path, text string) (hasErrors bool) {
+func (s *Session) parseBuffer(ctx context.Context, path, text string) (hasErrors bool) {
 	f := source.NewString(path, text)
 	_, diags, err := parser.ParseFile(f)
 	if err != nil {
@@ -416,7 +434,7 @@ func (s *Session) parseBuffer(path, text string) (hasErrors bool) {
 		// SPEC: on parse failure, parse diags immediate; keep last-good check diags
 		// On parse success we'll rebuild and swap — still show last-good until then.
 		all = append(all, sem...)
-		_ = client.PublishDiagnostics(context.Background(), &protocol.PublishDiagnosticsParams{
+		_ = client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI:         pathToURI(path),
 			Diagnostics: all,
 		})

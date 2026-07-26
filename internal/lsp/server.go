@@ -51,8 +51,9 @@ func Run(ctx context.Context, conn io.ReadWriteCloser) error {
 	ctx, jconn, client := protocol.NewServer(ctx, s, jsonrpc2.NewHeaderStream(conn))
 	s.mu.Lock()
 	s.client = client
-	s.session.setClient(client)
 	s.mu.Unlock()
+	s.session.setClient(client)
+	s.session.setLife(ctx)
 	// Block until connection closes.
 	select {
 	case <-ctx.Done():
@@ -67,11 +68,11 @@ func Run(ctx context.Context, conn io.ReadWriteCloser) error {
 func RunWith(ctx context.Context, stream jsonrpc2.Stream) (*Server, jsonrpc2.Conn, protocol.Client) {
 	s := New()
 	ctx2, jconn, client := protocol.NewServer(ctx, s, stream)
-	_ = ctx2
 	s.mu.Lock()
 	s.client = client
-	s.session.setClient(client)
 	s.mu.Unlock()
+	s.session.setClient(client)
+	s.session.setLife(ctx2)
 	return s, jconn, client
 }
 
@@ -105,7 +106,7 @@ func (s *Server) Shutdown(context.Context) error { return nil }
 
 func (s *Server) Exit(context.Context) error { return nil }
 
-func (s *Server) DidOpen(_ context.Context, params *protocol.DidOpenTextDocumentParams) error {
+func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocumentParams) error {
 	path := uriToPath(params.TextDocument.URI)
 	text := params.TextDocument.Text
 	s.session.ensureRoot(path)
@@ -113,12 +114,12 @@ func (s *Server) DidOpen(_ context.Context, params *protocol.DidOpenTextDocument
 	s.session.mu.Lock()
 	s.session.openDocs[path] = params.TextDocument.Version
 	s.session.mu.Unlock()
-	s.session.parseBuffer(path, text)
+	s.session.parseBuffer(ctx, path, text)
 	s.session.markDirty()
 	return nil
 }
 
-func (s *Server) DidChange(_ context.Context, params *protocol.DidChangeTextDocumentParams) error {
+func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
 	path := uriToPath(params.TextDocument.URI)
 	if len(params.ContentChanges) == 0 {
 		return nil
@@ -139,16 +140,16 @@ func (s *Server) DidChange(_ context.Context, params *protocol.DidChangeTextDocu
 	s.session.mu.Lock()
 	s.session.openDocs[path] = params.TextDocument.Version
 	s.session.mu.Unlock()
-	s.session.parseBuffer(path, text)
+	s.session.parseBuffer(ctx, path, text)
 	s.session.markDirty()
 	return nil
 }
 
-func (s *Server) DidSave(_ context.Context, params *protocol.DidSaveTextDocumentParams) error {
+func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
 	path := uriToPath(params.TextDocument.URI)
 	if params.Text != nil {
 		s.session.overlay.Set(path, *params.Text)
-		s.session.parseBuffer(path, *params.Text)
+		s.session.parseBuffer(ctx, path, *params.Text)
 	}
 	// force rebuild now
 	s.session.mu.Lock()
