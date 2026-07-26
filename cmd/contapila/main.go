@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -625,7 +627,7 @@ Any error or non-zero CMD exit aborts with no write.`,
 			existing := ""
 			if b, rerr := os.ReadFile(file); rerr == nil {
 				existing = string(b)
-			} else if !os.IsNotExist(rerr) {
+			} else if !errors.Is(rerr, fs.ErrNotExist) {
 				return rerr
 			}
 
