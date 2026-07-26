@@ -200,8 +200,3 @@ func TestByteOffsetRoundTripWithRange(t *testing.T) {
 	}
 }
 
-func TestMax(t *testing.T) {
-	if max(1, 2) != 2 || max(3, 1) != 3 || max(0, 0) != 0 {
-		t.Fatal("max broken")
-	}
-}

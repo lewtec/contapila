@@ -127,7 +127,3 @@ func byteColToUTF16(text string, line1, byteCol int) int {
 	}
 	return u16
 }
-
-func max(a, b int) int {
-	return max(a, b)
-}
