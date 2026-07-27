@@ -56,9 +56,9 @@ func Parse(s string, now time.Time) (Range, error) {
 	now = DateOnly(now.UTC())
 
 	// Range: "A - B" (spaces around hyphen, as in Fava).
-	if i := strings.Index(s, " - "); i >= 0 {
-		left := strings.TrimSpace(s[:i])
-		right := strings.TrimSpace(s[i+3:])
+	if left, right, ok := strings.Cut(s, " - "); ok {
+		left = strings.TrimSpace(left)
+		right = strings.TrimSpace(right)
 		a, err := parseOne(left, now)
 		if err != nil {
 			return Range{}, fmt.Errorf("time range start %q: %w", left, err)
