@@ -68,10 +68,7 @@ func timeFilterAction(d pageData) string {
 }
 
 func chartAriaLabel(d pageData) string {
-	if d.ChartTitle != "" {
-		return d.ChartTitle
-	}
-	return "Chart"
+	return cmp.Or(d.ChartTitle, "Chart")
 }
 
 func treeDataAccount(path, account string) string {
