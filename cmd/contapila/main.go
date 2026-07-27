@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -231,10 +232,7 @@ func balancesCmd() *cobra.Command {
 						if ln.IsRollup {
 							mark = "Σ "
 						}
-						name := ln.Name
-						if name == "" {
-							name = ln.Account
-						}
+						name := cmp.Or(ln.Name, ln.Account)
 						amt := ""
 						if ln.Amount != nil {
 							amt = ln.Amount.FloatString(4)
@@ -360,10 +358,7 @@ func pnlCmd() *cobra.Command {
 						if ln.IsRollup {
 							mark = "Σ "
 						}
-						name := ln.Name
-						if name == "" {
-							name = ln.Account
-						}
+						name := cmp.Or(ln.Name, ln.Account)
 						fmt.Printf("%s%s%-28s %s %s\n", pad, mark, name, ln.Amount.FloatString(2), ln.Commodity)
 					}
 				}
@@ -431,10 +426,7 @@ func networthCmd() *cobra.Command {
 					if ln.IsRollup {
 						mark = "Σ "
 					}
-					name := ln.Name
-					if name == "" {
-						name = ln.Account
-					}
+					name := cmp.Or(ln.Name, ln.Account)
 					flag := ""
 					if ln.Unpriced {
 						flag = " (no px)"
