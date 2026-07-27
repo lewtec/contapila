@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -8,6 +9,13 @@ import (
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/ast"
+)
+
+// Sentinel errors for FormatDirective / formatRat failures (wrap with context via fmt.Errorf %w).
+var (
+	ErrUnknownDirective     = errors.New("cannot format unknown directive")
+	ErrUnsupportedDirective = errors.New("cannot format directive")
+	ErrNilNumber            = errors.New("nil number")
 )
 
 // FormatDirective renders one directive as Beancount source ending with a newline.
@@ -97,9 +105,9 @@ func FormatDirective(d ast.Directive) (string, error) {
 		fmt.Fprintf(&b, "%s document %s %s\n", fmtDate(v.Date), v.Account, quoteStr(v.Path))
 		writeMeta(&b, v.Metadata)
 	case ast.Unknown:
-		return "", fmt.Errorf("cannot format unknown directive %q", v.Kind)
+		return "", fmt.Errorf("%w: %q", ErrUnknownDirective, v.Kind)
 	default:
-		return "", fmt.Errorf("cannot format directive %T", d)
+		return "", fmt.Errorf("%w: %T", ErrUnsupportedDirective, d)
 	}
 	return b.String(), nil
 }
@@ -175,7 +183,7 @@ const ratFormatPrec = 18
 
 func formatRat(r *big.Rat) (string, error) {
 	if r == nil {
-		return "", fmt.Errorf("nil number")
+		return "", ErrNilNumber
 	}
 	if r.IsInt() {
 		return r.Num().String(), nil
