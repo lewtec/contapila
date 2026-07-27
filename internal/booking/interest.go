@@ -89,9 +89,8 @@ func ParseInterestRate(stmt string) (InterestRate, bool) {
 func parsePlusDaily(plus string) (*big.Rat, bool) {
 	period := "aa"
 	body := plus
-	if i := strings.Index(body, "%"); i >= 0 {
-		tail := body[i+1:]
-		body = body[:i]
+	if before, tail, ok := strings.Cut(body, "%"); ok {
+		body = before
 		if tail == "am" || tail == "aa" {
 			period = tail
 		}
