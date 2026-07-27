@@ -36,13 +36,13 @@ func NewAccountTree(leaves []string) AccountTree {
 	}
 	sort.Strings(names)
 
-	hasChild := make(map[string]bool, len(names))
+	// Mark parents from each node's immediate parent segment. Names already
+	// includes every prefix, so a single O(n) pass replaces scanning every
+	// pair for HasPrefix(m, n+":").
+	hasChild := make(map[string]bool)
 	for _, n := range names {
-		for _, m := range names {
-			if strings.HasPrefix(m, n+":") {
-				hasChild[n] = true
-				break
-			}
+		if i := strings.LastIndex(n, ":"); i >= 0 {
+			hasChild[n[:i]] = true
 		}
 	}
 	return AccountTree{Names: names, HasChild: hasChild}
