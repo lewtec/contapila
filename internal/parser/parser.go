@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -14,6 +15,13 @@ import (
 	bc "github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount"
 )
 
+// Sentinel errors for ParseFile preconditions.
+var (
+	ErrNilSourceFile = errors.New("nil source file")
+	ErrSetLanguage   = errors.New("set beancount language")
+	ErrNullParseTree = errors.New("null parse tree")
+)
+
 // Parse converts Beancount source into directives using modernc tree-sitter.
 // Prefer ParseFile when the caller already has a source.File.
 func Parse(filename string, src []byte) ([]ast.Directive, diag.List, error) {
@@ -23,18 +31,18 @@ func Parse(filename string, src []byte) ([]ast.Directive, diag.List, error) {
 // ParseFile is Parse with a pre-built source.File (path + text + line index).
 func ParseFile(f *source.File) ([]ast.Directive, diag.List, error) {
 	if f == nil {
-		return nil, nil, fmt.Errorf("nil source file")
+		return nil, nil, ErrNilSourceFile
 	}
 	p := grammar.NewParser()
 	defer p.Delete()
 	if !p.SetLanguage(bc.Language()) {
-		return nil, nil, fmt.Errorf("failed to set beancount language")
+		return nil, nil, ErrSetLanguage
 	}
 	tree := p.ParseString(f.Text)
 	defer tree.Delete()
 	root := tree.RootNode()
 	if root.IsNull() {
-		return nil, nil, fmt.Errorf("null parse tree for %s", f.Path)
+		return nil, nil, fmt.Errorf("%w for %s", ErrNullParseTree, f.Path)
 	}
 
 	var diags diag.List
@@ -610,7 +618,10 @@ func parseNumber(f *source.File, n *grammar.Node) *big.Rat {
 func meta(f *source.File, n *grammar.Node) ast.Meta {
 	d := time.Time{}
 	if dn := field(n, "date"); dn != nil {
-		d, _ = period.ParseDate(strings.TrimSpace(nodeText(f, dn)))
+		parsed, err := period.ParseDate(strings.TrimSpace(nodeText(f, dn)))
+		if err == nil {
+			d = parsed
+		}
 	}
 	path, line := "", 0
 	start, end := 0, 0

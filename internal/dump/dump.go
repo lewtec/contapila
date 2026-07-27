@@ -4,10 +4,14 @@ package dump
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
 )
+
+// ErrUnknownDialect is returned when Extract is called with an unregistered dialect id.
+var ErrUnknownDialect = errors.New("unknown dialect")
 
 // Node is one element in a hybrid CST: type + optional props + children.
 type Node struct {
@@ -79,7 +83,7 @@ func Lookup(dialect string) (Extractor, bool) {
 func Extract(dialect, path string, opts Options) (ExtractedData, error) {
 	fn, ok := Lookup(dialect)
 	if !ok {
-		return ExtractedData{}, fmt.Errorf("unknown dialect %q (known: %s)", dialect, joinDialects())
+		return ExtractedData{}, fmt.Errorf("%w %q (known: %s)", ErrUnknownDialect, dialect, joinDialects())
 	}
 	return fn(path, opts)
 }

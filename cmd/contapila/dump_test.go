@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -21,8 +22,8 @@ func TestDumpMissingDialect(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for bare dump")
 	}
-	if !strings.Contains(err.Error(), "missing dialect") {
-		t.Fatalf("err=%v", err)
+	if !errors.Is(err, ErrMissingDumpDialect) {
+		t.Fatalf("err=%v want ErrMissingDumpDialect", err)
 	}
 }
 

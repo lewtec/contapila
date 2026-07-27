@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/lucasew/contapila-go/internal/dump"
@@ -11,6 +12,9 @@ import (
 
 // dumpPassword is bound on the dump parent and inherited by dialect subcommands.
 var dumpPassword string
+
+// ErrMissingDumpDialect is returned when `contapila dump` is run without a dialect subcommand.
+var ErrMissingDumpDialect = errors.New("missing dialect subcommand (see contapila dump --help)")
 
 func dumpCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -29,7 +33,7 @@ Output is one compact JSON object on stdout:
 Pipe into a language-stdlib script, then into contapila ingest as JSONL directives.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("missing dialect subcommand (see contapila dump --help)")
+			return ErrMissingDumpDialect
 		},
 	}
 	cmd.PersistentFlags().StringVarP(&dumpPassword, "password", "p", "", "password for encrypted PDF or XLSX")

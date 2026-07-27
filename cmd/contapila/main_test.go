@@ -52,7 +52,7 @@ func newTestRoot() *cobra.Command {
 				return fmt.Errorf("-C %s: %w", workDir, err)
 			}
 			if !info.IsDir() {
-				return fmt.Errorf("-C %s: not a directory", workDir)
+				return fmt.Errorf("-C %s: %w", workDir, ErrNotDirectory)
 			}
 			workDir = abs
 			return nil

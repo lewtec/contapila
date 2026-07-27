@@ -1,7 +1,9 @@
 package project
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -10,8 +12,14 @@ import (
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/prices"
-	"errors"
-	"io/fs"
+)
+
+// Sentinel errors for project discovery and journal path resolution.
+var (
+	ErrEmptyJournalPath    = errors.New("project_journals path is empty")
+	ErrJournalPathAbsolute = errors.New("project_journals path must be relative to project root")
+	ErrJournalPathEscapes  = errors.New("project_journals path escapes project root")
+	ErrNotAProject         = errors.New("not a contapila project")
 )
 
 type Ledger struct {
@@ -46,20 +54,20 @@ const LedgerEntrypoint = "main.beancount"
 // cannot pull arbitrary files into prices/stream injection.
 func resolveProjectJournalPath(root, rel string) (abs string, err error) {
 	if rel == "" {
-		return "", fmt.Errorf("project_journals path is empty")
+		return "", ErrEmptyJournalPath
 	}
 	if filepath.IsAbs(rel) {
-		return "", fmt.Errorf("project_journals path must be relative to project root: %q", rel)
+		return "", fmt.Errorf("%w: %q", ErrJournalPathAbsolute, rel)
 	}
 	cleaned := filepath.Clean(rel)
 	if cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(os.PathSeparator)) {
-		return "", fmt.Errorf("project_journals path escapes project root: %q", rel)
+		return "", fmt.Errorf("%w: %q", ErrJournalPathEscapes, rel)
 	}
 	abs = filepath.Join(root, cleaned)
 	// Double-check after Join (Windows volume quirks, odd cleans).
 	relToRoot, err := filepath.Rel(root, abs)
 	if err != nil || relToRoot == ".." || strings.HasPrefix(relToRoot, ".."+string(os.PathSeparator)) {
-		return "", fmt.Errorf("project_journals path escapes project root: %q", rel)
+		return "", fmt.Errorf("%w: %q", ErrJournalPathEscapes, rel)
 	}
 	return abs, nil
 }
@@ -83,7 +91,7 @@ func findRoot(fsys filesys.FS, startDir string) (string, error) {
 		curr = parent
 	}
 
-	return "", fmt.Errorf("not a contapila project (searched upward for %s)", ProjectMarker)
+	return "", fmt.Errorf("%w (searched upward for %s)", ErrNotAProject, ProjectMarker)
 }
 
 func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {

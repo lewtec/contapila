@@ -1,7 +1,9 @@
 package loader
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,8 +14,14 @@ import (
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/parser"
 	"github.com/lucasew/contapila-go/internal/source"
-	"errors"
-	"io/fs"
+)
+
+// Sentinel errors for include expansion (also reported via diags).
+var (
+	ErrIncludeCycle     = errors.New("include cycle")
+	ErrIncludePathEmpty = errors.New("include path is empty")
+	ErrIncludeMissing   = errors.New("include missing")
+	ErrIncludeIsDir     = errors.New("include is a directory")
 )
 
 // LoadFile parses a file and expands includes depth-first (disk).
@@ -46,7 +54,7 @@ func loadOne(fsys filesys.FS, path string, out *[]ast.Directive, diags *diag.Lis
 	}
 	if stack[real] {
 		diags.Error(path, 0, "include cycle detected")
-		return fmt.Errorf("include cycle at %s", path)
+		return fmt.Errorf("%w at %s", ErrIncludeCycle, path)
 	}
 	if seen[real] {
 		return nil // dedupe
@@ -84,7 +92,7 @@ func expandInclude(fsys filesys.FS, baseDir, pattern string, out *[]ast.Directiv
 	pattern = strings.TrimSpace(pattern)
 	if pattern == "" {
 		diags.Error(baseDir, 0, "include path is empty")
-		return fmt.Errorf("include path is empty")
+		return ErrIncludePathEmpty
 	}
 	target := pattern
 	if !filepath.IsAbs(pattern) {
@@ -96,13 +104,13 @@ func expandInclude(fsys filesys.FS, baseDir, pattern string, out *[]ast.Directiv
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				diags.Error(baseDir, 0, fmt.Sprintf("include missing: %s", pattern))
-				return fmt.Errorf("include missing: %s", pattern)
+				return fmt.Errorf("%w: %s", ErrIncludeMissing, pattern)
 			}
 			return err
 		}
 		if info.IsDir() {
 			diags.Error(baseDir, 0, fmt.Sprintf("include is a directory: %s", pattern))
-			return fmt.Errorf("include is a directory: %s", pattern)
+			return fmt.Errorf("%w: %s", ErrIncludeIsDir, pattern)
 		}
 		return loadOne(fsys, target, out, diags, seen, stack)
 	}

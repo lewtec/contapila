@@ -3,6 +3,7 @@ package ingest
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -10,6 +11,16 @@ import (
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/period"
+)
+
+// Sentinel errors for JSONL decode.
+var (
+	ErrMissingType        = errors.New("missing type")
+	ErrEventRequiresType  = errors.New("event requires event_type")
+	ErrCustomRequiresType = errors.New("custom requires custom_type")
+	ErrUnknownType        = errors.New("unknown type")
+	ErrEmptyNumber        = errors.New("empty number")
+	ErrInvalidNumber      = errors.New("invalid number")
 )
 
 // DecodeJSONL reads JSONL (one directive object per line) until EOF.
@@ -61,7 +72,7 @@ func decodeDirectiveLine(raw []byte) (ast.Directive, string, error) {
 		return nil, "", err
 	}
 	if base.Type == "" {
-		return nil, "", fmt.Errorf("missing type")
+		return nil, "", ErrMissingType
 	}
 	date, err := period.ParseDate(base.Date)
 	if err != nil {
@@ -200,7 +211,7 @@ func decodeDirectiveLine(raw []byte) (ast.Directive, string, error) {
 			return nil, "", err
 		}
 		if o.EventType == "" {
-			return nil, "", fmt.Errorf("event requires event_type")
+			return nil, "", ErrEventRequiresType
 		}
 		d = ast.Event{Meta: ast.Meta{Date: date}, Type: o.EventType, Desc: o.Desc, Metadata: o.Metadata}
 	case "custom":
@@ -213,7 +224,7 @@ func decodeDirectiveLine(raw []byte) (ast.Directive, string, error) {
 			return nil, "", err
 		}
 		if o.CustomType == "" {
-			return nil, "", fmt.Errorf("custom requires custom_type")
+			return nil, "", ErrCustomRequiresType
 		}
 		vals := make([]ast.CustomValue, 0, len(o.Values))
 		for i, jv := range o.Values {
@@ -235,7 +246,7 @@ func decodeDirectiveLine(raw []byte) (ast.Directive, string, error) {
 		}
 		d = ast.Document{Meta: ast.Meta{Date: date}, Account: o.Account, Path: o.Path, Metadata: o.Metadata}
 	default:
-		return nil, "", fmt.Errorf("unknown type %q", base.Type)
+		return nil, "", fmt.Errorf("%w %q", ErrUnknownType, base.Type)
 	}
 
 	if id != "" {
@@ -336,11 +347,11 @@ func (jp jsonPosting) toPosting() (ast.Posting, error) {
 func parseRat(s string) (*big.Rat, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return nil, fmt.Errorf("empty number")
+		return nil, ErrEmptyNumber
 	}
 	r, ok := new(big.Rat).SetString(s)
 	if !ok {
-		return nil, fmt.Errorf("invalid number %q", s)
+		return nil, fmt.Errorf("%w %q", ErrInvalidNumber, s)
 	}
 	return r, nil
 }

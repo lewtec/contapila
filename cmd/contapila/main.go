@@ -36,6 +36,16 @@ var verbose bool
 // logLevel is the live slog level (Info by default; Debug when --verbose).
 var logLevel = &slog.LevelVar{} // zero value is LevelInfo
 
+// CLI sentinel errors (wrap with context via fmt.Errorf %w).
+var (
+	ErrNotDirectory       = errors.New("not a directory")
+	ErrZeroLedgers        = errors.New("zero ledgers found")
+	ErrLedgersFailed      = errors.New("one or more ledgers failed")
+	ErrCheckFailed        = errors.New("check failed")
+	ErrTimeFlagsExclusive = errors.New("use either --time or --from/--to, not both")
+	ErrFileRequired       = errors.New("--file is required")
+)
+
 func main() {
 	// Text handler on stderr so engine/project slog.Warn (and Info) stay
 	// operator-visible. Level Info by default; Debug with --verbose.
@@ -64,7 +74,7 @@ func main() {
 				return fmt.Errorf("-C %s: %w", workDir, err)
 			}
 			if !info.IsDir() {
-				return fmt.Errorf("-C %s: not a directory", workDir)
+				return fmt.Errorf("-C %s: %w", workDir, ErrNotDirectory)
 			}
 			workDir = abs
 			return nil
@@ -118,7 +128,7 @@ func withLedgers(args []string, fn func(*engine.Ledger) error) error {
 	if len(names) == 0 {
 		names = engine.LedgerNames(p)
 		if len(names) == 0 {
-			return fmt.Errorf("zero ledgers found")
+			return ErrZeroLedgers
 		}
 	}
 	var failed bool
@@ -133,7 +143,7 @@ func withLedgers(args []string, fn func(*engine.Ledger) error) error {
 		}
 	}
 	if failed {
-		return fmt.Errorf("one or more ledgers failed")
+		return ErrLedgersFailed
 	}
 	return nil
 }
@@ -153,7 +163,7 @@ func statusCmd() *cobra.Command {
 			fmt.Printf("Project root:      %s\n", p.Root)
 			fmt.Printf("contapila.cue:     %s\n", filepath.Join(p.Root, "contapila.cue"))
 			if len(p.Ledgers) == 0 {
-				return fmt.Errorf("zero ledgers found")
+				return ErrZeroLedgers
 			}
 			fmt.Printf("Ledgers (%d):\n", len(p.Ledgers))
 			for _, l := range p.Ledgers {
@@ -189,7 +199,7 @@ func checkCmd() *cobra.Command {
 				fmt.Printf("== %s ==\n", l.Name)
 				printDiags(l.Diags)
 				if l.Diags.HasErrors() {
-					return fmt.Errorf("check failed for %s", l.Name)
+					return fmt.Errorf("%w for %s", ErrCheckFailed, l.Name)
 				}
 				fmt.Println("OK")
 				return nil
@@ -378,7 +388,7 @@ func addTimeFlags(c *cobra.Command, timeFilter, from, to *string) {
 func resolvePeriod(timeFilter, from, to string) (period.Range, error) {
 	if timeFilter != "" {
 		if from != "" || to != "" {
-			return period.Range{}, fmt.Errorf("use either --time or --from/--to, not both")
+			return period.Range{}, ErrTimeFlagsExclusive
 		}
 		return period.Parse(timeFilter, time.Now())
 	}
@@ -591,7 +601,7 @@ Any error or non-zero CMD exit aborts with no write.`,
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if file == "" {
-				return fmt.Errorf("--file is required")
+				return ErrFileRequired
 			}
 			var (
 				incoming []ast.Directive
@@ -662,7 +672,7 @@ func webCmd() *cobra.Command {
 			if len(args) == 1 {
 				name = args[0]
 			}
-			return web.Listen(p, pdb, name, addr)
+			return web.Listen(cmd.Context(), p, pdb, name, addr)
 		},
 	}
 	c.Flags().StringVar(&addr, "addr", "127.0.0.1:8765", "listen address (host:port)")

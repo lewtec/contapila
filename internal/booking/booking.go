@@ -1,6 +1,7 @@
 package booking
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -14,6 +15,12 @@ import (
 // defaultTolerance is the absolute balance/cash residual tolerance used when no
 // Engine.Tolerance or per-commodity CommTol is set: half ULP of precision 5 (5e-6).
 var defaultTolerance = big.NewRat(5, 1_000_000)
+
+// Sentinel errors for inventory booking.
+var (
+	ErrCostCommodityMismatch = errors.New("cost commodity mismatch")
+	ErrNoPosition            = errors.New("no position")
+)
 
 // Position is average-cost inventory for one account+commodity (model A).
 type Position struct {
@@ -67,6 +74,14 @@ type FilledPosting struct {
 	// CostBasis is total cost removed/added in cost commodity for inventory moves
 	CostBasis *ast.Amount
 	Metadata  ast.Metadata // from posting key_value (journal stream; not CUE)
+}
+
+// addToRatMap adds n into m[k], allocating a zero rat when missing.
+func addToRatMap[K comparable](m map[K]*big.Rat, k K, n *big.Rat) {
+	if m[k] == nil {
+		m[k] = big.NewRat(0, 1)
+	}
+	m[k].Add(m[k], n)
 }
 
 func New() *Engine {
@@ -200,10 +215,7 @@ func (e *Engine) bookTxn(t ast.Transaction) {
 	resIdx := -1
 	weights := map[string]*big.Rat{}
 	addW := func(comm string, n *big.Rat) {
-		if weights[comm] == nil {
-			weights[comm] = big.NewRat(0, 1)
-		}
-		weights[comm].Add(weights[comm], n)
+		addToRatMap(weights, comm, n)
 	}
 
 	type invKey struct{ acct, comm string }
@@ -221,10 +233,7 @@ func (e *Engine) bookTxn(t ast.Transaction) {
 	buyNet := map[invKey]*big.Rat{}
 	sellNet := map[invKey]*big.Rat{}
 	addNet := func(m map[invKey]*big.Rat, k invKey, n *big.Rat) {
-		if m[k] == nil {
-			m[k] = big.NewRat(0, 1)
-		}
-		m[k].Add(m[k], n)
+		addToRatMap(m, k, n)
 	}
 	invOpAlready := func(account, comm string, units *big.Rat) bool {
 		if units == nil {
@@ -640,7 +649,7 @@ func (e *Engine) buy(account, comm string, units, totalCost *big.Rat, costComm s
 		e.Inv[account][comm] = pos
 	}
 	if pos.CostComm != "" && pos.CostComm != costComm && pos.Units.Sign() != 0 {
-		return fmt.Errorf("cost commodity mismatch on %s %s", account, comm)
+		return fmt.Errorf("%w on %s %s", ErrCostCommodityMismatch, account, comm)
 	}
 	pos.CostComm = costComm
 	pos.Units.Add(pos.Units, units)
@@ -651,7 +660,7 @@ func (e *Engine) buy(account, comm string, units, totalCost *big.Rat, costComm s
 func (e *Engine) sell(account, comm string, sellUnits, totalCost *big.Rat) error {
 	pos := e.getPos(account, comm)
 	if pos == nil {
-		return fmt.Errorf("no position")
+		return ErrNoPosition
 	}
 	pos.Units.Sub(pos.Units, sellUnits)
 	pos.TotalCost.Sub(pos.TotalCost, totalCost)

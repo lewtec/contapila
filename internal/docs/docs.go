@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lucasew/contapila-go/internal/ast"
 	"errors"
+	"github.com/lucasew/contapila-go/internal/ast"
 )
 
 // ByAccountDir is the account document folder under each ledger's docs/.
@@ -79,16 +79,21 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if !out[i].Date.Equal(out[j].Date) {
-			return out[i].Date.Before(out[j].Date)
-		}
-		if out[i].Account != out[j].Account {
-			return out[i].Account < out[j].Account
-		}
-		return out[i].Path < out[j].Path
-	})
+	sortDocuments(out)
 	return out, nil
+}
+
+// sortDocuments orders by date, then account, then path (stable).
+func sortDocuments(docs []ast.Document) {
+	sort.SliceStable(docs, func(i, j int) bool {
+		if !docs[i].Date.Equal(docs[j].Date) {
+			return docs[i].Date.Before(docs[j].Date)
+		}
+		if docs[i].Account != docs[j].Account {
+			return docs[i].Account < docs[j].Account
+		}
+		return docs[i].Path < docs[j].Path
+	})
 }
 
 // Merge combines ledger document directives with synthetic docs.
@@ -120,15 +125,7 @@ func Merge(fromLedger, synthetic []ast.Document) []ast.Document {
 	for _, k := range order {
 		out = append(out, byPath[k])
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if !out[i].Date.Equal(out[j].Date) {
-			return out[i].Date.Before(out[j].Date)
-		}
-		if out[i].Account != out[j].Account {
-			return out[i].Account < out[j].Account
-		}
-		return out[i].Path < out[j].Path
-	})
+	sortDocuments(out)
 	return out
 }
 

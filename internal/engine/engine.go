@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -23,6 +24,12 @@ import (
 
 // AsOfLatest is an as-of far in the future meaning "latest known state".
 var AsOfLatest = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
+
+// Sentinel errors for ledger open and reports.
+var (
+	ErrUnknownLedger     = errors.New("unknown ledger")
+	ErrOpCurrencyUnknown = errors.New("operating currency unknown; set option operating_currency")
+)
 
 // AccountInfo is an opened account plus metadata from the open directive.
 type AccountInfo struct {
@@ -113,7 +120,7 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 		}
 	}
 	if entry == "" {
-		return nil, fmt.Errorf("unknown ledger %q", name)
+		return nil, fmt.Errorf("%w %q", ErrUnknownLedger, name)
 	}
 	dirs, diags, err := loader.LoadFileFS(fsys, entry)
 	if err != nil {
@@ -632,7 +639,7 @@ type NetWorthLine struct {
 
 func (l *Ledger) NetWorth(asOf time.Time) ([]NetWorthLine, *big.Rat, error) {
 	if l.OpCurrency == "" {
-		return nil, nil, fmt.Errorf("operating currency unknown; set option operating_currency")
+		return nil, nil, ErrOpCurrencyUnknown
 	}
 	bals := l.BalancesAsOf(asOf)
 

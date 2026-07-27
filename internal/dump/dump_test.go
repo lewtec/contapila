@@ -1,7 +1,7 @@
 package dump
 
 import (
-	"strings"
+	"errors"
 	"testing"
 )
 
@@ -10,7 +10,7 @@ func TestUnknownDialect(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "unknown dialect") {
-		t.Fatalf("got %v", err)
+	if !errors.Is(err, ErrUnknownDialect) {
+		t.Fatalf("got %v want ErrUnknownDialect", err)
 	}
 }

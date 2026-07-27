@@ -12,11 +12,22 @@
 package period
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+)
+
+// Sentinel errors for time filter parsing.
+var (
+	ErrTimeRangeOrder     = errors.New("time range start after end")
+	ErrEmptyInterval      = errors.New("empty interval")
+	ErrInvalidISOWeek     = errors.New("invalid ISO week")
+	ErrInvalidMonth       = errors.New("invalid month")
+	ErrUnrecognizedFilter = errors.New("unrecognized time filter")
+	ErrUnknownRelUnit     = errors.New("unknown relative unit")
 )
 
 // Range is an inclusive calendar range. Zero Start/End means open on that side.
@@ -67,10 +78,12 @@ func Parse(s string, now time.Time) (Range, error) {
 		if err != nil {
 			return Range{}, fmt.Errorf("time range end %q: %w", right, err)
 		}
-		start, _ := a.bounds()
-		_, end := b.bounds()
+		start, aEnd := a.bounds()
+		bStart, end := b.bounds()
+		_ = aEnd
+		_ = bStart
 		if !start.IsZero() && !end.IsZero() && start.After(end) {
-			return Range{}, fmt.Errorf("time range start after end: %s - %s", left, right)
+			return Range{}, fmt.Errorf("%w: %s - %s", ErrTimeRangeOrder, left, right)
 		}
 		return Range{Start: start, End: end, Raw: s}, nil
 	}
@@ -108,7 +121,7 @@ var (
 func parseOne(s string, now time.Time) (interval, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return interval{}, fmt.Errorf("empty interval")
+		return interval{}, ErrEmptyInterval
 	}
 
 	if m := reRel.FindStringSubmatch(s); m != nil {
@@ -133,37 +146,58 @@ func parseOne(s string, now time.Time) (interval, error) {
 		return interval{start: t, endExclusive: t.AddDate(0, 0, 1)}, nil
 	}
 	if m := reWeek.FindStringSubmatch(s); m != nil {
-		y, _ := strconv.Atoi(m[1])
-		w, _ := strconv.Atoi(m[2])
+		y, err := strconv.Atoi(m[1])
+		if err != nil {
+			return interval{}, err
+		}
+		w, err := strconv.Atoi(m[2])
+		if err != nil {
+			return interval{}, err
+		}
 		if w < 1 || w > 53 {
-			return interval{}, fmt.Errorf("invalid ISO week %d", w)
+			return interval{}, fmt.Errorf("%w %d", ErrInvalidISOWeek, w)
 		}
 		start := isoWeekStart(y, w)
 		return interval{start: start, endExclusive: start.AddDate(0, 0, 7)}, nil
 	}
 	if m := reMonth.FindStringSubmatch(s); m != nil {
-		y, _ := strconv.Atoi(m[1])
-		mo, _ := strconv.Atoi(m[2])
+		y, err := strconv.Atoi(m[1])
+		if err != nil {
+			return interval{}, err
+		}
+		mo, err := strconv.Atoi(m[2])
+		if err != nil {
+			return interval{}, err
+		}
 		if mo < 1 || mo > 12 {
-			return interval{}, fmt.Errorf("invalid month %d", mo)
+			return interval{}, fmt.Errorf("%w %d", ErrInvalidMonth, mo)
 		}
 		start := time.Date(y, time.Month(mo), 1, 0, 0, 0, 0, time.UTC)
 		return interval{start: start, endExclusive: start.AddDate(0, 1, 0)}, nil
 	}
 	if m := reQuarter.FindStringSubmatch(s); m != nil {
-		y, _ := strconv.Atoi(m[1])
-		q, _ := strconv.Atoi(m[2])
+		y, err := strconv.Atoi(m[1])
+		if err != nil {
+			return interval{}, err
+		}
+		q, err := strconv.Atoi(m[2])
+		if err != nil {
+			return interval{}, err
+		}
 		startMonth := time.Month(1 + (q-1)*3)
 		start := time.Date(y, startMonth, 1, 0, 0, 0, 0, time.UTC)
 		return interval{start: start, endExclusive: start.AddDate(0, 3, 0)}, nil
 	}
 	if m := reYear.FindStringSubmatch(s); m != nil {
-		y, _ := strconv.Atoi(m[1])
+		y, err := strconv.Atoi(m[1])
+		if err != nil {
+			return interval{}, err
+		}
 		start := time.Date(y, 1, 1, 0, 0, 0, 0, time.UTC)
 		return interval{start: start, endExclusive: start.AddDate(1, 0, 0)}, nil
 	}
 
-	return interval{}, fmt.Errorf("unrecognized time filter %q (try 2024, 2024-03, 2024-Q1, month, month-1, year)", s)
+	return interval{}, fmt.Errorf("%w %q (try 2024, 2024-03, 2024-Q1, month, month-1, year)", ErrUnrecognizedFilter, s)
 }
 
 func relative(unit string, offset int, now time.Time) (interval, error) {
@@ -189,7 +223,7 @@ func relative(unit string, offset int, now time.Time) (interval, error) {
 		first := time.Date(now.Year()+offset, 1, 1, 0, 0, 0, 0, time.UTC)
 		return interval{start: first, endExclusive: first.AddDate(1, 0, 0)}, nil
 	default:
-		return interval{}, fmt.Errorf("unknown relative unit %q", unit)
+		return interval{}, fmt.Errorf("%w %q", ErrUnknownRelUnit, unit)
 	}
 }
 

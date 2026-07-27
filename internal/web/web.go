@@ -38,6 +38,12 @@ import (
 //go:embed all:static
 var staticFS embed.FS
 
+// Sentinel errors for the web server.
+var (
+	ErrProjectRootRequired = errors.New("web: project root is required")
+	ErrInvalidAsOfDate     = errors.New("invalid as-of date (want YYYY-MM-DD)")
+)
+
 type Server struct {
 	// Root is the project directory (contapila.cue). Config, prices, ledger
 	// discovery, and journals are reloaded from disk on every request so F5
@@ -45,7 +51,9 @@ type Server struct {
 	Root string
 }
 
-func Listen(p *project.Project, pdb *prices.DB, defaultLedger string, addr string) error {
+// Listen serves the web UI until ctx is canceled or the process receives
+// SIGINT/SIGTERM. Callers should pass cmd.Context() from cobra.
+func Listen(ctx context.Context, p *project.Project, pdb *prices.DB, defaultLedger string, addr string) error {
 	s, err := New(p, pdb)
 	if err != nil {
 		return err
@@ -66,7 +74,7 @@ func Listen(p *project.Project, pdb *prices.DB, defaultLedger string, addr strin
 	}
 
 	// Graceful stop on SIGINT/SIGTERM so unit restarts drain in-flight requests.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	errCh := make(chan error, 1)
@@ -81,7 +89,8 @@ func Listen(p *project.Project, pdb *prices.DB, defaultLedger string, addr strin
 
 	select {
 	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		// Parent is already canceled; WithoutCancel so the timeout can run.
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("web shutdown: %w", err)
@@ -97,7 +106,7 @@ func Listen(p *project.Project, pdb *prices.DB, defaultLedger string, addr strin
 // via engine.OpenProject on every request (not cached on Server).
 func New(p *project.Project, _ *prices.DB) (*Server, error) {
 	if p == nil || p.Root == "" {
-		return nil, fmt.Errorf("web: project root is required")
+		return nil, ErrProjectRootRequired
 	}
 	return &Server{Root: p.Root}, nil
 }
@@ -259,7 +268,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		Ledgers:     engine.LedgerNames(p),
 		ProjectRoot: p.Root,
 	}
-	s.render(w, IndexPage(data))
+	s.render(w, r, IndexPage(data))
 }
 
 // pageTimeQuery is shared time-filter + as-of resolution for ledger/account/commodity pages.
@@ -305,7 +314,7 @@ func parsePageTimeQuery(q url.Values, now time.Time, fromTo, explicitAsOf bool) 
 		if asOfStr != "" {
 			parsed, err := engine.ParseDate(asOfStr)
 			if err != nil {
-				return out, fmt.Errorf("invalid as-of date (want YYYY-MM-DD): %s", asOfStr)
+				return out, fmt.Errorf("%w: %s", ErrInvalidAsOfDate, asOfStr)
 			}
 			out.AsOf = parsed
 			out.AsOfStr = asOfStr
@@ -399,7 +408,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.render(w, LedgerPage(data))
+	s.render(w, r, LedgerPage(data))
 }
 
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
@@ -422,7 +431,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	data := basePageData(proj, l, name, account, "account", tq)
 	data.AccountName = account
 	if perr != nil {
-		s.render(w, AccountPage(data))
+		s.render(w, r, AccountPage(data))
 		return
 	}
 
@@ -439,7 +448,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 			setChart(&data, "chart-account", "Balance over time", js)
 		}
 	}
-	s.render(w, AccountPage(data))
+	s.render(w, r, AccountPage(data))
 }
 
 // chartLineJSON builds uPlot line payload (event series, op currency).
@@ -580,7 +589,8 @@ func ratFloat(r *big.Rat) float64 {
 	if r == nil {
 		return 0
 	}
-	f, _ := r.Float64()
+	f, exact := r.Float64()
+	_ = exact // chart series is float64 by design
 	return f
 }
 
@@ -800,7 +810,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 	data := basePageData(proj, l, name, commodity, "commodity", tq)
 	data.CommodityName = commodity
 	if perr != nil {
-		s.render(w, CommodityPage(data))
+		s.render(w, r, CommodityPage(data))
 		return
 	}
 
@@ -824,7 +834,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 		}
 		setChart(&data, "chart-commodity-price", title, js)
 	}
-	s.render(w, CommodityPage(data))
+	s.render(w, r, CommodityPage(data))
 }
 
 func priceSeriesRows(db *prices.DB) []priceSeriesRow {
@@ -931,10 +941,10 @@ func mergeCUECommodityMeta(cfg cue.Value, commodity string, rows []metaKV) []met
 	return append(rows, extra...)
 }
 
-func (s *Server) render(w http.ResponseWriter, c templ.Component) {
+func (s *Server) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if err := c.Render(context.Background(), w); err != nil {
+	if err := c.Render(r.Context(), w); err != nil {
 		slog.Error("web render", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -21,6 +21,9 @@ import (
 
 // eletrocromoAppID is the reverse-domain Helium profile for contapila desktop.
 const eletrocromoAppID = "br.tec.lew.contapila"
+
+// ErrUnknownDesktopLedger is returned when desktop is given a ledger name not in the project.
+var ErrUnknownDesktopLedger = errors.New("unknown ledger")
 
 func desktopCmd() *cobra.Command {
 	return &cobra.Command{
@@ -54,12 +57,12 @@ deep-link). Project root is discovered from -C / the process working directory
 			if len(args) == 1 {
 				name := args[0]
 				if !projectHasLedger(p, name) {
-					return fmt.Errorf("unknown ledger %q", name)
+					return fmt.Errorf("%w %q", ErrUnknownDesktopLedger, name)
 				}
 				handler = rootDeepLinkHandler(handler, name)
 			}
 
-			ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
 			app := eletrocromo.App{

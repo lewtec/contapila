@@ -237,7 +237,8 @@ func (l *Ledger) netWorthFromBook(b *booking.Engine, asOf time.Time) *big.Rat {
 				continue
 			}
 			// Natural Beancount signs (liabilities are typically negative).
-			val, _ := l.marketConvert(comm, units, asOf, false)
+			val, unpriced := l.marketConvert(comm, units, asOf, false)
+			_ = unpriced
 			total.Add(total, val)
 		}
 	}
@@ -255,7 +256,8 @@ func (l *Ledger) accountValueFromBook(b *booking.Engine, account string, asOf ti
 			if units.Sign() == 0 {
 				continue
 			}
-			val, _ := l.marketConvert(comm, units, asOf, false)
+			val, unpriced := l.marketConvert(comm, units, asOf, false)
+			_ = unpriced
 			total.Add(total, val)
 		}
 	}
@@ -272,7 +274,8 @@ func (l *Ledger) accountValueFromBook(b *booking.Engine, account string, asOf ti
 			if units.Sign() == 0 {
 				continue
 			}
-			val, _ := l.marketConvert(comm, units, asOf, false)
+			val, unpriced := l.marketConvert(comm, units, asOf, false)
+			_ = unpriced
 			total.Add(total, val)
 		}
 	}
@@ -349,7 +352,8 @@ func (l *Ledger) PnLBars(from, to time.Time, kind period.BinKind) []BarPoint {
 				if p.Units == nil || p.Units.Number == nil {
 					continue
 				}
-				val, _ := l.marketConvert(p.Units.Commodity, p.Units.Number, d, false)
+				val, unpriced := l.marketConvert(p.Units.Commodity, p.Units.Number, d, false)
+				_ = unpriced
 				if booking.IsIncome(p.Account) {
 					incSigned.Add(incSigned, val)
 				}

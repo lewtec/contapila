@@ -1,9 +1,16 @@
 package period
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+)
+
+// Sentinel errors for period navbar shifts.
+var (
+	ErrShiftOpenEnded = errors.New("cannot shift open-ended range")
+	ErrShiftEmpty     = errors.New("cannot shift empty period")
 )
 
 // Interval kinds used in the navbar (Fava-style).
@@ -105,7 +112,7 @@ func Shift(filter string, now time.Time, delta int) (string, error) {
 			return "", err
 		}
 		if r.Start.IsZero() {
-			return "", fmt.Errorf("cannot shift open-ended range")
+			return "", ErrShiftOpenEnded
 		}
 		// keep span length in days
 		span := 0
@@ -126,7 +133,7 @@ func Shift(filter string, now time.Time, delta int) (string, error) {
 		return "", err
 	}
 	if r.Start.IsZero() {
-		return "", fmt.Errorf("cannot shift empty period")
+		return "", ErrShiftEmpty
 	}
 	anchor := r.Start
 	switch kind {

@@ -31,7 +31,8 @@ func (l *Ledger) pnlTreeSection(m map[string]map[string]*big.Rat) []PnLLine {
 			if n == nil || n.Sign() == 0 {
 				continue
 			}
-			v, _ := l.marketConvert(comm, n, AsOfLatest, false)
+			v, unpriced := l.marketConvert(comm, n, AsOfLatest, false)
+			_ = unpriced
 			sum.Add(sum, v)
 		}
 		if sum.Sign() != 0 {

@@ -39,7 +39,7 @@ func TestListenGracefulShutdownOnSIGTERM(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- Listen(p, nil, "", addr)
+		errCh <- Listen(t.Context(), p, nil, "", addr)
 	}()
 
 	var last error
@@ -47,8 +47,12 @@ func TestListenGracefulShutdownOnSIGTERM(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		resp, err := http.Get("http://" + addr + "/")
 		if err == nil {
-			_, _ = io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			if _, copyErr := io.Copy(io.Discard, resp.Body); copyErr != nil {
+				t.Logf("drain body: %v", copyErr)
+			}
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				t.Logf("close body: %v", closeErr)
+			}
 			ready = true
 			break
 		}

@@ -112,7 +112,8 @@ func parsePlusDaily(plus string) (*big.Rat, bool) {
 		days = daysPerMonthApprox
 	}
 	// (1+r)^(1/days) - 1 — float64 is enough for daily interest factors.
-	base, _ := new(big.Rat).Add(big.NewRat(1, 1), v).Float64()
+	base, exact := new(big.Rat).Add(big.NewRat(1, 1), v).Float64()
+	_ = exact // non-finite handled below
 	if base <= 0 {
 		return nil, false
 	}

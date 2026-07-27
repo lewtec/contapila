@@ -52,6 +52,9 @@ type Session struct {
 
 	client protocol.Client
 
+	// base is the server lifetime context (from Run); child work cancels from it.
+	base context.Context
+
 	// rebuild scheduling
 	dirty     bool
 	timer     *time.Timer
@@ -59,8 +62,9 @@ type Session struct {
 	gen       uint64
 }
 
-func newSession() *Session {
+func newSession(ctx context.Context) *Session {
 	return &Session{
+		base:       ctx,
 		overlay:    filesys.NewOverlay(nil),
 		openDocs:   map[string]int32{},
 		parseDiags: map[string][]protocol.Diagnostic{},
@@ -72,6 +76,15 @@ func newSession() *Session {
 			PathLedger:  map[string]string{},
 		},
 	}
+}
+
+func (s *Session) setBase(ctx context.Context) {
+	if ctx == nil {
+		return
+	}
+	s.mu.Lock()
+	s.base = ctx
+	s.mu.Unlock()
 }
 
 func (s *Session) setClient(c protocol.Client) {
@@ -126,7 +139,12 @@ func (s *Session) scheduleRebuild() {
 	if s.cancelBld != nil {
 		s.cancelBld()
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	base := s.base
+	if base == nil {
+		s.mu.Unlock()
+		return
+	}
+	ctx, cancel := context.WithCancel(base)
 	s.cancelBld = cancel
 	s.gen++
 	gen := s.gen
@@ -164,10 +182,12 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 	if err != nil {
 		slog.Debug("lsp rebuild: open project", "err", err)
 		if client != nil {
-			_ = client.LogMessage(ctx, &protocol.LogMessageParams{
+			if logErr := client.LogMessage(ctx, &protocol.LogMessageParams{
 				Type:    protocol.MessageTypeWarning,
 				Message: "contapila: " + err.Error(),
-			})
+			}); logErr != nil {
+				slog.Debug("lsp log message", "err", logErr)
+			}
 		}
 		return
 	}
@@ -275,20 +295,24 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 		// include parse diags for this path
 		all := append([]protocol.Diagnostic{}, parseCopy[path]...)
 		all = append(all, diags...)
-		_ = client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+		if pubErr := client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI:         pathToURI(path),
 			Diagnostics: all,
-		})
+		}); pubErr != nil {
+			slog.Debug("publish diagnostics", "err", pubErr)
+		}
 		published[path] = true
 	}
 	for path := range open {
 		if published[path] {
 			continue
 		}
-		_ = client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+		if pubErr := client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI:         pathToURI(path),
 			Diagnostics: parseCopy[path],
-		})
+		}); pubErr != nil {
+			slog.Debug("publish diagnostics", "err", pubErr)
+		}
 	}
 }
 
@@ -416,10 +440,14 @@ func (s *Session) parseBuffer(path, text string) (hasErrors bool) {
 		// SPEC: on parse failure, parse diags immediate; keep last-good check diags
 		// On parse success we'll rebuild and swap — still show last-good until then.
 		all = append(all, sem...)
-		_ = client.PublishDiagnostics(context.Background(), &protocol.PublishDiagnosticsParams{
-			URI:         pathToURI(path),
-			Diagnostics: all,
-		})
+		if pubCtx := s.base; pubCtx != nil {
+			if err := client.PublishDiagnostics(pubCtx, &protocol.PublishDiagnosticsParams{
+				URI:         pathToURI(path),
+				Diagnostics: all,
+			}); err != nil {
+				slog.Debug("publish diagnostics", "path", path, "err", err)
+			}
+		}
 	}
 	return hasErrors
 }

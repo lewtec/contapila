@@ -1,9 +1,9 @@
 package project
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -63,7 +63,7 @@ project_journals: [
 	if err == nil {
 		t.Fatal("expected error for escaping project_journals path")
 	}
-	if !strings.Contains(err.Error(), "escapes") && !strings.Contains(err.Error(), "relative") {
-		t.Fatalf("err=%v want escapes/relative", err)
+	if !errors.Is(err, ErrJournalPathEscapes) && !errors.Is(err, ErrJournalPathAbsolute) {
+		t.Fatalf("err=%v want ErrJournalPathEscapes or ErrJournalPathAbsolute", err)
 	}
 }

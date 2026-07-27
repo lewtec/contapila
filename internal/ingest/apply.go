@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,13 @@ import (
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/parser"
+)
+
+// Sentinel errors for Apply / WriteAtomic.
+var (
+	ErrParseFailed       = errors.New("parse")
+	ErrMissingSourceSpan = errors.New("directive missing source span")
+	ErrInvalidSpan       = errors.New("invalid span")
 )
 
 // Apply merges incoming directives into the target beancount file text using
@@ -28,7 +36,7 @@ func Apply(fileText string, filename string, incoming []ast.Directive) (string, 
 			return "", err
 		}
 		if diags.HasErrors() {
-			return "", fmt.Errorf("parse %s: %s", filename, diags.FormatErrors())
+			return "", fmt.Errorf("%w %s: %s", ErrParseFailed, filename, diags.FormatErrors())
 		}
 		for _, d := range dirs {
 			md := ast.DirectiveMetadata(d)
@@ -41,7 +49,7 @@ func Apply(fileText string, filename string, incoming []ast.Directive) (string, 
 			}
 			meta := directiveMeta(d)
 			if meta.EndByte <= meta.StartByte {
-				return "", fmt.Errorf("directive with ingest_id %q missing source span", id)
+				return "", fmt.Errorf("%w for ingest_id %q", ErrMissingSourceSpan, id)
 			}
 			idSpan[id] = span{meta.StartByte, meta.EndByte}
 		}
@@ -84,7 +92,7 @@ func Apply(fileText string, filename string, incoming []ast.Directive) (string, 
 	out := fileText
 	for _, r := range replacements {
 		if r.start < 0 || r.end > len(out) || r.start > r.end {
-			return "", fmt.Errorf("invalid span [%d,%d) in file len %d", r.start, r.end, len(out))
+			return "", fmt.Errorf("%w [%d,%d) in file len %d", ErrInvalidSpan, r.start, r.end, len(out))
 		}
 		// Expand end to include a trailing newline if the original had one.
 		end := r.end
@@ -172,14 +180,18 @@ func WriteFileAtomic(path string, data []byte) error {
 		return err
 	}
 	tmpName := tmp.Name()
-	defer func() { _ = os.Remove(tmpName) }()
+	defer func() {
+		if remErr := os.Remove(tmpName); remErr != nil && !errors.Is(remErr, os.ErrNotExist) {
+			// best-effort cleanup after successful rename or mid-write failure
+		}
+	}()
 	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		return err
+		closeErr := tmp.Close()
+		return errors.Join(err, closeErr)
 	}
 	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		return err
+		closeErr := tmp.Close()
+		return errors.Join(err, closeErr)
 	}
 	if err := tmp.Close(); err != nil {
 		return err
@@ -199,6 +211,10 @@ func syncDir(dir string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = d.Close() }()
+	defer func() {
+		if closeErr := d.Close(); closeErr != nil {
+			// directory handle close is best-effort after Sync
+		}
+	}()
 	return d.Sync()
 }

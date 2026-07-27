@@ -29,9 +29,14 @@ type Server struct {
 	client protocol.Client
 }
 
-// New creates a server.
+// New creates a server without a lifetime context; Run/RunWith set one via setBase.
 func New() *Server {
-	return &Server{session: newSession()}
+	return &Server{session: newSession(nil)}
+}
+
+// NewWithContext creates a server whose async work is derived from ctx.
+func NewWithContext(ctx context.Context) *Server {
+	return &Server{session: newSession(ctx)}
 }
 
 // RunStdio serves LSP over stdin/stdout.
@@ -47,16 +52,19 @@ func (stdio) Close() error                { return nil }
 
 // Run serves over any ReadWriteCloser (tests use net.Pipe).
 func Run(ctx context.Context, conn io.ReadWriteCloser) error {
-	s := New()
+	s := NewWithContext(ctx)
 	ctx, jconn, client := protocol.NewServer(ctx, s, jsonrpc2.NewHeaderStream(conn))
 	s.mu.Lock()
 	s.client = client
 	s.session.setClient(client)
+	s.session.setBase(ctx)
 	s.mu.Unlock()
 	// Block until connection closes.
 	select {
 	case <-ctx.Done():
-		_ = jconn.Close()
+		if err := jconn.Close(); err != nil {
+			slog.Debug("lsp conn close", "err", err)
+		}
 		return ctx.Err()
 	case <-jconn.Done():
 		return jconn.Err()
@@ -65,12 +73,13 @@ func Run(ctx context.Context, conn io.ReadWriteCloser) error {
 
 // RunWith returns server + client dispatcher for in-process tests.
 func RunWith(ctx context.Context, stream jsonrpc2.Stream) (*Server, jsonrpc2.Conn, protocol.Client) {
-	s := New()
+	s := NewWithContext(ctx)
 	ctx2, jconn, client := protocol.NewServer(ctx, s, stream)
 	_ = ctx2
 	s.mu.Lock()
 	s.client = client
 	s.session.setClient(client)
+	s.session.setBase(ctx)
 	s.mu.Unlock()
 	return s, jconn, client
 }
@@ -178,7 +187,8 @@ func (s *Server) Completion(_ context.Context, params *protocol.CompletionParams
 	off := byteOffset(text, params.Position)
 	prefix := linePrefixAt(text, off)
 	kind := completionKind(prefix)
-	tok, tokStart, _ := tokenAt(text, off)
+	tok, tokStart, tokEnd := tokenAt(text, off)
+	_ = tokEnd
 
 	var items protocol.CompletionItemSlice
 	switch kind {
@@ -271,7 +281,9 @@ func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams
 		return nil, nil
 	}
 	off := byteOffset(text, params.Position)
-	tok, _, _ := tokenAt(text, off)
+	tok, tokStart, tokEnd := tokenAt(text, off)
+	_ = tokStart
+	_ = tokEnd
 	if tok == "" || !strings.Contains(tok, ":") {
 		// still try account-like without colon (unlikely)
 		if tok == "" {
