@@ -17,6 +17,7 @@
 package xlsxexcelizev1
 
 import (
+	"cmp"
 	"fmt"
 	"math"
 	"sort"
@@ -266,46 +267,31 @@ func classifyValue(f *excelize.File, sheet, ref string, cellType excelize.CellTy
 		}
 		return "bool", v, nil
 	case excelize.CellTypeError:
-		if display != "" {
-			return "error", display, nil
-		}
-		return "error", raw, nil
+		return "error", cmp.Or(display, raw), nil
 	case excelize.CellTypeDate:
 		return dateValue(raw, display)
 	case excelize.CellTypeNumber, excelize.CellTypeFormula:
 		if looksLikeDate(f, sheet, ref) {
 			return dateValue(raw, display)
 		}
-		if raw == "" && display == "" {
-			return "blank", nil, nil
-		}
-		s := raw
+		s := cmp.Or(raw, display)
 		if s == "" {
-			s = display
+			return "blank", nil, nil
 		}
 		n, perr := strconv.ParseFloat(s, 64)
 		if perr != nil {
-			// formula cached as string
-			if display != "" {
-				return "string", display, nil
-			}
-			return "string", s, nil
+			// formula cached as string — prefer display when present
+			return "string", cmp.Or(display, s), nil
 		}
 		return "number", n, nil
 	case excelize.CellTypeSharedString, excelize.CellTypeInlineString:
-		if display != "" {
-			return "string", display, nil
-		}
-		return "string", raw, nil
+		return "string", cmp.Or(display, raw), nil
 	case excelize.CellTypeUnset:
-		if raw == "" && display == "" {
+		s := cmp.Or(raw, display)
+		if s == "" {
 			return "blank", nil, nil
 		}
 		// try number then string
-		s := raw
-		if s == "" {
-			s = display
-		}
 		if _, perr := strconv.ParseFloat(s, 64); perr == nil && looksLikeDate(f, sheet, ref) {
 			return dateValue(s, display)
 		}
@@ -314,11 +300,8 @@ func classifyValue(f *excelize.File, sheet, ref string, cellType excelize.CellTy
 		}
 		return "string", s, nil
 	default:
-		if display != "" {
-			return "string", display, nil
-		}
-		if raw != "" {
-			return "string", raw, nil
+		if s := cmp.Or(display, raw); s != "" {
+			return "string", s, nil
 		}
 		return "blank", nil, nil
 	}
@@ -370,10 +353,7 @@ func cellNumFmt(f *excelize.File, sheet, ref string) string {
 }
 
 func dateValue(raw, display string) (string, any, error) {
-	s := raw
-	if s == "" {
-		s = display
-	}
+	s := cmp.Or(raw, display)
 	if s == "" {
 		return "blank", nil, nil
 	}
