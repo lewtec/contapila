@@ -28,7 +28,7 @@ func ParseFile(f *source.File) ([]ast.Directive, diag.List, error) {
 	p := grammar.NewParser()
 	defer p.Delete()
 	if !p.SetLanguage(bc.Language()) {
-		return nil, nil, fmt.Errorf("failed to set beancount language")
+		return nil, nil, fmt.Errorf("set beancount language")
 	}
 	tree := p.ParseString(f.Text)
 	defer tree.Delete()
