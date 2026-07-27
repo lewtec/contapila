@@ -101,15 +101,27 @@ func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 
 	execErr := root.Execute()
 
-	_ = ow.Close()
-	_ = ew.Close()
+	if err := ow.Close(); err != nil {
+		t.Logf("stdout writer close: %v", err)
+	}
+	if err := ew.Close(); err != nil {
+		t.Logf("stderr writer close: %v", err)
+	}
 	os.Stdout, os.Stderr = oldOut, oldErr
 
 	var outBuf, errBuf bytes.Buffer
-	_, _ = io.Copy(&outBuf, or)
-	_, _ = io.Copy(&errBuf, er)
-	_ = or.Close()
-	_ = er.Close()
+	if _, err := io.Copy(&outBuf, or); err != nil {
+		t.Logf("stdout copy: %v", err)
+	}
+	if _, err := io.Copy(&errBuf, er); err != nil {
+		t.Logf("stderr copy: %v", err)
+	}
+	if err := or.Close(); err != nil {
+		t.Logf("stdout reader close: %v", err)
+	}
+	if err := er.Close(); err != nil {
+		t.Logf("stderr reader close: %v", err)
+	}
 
 	return outBuf.String(), errBuf.String(), execErr
 }

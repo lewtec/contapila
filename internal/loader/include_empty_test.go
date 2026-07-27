@@ -1,9 +1,9 @@
 package loader
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/lucasew/contapila-go/internal/diag"
@@ -19,7 +19,7 @@ func TestLoadFileEmptyInclude(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for empty include")
 	}
-	if !strings.Contains(err.Error(), "empty") {
+	if !errors.Is(err, ErrIncludePathEmpty) {
 		t.Fatalf("err=%v want empty", err)
 	}
 	if !hasDiagMsg(diags, diag.Error, "include path is empty") {
@@ -41,7 +41,7 @@ func TestLoadFileIncludeDirectory(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for directory include")
 	}
-	if !strings.Contains(err.Error(), "directory") {
+	if !errors.Is(err, ErrIncludeIsDir) {
 		t.Fatalf("err=%v want directory", err)
 	}
 	if !hasDiagMsg(diags, diag.Error, "include is a directory") {

@@ -10,7 +10,10 @@ import (
 )
 
 func d(s string) time.Time {
-	t, _ := time.ParseInLocation("2006-01-02", s, time.UTC)
+	t, err := time.ParseInLocation("2006-01-02", s, time.UTC)
+	if err != nil {
+		panic(err)
+	}
 	return t
 }
 func r(s string) *big.Rat {

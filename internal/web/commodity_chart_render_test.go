@@ -12,7 +12,12 @@ import (
 )
 
 func TestCommodityPageHasChart(t *testing.T) {
-	_, f, _, _ := runtime.Caller(0)
+	pc, f, line, ok := runtime.Caller(0)
+	_ = pc
+	_ = line
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example")
 	p, pdb, _, err := engine.OpenProject(root)
 	if err != nil {
@@ -47,7 +52,12 @@ func TestCommodityPageHasChart(t *testing.T) {
 }
 
 func TestPricesPageHasChart(t *testing.T) {
-	_, f, _, _ := runtime.Caller(0)
+	pc, f, line, ok := runtime.Caller(0)
+	_ = pc
+	_ = line
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example")
 	p, pdb, _, err := engine.OpenProject(root)
 	if err != nil {
@@ -73,7 +83,12 @@ func TestPricesPageHasChart(t *testing.T) {
 }
 
 func TestCommodityPageChartWithYearFilter(t *testing.T) {
-	_, f, _, _ := runtime.Caller(0)
+	pc, f, line, ok := runtime.Caller(0)
+	_ = pc
+	_ = line
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example")
 	p, pdb, _, err := engine.OpenProject(root)
 	if err != nil {

@@ -32,7 +32,10 @@ func TestParseInterestRate(t *testing.T) {
 		if ir.Indicator != tc.ind {
 			t.Fatalf("%q: ind=%s want %s", tc.in, ir.Indicator, tc.ind)
 		}
-		wantA, _ := new(big.Rat).SetString(tc.alpha)
+		wantA, ok := new(big.Rat).SetString(tc.alpha)
+		if !ok {
+			t.Fatalf("%q: bad alpha fixture %q", tc.in, tc.alpha)
+		}
 		if ir.Alpha.Cmp(wantA) != 0 {
 			t.Fatalf("%q: alpha=%s want %s", tc.in, ir.Alpha.FloatString(4), tc.alpha)
 		}
@@ -148,7 +151,10 @@ func TestExpandAutoInterestNoDoublePad(t *testing.T) {
 			Amount:  ast.Amount{Number: r("100"), Commodity: "BRL"},
 		},
 	}
-	out, _ := ExpandAutoInterest(dirs)
+	out, diags := ExpandAutoInterest(dirs)
+	if diags.HasErrors() {
+		t.Fatalf("ExpandAutoInterest: %v", diags)
+	}
 	nPad := 0
 	for _, d := range out {
 		if _, ok := d.(ast.Pad); ok {
@@ -291,7 +297,10 @@ func TestExpandAutoInterestAfterClosingMeta(t *testing.T) {
 		},
 	}
 	// First autointerest (income already open)
-	stream, _ := ExpandAutoInterest(dirs)
+	stream, aiDiags := ExpandAutoInterest(dirs)
+	if aiDiags.HasErrors() {
+		t.Fatalf("ExpandAutoInterest: %v", aiDiags)
+	}
 	e, out, diags := BookWithClosing(stream, nil)
 	if diags.HasErrors() {
 		t.Fatalf("%v", diags)

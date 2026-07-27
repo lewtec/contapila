@@ -15,7 +15,12 @@ import (
 
 func testWebServer(t *testing.T) *Server {
 	t.Helper()
-	_, f, _, _ := runtime.Caller(0)
+	pc, f, line, ok := runtime.Caller(0)
+	_ = pc
+	_ = line
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example")
 	p, pdb, _, err := engine.OpenProject(root)
 	if err != nil {
@@ -60,7 +65,10 @@ func TestDocFileRejectsEncodedTraversal(t *testing.T) {
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("status %d want 404 body=%s", rr.Code, rr.Body.String())
 	}
-	body, _ := io.ReadAll(rr.Body)
+	body, err := io.ReadAll(rr.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
 	if strings.Contains(string(body), "include") || strings.Contains(string(body), "option") {
 		t.Fatal("traversal leaked ledger file content")
 	}

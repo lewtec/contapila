@@ -9,7 +9,12 @@ import (
 )
 
 func TestNetWorthTableVsChartLastPoint(t *testing.T) {
-	_, f, _, _ := runtime.Caller(0)
+	pc, f, line, ok := runtime.Caller(0)
+	_ = pc
+	_ = line
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example")
 	p, pdb, _, err := OpenProject(root)
 	if err != nil {

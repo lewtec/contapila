@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -198,8 +199,8 @@ func TestProjectJournals(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for non-list project_journals")
 		}
-		if !strings.Contains(err.Error(), "project_journals") {
-			t.Errorf("error should mention project_journals: %v", err)
+		if !errors.Is(err, ErrListProjectJournals) {
+			t.Errorf("err=%v want ErrListProjectJournals", err)
 		}
 	})
 
@@ -226,8 +227,8 @@ func TestProjectJournals(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for non-string path")
 		}
-		if !strings.Contains(err.Error(), "project_journals.path") {
-			t.Errorf("error should mention project_journals.path: %v", err)
+		if !errors.Is(err, ErrProjectJournalsPath) {
+			t.Errorf("err=%v want ErrProjectJournalsPath", err)
 		}
 	})
 
@@ -241,8 +242,8 @@ func TestProjectJournals(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for non-string role")
 		}
-		if !strings.Contains(err.Error(), "project_journals.role") {
-			t.Errorf("error should mention project_journals.role: %v", err)
+		if !errors.Is(err, ErrProjectJournalsRole) {
+			t.Errorf("err=%v want ErrProjectJournalsRole", err)
 		}
 	})
 
@@ -256,8 +257,8 @@ func TestProjectJournals(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for non-string missing")
 		}
-		if !strings.Contains(err.Error(), "project_journals.missing") {
-			t.Errorf("error should mention project_journals.missing: %v", err)
+		if !errors.Is(err, ErrProjectJournalsMiss) {
+			t.Errorf("err=%v want ErrProjectJournalsMiss", err)
 		}
 	})
 

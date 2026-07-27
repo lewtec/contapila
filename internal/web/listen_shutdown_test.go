@@ -35,7 +35,9 @@ func TestListenGracefulShutdownOnSIGTERM(t *testing.T) {
 		t.Fatal(err)
 	}
 	addr := ln.Addr().String()
-	_ = ln.Close()
+	if err := ln.Close(); err != nil {
+		t.Fatalf("close listener: %v", err)
+	}
 
 	errCh := make(chan error, 1)
 	go func() {

@@ -10,7 +10,12 @@ import (
 )
 
 func TestChartPriceJSONExample(t *testing.T) {
-	_, f, _, _ := runtime.Caller(0)
+	pc, f, line, ok := runtime.Caller(0)
+	_ = pc
+	_ = line
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example", "prices.beancount")
 	db, _, err := prices.LoadFile(root)
 	if err != nil {
@@ -29,7 +34,12 @@ func TestChartPriceJSONExample(t *testing.T) {
 }
 
 func TestChartPriceJSONYear2026Empty(t *testing.T) {
-	_, f, _, _ := runtime.Caller(0)
+	pc, f, line, ok := runtime.Caller(0)
+	_ = pc
+	_ = line
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example", "prices.beancount")
 	db, _, err := prices.LoadFile(root)
 	if err != nil {

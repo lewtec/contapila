@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,8 +90,8 @@ include "missing.beancount"
 	if err == nil {
 		t.Fatal("expected error for missing include")
 	}
-	if !strings.Contains(err.Error(), "include missing") {
-		t.Fatalf("err=%v want include missing", err)
+	if !errors.Is(err, ErrIncludeMissing) {
+		t.Fatalf("err=%v want ErrIncludeMissing", err)
 	}
 	if !hasDiagMsg(diags, diag.Error, "include missing") {
 		t.Fatalf("expected error diagnostic for missing include, diags=%v", diags)
@@ -117,8 +118,8 @@ include "a.beancount"
 	if err == nil {
 		t.Fatal("expected error for include cycle")
 	}
-	if !strings.Contains(err.Error(), "include cycle") {
-		t.Fatalf("err=%v want include cycle", err)
+	if !errors.Is(err, ErrIncludeCycle) {
+		t.Fatalf("err=%v want ErrIncludeCycle", err)
 	}
 	if !hasDiagMsg(diags, diag.Error, "include cycle") {
 		t.Fatalf("expected cycle diagnostic, diags=%v", diags)

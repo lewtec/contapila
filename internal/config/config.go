@@ -2,6 +2,7 @@ package config
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -10,6 +11,14 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
+)
+
+// Sentinel errors for ProjectJournals decode failures.
+var (
+	ErrListProjectJournals = errors.New("list project_journals")
+	ErrProjectJournalsPath = errors.New("project_journals.path")
+	ErrProjectJournalsRole = errors.New("project_journals.role")
+	ErrProjectJournalsMiss = errors.New("project_journals.missing")
 )
 
 //go:embed prelude.cue
@@ -96,7 +105,7 @@ func ProjectJournals(v cue.Value) ([]ProjectJournal, error) {
 	}
 	iter, err := list.List()
 	if err != nil {
-		return nil, fmt.Errorf("list project_journals: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrListProjectJournals, err)
 	}
 	var out []ProjectJournal
 	for iter.Next() {
@@ -137,7 +146,18 @@ func journalStringField(item cue.Value, field string) (string, error) {
 		if !fv.Exists() {
 			return "", nil
 		}
-		return "", fmt.Errorf("failed to decode project_journals.%s: %w", field, err)
+		var sent error
+		switch field {
+		case "path":
+			sent = ErrProjectJournalsPath
+		case "role":
+			sent = ErrProjectJournalsRole
+		case "missing":
+			sent = ErrProjectJournalsMiss
+		default:
+			sent = ErrListProjectJournals
+		}
+		return "", fmt.Errorf("%w: %w", sent, err)
 	}
 	return s, nil
 }

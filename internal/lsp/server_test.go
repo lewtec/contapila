@@ -46,9 +46,12 @@ func TestLSP_DefinitionCompletionHover(t *testing.T) {
 	defer a.Close()
 	defer b.Close()
 
-	srv, connA, _ := RunWith(ctx, jsonrpc2.NewHeaderStream(a))
+	srv, connA, runClient := RunWith(ctx, jsonrpc2.NewHeaderStream(a))
+	_ = runClient
 	defer connA.Close()
-	_ = srv
+	if srv == nil {
+		t.Fatal("nil server")
+	}
 
 	_, connB, client := protocol.NewClient(ctx, protocol.UnimplementedClient{}, jsonrpc2.NewHeaderStream(b))
 	defer connB.Close()
@@ -172,7 +175,7 @@ func TestLSP_DefinitionCompletionHover(t *testing.T) {
 	// point at B of BRL after open Assets:Cash
 	hpos := offsetToPos(src, idx+1)
 	// restore full text for hover on original
-	_ = client.DidChange(ctx, &protocol.DidChangeTextDocumentParams{
+	if err := client.DidChange(ctx, &protocol.DidChangeTextDocumentParams{
 		TextDocument: protocol.VersionedTextDocumentIdentifier{
 			TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: docURI},
 			Version:                3,
@@ -180,7 +183,9 @@ func TestLSP_DefinitionCompletionHover(t *testing.T) {
 		ContentChanges: []protocol.TextDocumentContentChangeEvent{
 			&protocol.TextDocumentContentChangeWholeDocument{Text: src},
 		},
-	})
+	}); err != nil {
+		t.Fatalf("DidChange: %v", err)
+	}
 	// wait a bit so overlay has src; hover uses overlay + snap
 	time.Sleep(100 * time.Millisecond)
 	hover, err := client.Hover(ctx, &protocol.HoverParams{
@@ -322,16 +327,21 @@ func TestLSP_DateCompletion(t *testing.T) {
 	defer a.Close()
 	defer b.Close()
 
-	srv, connA, _ := RunWith(ctx, jsonrpc2.NewHeaderStream(a))
+	srv, connA, runClient := RunWith(ctx, jsonrpc2.NewHeaderStream(a))
+	_ = runClient
 	defer connA.Close()
-	_ = srv
+	if srv == nil {
+		t.Fatal("nil server")
+	}
 	_, connB, client := protocol.NewClient(ctx, protocol.UnimplementedClient{}, jsonrpc2.NewHeaderStream(b))
 	defer connB.Close()
 
 	if _, err := client.Initialize(ctx, &protocol.InitializeParams{}); err != nil {
 		t.Fatal(err)
 	}
-	_ = client.Initialized(ctx, &protocol.InitializedParams{})
+	if err := client.Initialized(ctx, &protocol.InitializedParams{}); err != nil {
+		t.Fatalf("Initialized: %v", err)
+	}
 
 	docURI := uri.File(mainPath)
 	if err := client.DidOpen(ctx, &protocol.DidOpenTextDocumentParams{
