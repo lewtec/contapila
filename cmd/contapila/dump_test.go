@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -12,7 +13,8 @@ func TestDumpUnknownDialect(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unknown dump subcommand")
 	}
-	if !strings.Contains(err.Error(), `unknown command "nope-v1"`) {
+	msg := fmt.Sprintf("%v", err)
+	if !strings.Contains(msg, `unknown command "nope-v1"`) {
 		t.Fatalf("err=%v", err)
 	}
 }

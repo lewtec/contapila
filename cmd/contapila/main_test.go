@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -199,7 +201,11 @@ func TestDirectoryFlagMissing(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing -C directory")
 	}
-	if !strings.Contains(err.Error(), "-C") && !strings.Contains(errOut, "-C") {
+	if !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("err=%v want fs.ErrNotExist; stderr=%q", err, errOut)
+	}
+	// Message should identify the -C flag (wrapped as "-C <path>: …")
+	if !strings.HasPrefix(err.Error(), "-C ") && !strings.Contains(errOut, "-C") {
 		t.Errorf("error should mention -C; err=%v stderr=%q", err, errOut)
 	}
 }
