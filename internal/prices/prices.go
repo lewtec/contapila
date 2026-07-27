@@ -3,6 +3,7 @@ package prices
 import (
 	"math/big"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/ast"
@@ -217,15 +218,9 @@ func (db *DB) Pairs() []struct{ Base, Quote string } {
 }
 
 func splitKey(k string) (base, quote string, ok bool) {
-	i := -1
-	for j := 0; j < len(k); j++ {
-		if k[j] == '|' {
-			i = j
-			break
-		}
-	}
-	if i <= 0 || i >= len(k)-1 {
+	base, quote, ok = strings.Cut(k, "|")
+	if !ok || base == "" || quote == "" {
 		return "", "", false
 	}
-	return k[:i], k[i+1:], true
+	return base, quote, true
 }
