@@ -132,7 +132,8 @@ func TestFileRel(t *testing.T) {
 	}{
 		{Instance{Path: "/", Kind: KindPage}, "index.html"},
 		{Instance{Path: "/l/personal/", Kind: KindPage}, "l/personal/index.html"},
-		{Instance{Path: "/l/personal/check", Kind: KindPage}, "l/personal/check/index.html"},
+		{Instance{Path: "/l/personal/check", Kind: KindPage}, "l/personal/check.html"},
+		{Instance{Path: "/l/personal/account/Assets:Cash", Kind: KindPage}, "l/personal/account/Assets:Cash.html"},
 		{Instance{Path: "/static/app.css", Kind: KindStatic}, "static/app.css"},
 		{Instance{Path: "/docfile/personal/docs/README.md", Kind: KindDoc}, "docfile/personal/docs/README.md"},
 	}

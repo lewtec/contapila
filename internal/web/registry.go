@@ -345,8 +345,18 @@ func registerLedgerRoot(r *Registry, s *Server) {
 }
 
 // fileRel maps a URL path to a path relative to the build output directory.
+//
+// HTML pages (except site root and trailing-slash dirs) are written as
+// *.html files, e.g. /l/acme/check → l/acme/check.html. Live HTML still uses
+// extensionless hrefs; build rewrites those links via rewriteStaticPageLinks
+// so static hosts (rclone, etc.) fetch a real file with a text/html MIME type
+// instead of relying on /path → /path/index.html directory indexes.
+// Paths that end with / (ledger roots) use …/index.html so the path can also
+// be a directory for child pages.
 func fileRel(inst Instance) (string, error) {
 	raw := strings.TrimPrefix(inst.Path, "/")
+	// Preserve intent before Clean drops a trailing slash.
+	dirIndex := inst.Path != "/" && strings.HasSuffix(inst.Path, "/")
 	decoded, err := url.PathUnescape(raw)
 	if err != nil {
 		return "", fmt.Errorf("path unescape %q: %w", inst.Path, err)
@@ -361,7 +371,10 @@ func fileRel(inst Instance) (string, error) {
 		if decoded == "" || decoded == "." {
 			return "index.html", nil
 		}
-		return path.Join(decoded, "index.html"), nil
+		if dirIndex {
+			return path.Join(decoded, "index.html"), nil
+		}
+		return decoded + ".html", nil
 	default:
 		if decoded == "" || decoded == "." {
 			return "", fmt.Errorf("%w: %q", ErrEmptyFileRel, inst.Path)

@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/engine"
@@ -175,10 +177,35 @@ func writeInstance(outDir string, h http.Handler, inst Instance) (int64, error) 
 	if err != nil {
 		return 0, err
 	}
+	if inst.Kind == KindPage {
+		body = rewriteStaticPageLinks(body)
+	}
 	if err := os.WriteFile(dest, body, 0o644); err != nil {
 		return 0, fmt.Errorf("web: write %s: %w", dest, err)
 	}
 	return int64(len(body)), nil
+}
+
+// staticPageLinkRe matches href/action to root-absolute app paths (not static/docfile).
+// Groups: 1=attr prefix, 2=path, 3=optional query/fragment + closing quote material handled separately.
+var staticPageLinkRe = regexp.MustCompile(`((?:href|action)=")(/l/[^"?#]*)([?#][^"]*)?"`)
+
+// rewriteStaticPageLinks turns live extensionless page URLs into *.html files
+// written by fileRel, e.g. /l/acme/check → /l/acme/check.html.
+// Directory URLs (trailing /) and non-/l/ paths are left alone.
+func rewriteStaticPageLinks(body []byte) []byte {
+	return staticPageLinkRe.ReplaceAllFunc(body, func(m []byte) []byte {
+		sub := staticPageLinkRe.FindSubmatch(m)
+		if sub == nil {
+			return m
+		}
+		prefix, p, suffix := string(sub[1]), string(sub[2]), string(sub[3])
+		if p == "" || strings.HasSuffix(p, "/") || strings.HasSuffix(p, ".html") {
+			return m
+		}
+		// /l/{ledger}/account/… and /commodity/… and report pages all get .html
+		return []byte(prefix + p + ".html" + suffix + `"`)
+	})
 }
 
 // fetchBuildBody GETs path via h. One 3xx hop is followed (ledger root → check)
