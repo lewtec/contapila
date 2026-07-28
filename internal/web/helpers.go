@@ -12,18 +12,24 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
-// openLedgerRequest loads the project, opens the named ledger, and parses the
-// shared time/as-of query. On failure it writes the HTTP error and returns ok=false.
+// openLedgerRequest resolves project + ledger via the request Session (middleware
+// or build-attached), then parses the shared time/as-of query.
+// On failure it writes the HTTP error and returns ok=false.
 func (s *Server) openLedgerRequest(w http.ResponseWriter, r *http.Request, ledgerName string) (
 	proj *project.Project, pdb *prices.DB, l *engine.Ledger, tq pageTimeQuery, ok bool,
 ) {
-	proj, pdb, err := s.loadProject()
+	sess := sessionFrom(r.Context())
+	if sess == nil {
+		sess = NewSession(s.Root)
+	}
+	var err error
+	proj, pdb, err = sess.Project()
 	if err != nil {
 		slog.Error("web load project", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	l, err = engine.OpenLedger(proj, pdb, ledgerName)
+	l, err = sess.Ledger(ledgerName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

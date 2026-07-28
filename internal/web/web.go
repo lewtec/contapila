@@ -102,22 +102,13 @@ func Listen(ctx context.Context, p *project.Project, pdb *prices.DB, defaultLedg
 }
 
 // New builds a web server rooted at p.Root. The prices argument is kept for
-// call-site compatibility; request handlers reload project + prices from disk
-// via engine.OpenProject on every request (not cached on Server).
+// call-site compatibility. Live handlers use a new Session per request (see
+// withSession); project/ledger data is not cached on Server.
 func New(p *project.Project, _ *prices.DB) (*Server, error) {
 	if p == nil || p.Root == "" {
 		return nil, ErrProjectRootRequired
 	}
 	return &Server{Root: p.Root}, nil
-}
-
-// loadProject reloads contapila.cue, project_journals, prices, and ledger discovery.
-func (s *Server) loadProject() (*project.Project, *prices.DB, error) {
-	p, pdb, _, err := engine.OpenProject(s.Root)
-	if err != nil {
-		return nil, nil, err
-	}
-	return p, pdb, nil
 }
 
 // withSecurityHeaders sets baseline browser hardening headers on every response.
@@ -132,10 +123,21 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
+// withSession attaches a cold Session for this request when the context does
+// not already carry one (build pre-attaches a shared Session).
+func (s *Server) withSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if sessionFrom(r.Context()) == nil {
+			r = r.WithContext(withSession(r.Context(), NewSession(s.Root)))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	DefaultRegistry(s).Mount(mux)
-	return withSecurityHeaders(mux)
+	return withSecurityHeaders(s.withSession(mux))
 }
 
 type pageData struct {
@@ -245,7 +247,11 @@ type nwRow struct {
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	p, _, err := s.loadProject()
+	sess := sessionFrom(r.Context())
+	if sess == nil {
+		sess = NewSession(s.Root)
+	}
+	p, _, err := sess.Project()
 	if err != nil {
 		slog.Error("web handler", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

@@ -42,28 +42,29 @@ func Build(root, outDir string) error {
 	start := time.Now()
 	slog.Info("build start", "root", root, "out", absOut)
 
-	ctx, err := NewSiteCtx(root)
+	// One Session for expand + every page: OpenProject / OpenLedger warm once.
+	sess := NewSession(root)
+	p, pdb, err := sess.Project()
 	if err != nil {
 		return err
 	}
-	ledgers := engine.LedgerNames(ctx.Project)
+	ledgers := engine.LedgerNames(p)
 	slog.Info("build project open",
 		"ledgers", len(ledgers),
 		"ledger_names", ledgers,
 	)
 
-	s, err := New(ctx.Project, ctx.Prices)
+	s, err := New(p, pdb)
 	if err != nil {
 		return err
 	}
-	// Align Server.Root with expand context (New already sets it from project).
 	if s.Root == "" {
 		s.Root = root
 	}
 
 	reg := DefaultRegistry(s)
 	expandStart := time.Now()
-	insts, err := reg.Instances(ctx)
+	insts, err := reg.Instances(sess)
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func Build(root, outDir string) error {
 	renderStart := time.Now()
 	total := len(insts)
 	for i, inst := range insts {
-		n, err := writeInstance(absOut, h, inst)
+		n, err := writeInstance(absOut, h, sess, inst)
 		if err != nil {
 			slog.Error("build path failed",
 				"path", inst.Path,
@@ -163,7 +164,7 @@ func kindLabel(k Kind) string {
 	}
 }
 
-func writeInstance(outDir string, h http.Handler, inst Instance) (int64, error) {
+func writeInstance(outDir string, h http.Handler, sess *Session, inst Instance) (int64, error) {
 	rel, err := fileRel(inst)
 	if err != nil {
 		return 0, err
@@ -173,7 +174,7 @@ func writeInstance(outDir string, h http.Handler, inst Instance) (int64, error) 
 		return 0, fmt.Errorf("web: mkdir for %s: %w", inst.Path, err)
 	}
 
-	body, err := fetchBuildBody(h, inst.Path)
+	body, err := fetchBuildBody(h, sess, inst.Path)
 	if err != nil {
 		return 0, err
 	}
@@ -208,10 +209,13 @@ func rewriteStaticPageLinks(body []byte) []byte {
 	})
 }
 
-// fetchBuildBody GETs path via h. One 3xx hop is followed (ledger root → check)
-// so static output can store the final HTML at the original path.
-func fetchBuildBody(h http.Handler, path string) ([]byte, error) {
+// fetchBuildBody GETs path via h with sess on the request context so handlers
+// reuse the build Session. One 3xx hop is followed (ledger root → check).
+func fetchBuildBody(h http.Handler, sess *Session, path string) ([]byte, error) {
 	req := httptest.NewRequest(http.MethodGet, path, nil)
+	if sess != nil {
+		req = req.WithContext(withSession(req.Context(), sess))
+	}
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 	if rr.Code >= 300 && rr.Code < 400 {
@@ -220,6 +224,9 @@ func fetchBuildBody(h http.Handler, path string) ([]byte, error) {
 			return nil, fmt.Errorf("%w: %s status %d (no Location)", ErrBuildStatus, path, rr.Code)
 		}
 		req2 := httptest.NewRequest(http.MethodGet, loc, nil)
+		if sess != nil {
+			req2 = req2.WithContext(withSession(req2.Context(), sess))
+		}
 		rr2 := httptest.NewRecorder()
 		h.ServeHTTP(rr2, req2)
 		if rr2.Code != http.StatusOK {

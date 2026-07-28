@@ -11,14 +11,10 @@ import (
 	"strings"
 
 	docsutil "github.com/lucasew/contapila-go/internal/docs"
-	"github.com/lucasew/contapila-go/internal/engine"
-	"github.com/lucasew/contapila-go/internal/prices"
-	"github.com/lucasew/contapila-go/pkg/project"
 )
 
 // Registry / path sentinel errors.
 var (
-	ErrSiteCtxNil   = errors.New("web: site context is nil")
 	ErrBuildPathDot = errors.New("web: refusing path with ..")
 	ErrEmptyFileRel = errors.New("web: empty file path for instance")
 )
@@ -41,46 +37,10 @@ type Instance struct {
 	Kind Kind
 }
 
-// SiteCtx is project state used when expanding parameterized routes for build.
-type SiteCtx struct {
-	Root    string
-	Project *project.Project
-	Prices  *prices.DB
-
-	ledgers map[string]*engine.Ledger
-}
-
-// NewSiteCtx opens the project at root for route expansion.
-func NewSiteCtx(root string) (*SiteCtx, error) {
-	p, pdb, _, err := engine.OpenProject(root)
-	if err != nil {
-		return nil, err
-	}
-	return &SiteCtx{Root: root, Project: p, Prices: pdb}, nil
-}
-
-// Ledger returns a cached booked ledger by directory name.
-func (c *SiteCtx) Ledger(name string) (*engine.Ledger, error) {
-	if c == nil || c.Project == nil {
-		return nil, ErrSiteCtxNil
-	}
-	if c.ledgers == nil {
-		c.ledgers = make(map[string]*engine.Ledger)
-	}
-	if l, ok := c.ledgers[name]; ok {
-		return l, nil
-	}
-	l, err := engine.OpenLedger(c.Project, c.Prices, name)
-	if err != nil {
-		return nil, err
-	}
-	c.ledgers[name] = l
-	return l, nil
-}
-
 // ExpandFunc yields concrete instances for one registered route pattern.
 // Nil means the route is live-only (e.g. redirects) and skipped by build.
-type ExpandFunc func(ctx *SiteCtx) ([]Instance, error)
+// sess is the same Session used for render (lazy OpenProject / OpenLedger).
+type ExpandFunc func(sess *Session) ([]Instance, error)
 
 // Route is one mux pattern plus optional static-site expansion.
 type Route struct {
@@ -132,7 +92,7 @@ func (r *Registry) Mount(mux *http.ServeMux) {
 
 // Instances expands all routes with Expand set. Order is registration order,
 // then each expander's own order. Duplicate paths are not deduped.
-func (r *Registry) Instances(ctx *SiteCtx) ([]Instance, error) {
+func (r *Registry) Instances(sess *Session) ([]Instance, error) {
 	if r == nil {
 		return nil, nil
 	}
@@ -141,7 +101,7 @@ func (r *Registry) Instances(ctx *SiteCtx) ([]Instance, error) {
 		if rt.Expand == nil {
 			continue
 		}
-		insts, err := rt.Expand(ctx)
+		insts, err := rt.Expand(sess)
 		if err != nil {
 			return nil, err
 		}
@@ -173,7 +133,7 @@ func registerStatic(r *Registry) {
 	r.Register(Route{
 		Pattern: "GET /static/",
 		Handle:  http.FileServer(http.FS(staticFS)),
-		Expand: func(ctx *SiteCtx) ([]Instance, error) {
+		Expand: func(sess *Session) ([]Instance, error) {
 			var out []Instance
 			err := fs.WalkDir(staticFS, "static", func(p string, d fs.DirEntry, err error) error {
 				if err != nil {
@@ -198,14 +158,18 @@ func registerDocFile(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /docfile/{path...}",
 		Handle:  http.HandlerFunc(s.handleDocFile),
-		Expand: func(ctx *SiteCtx) ([]Instance, error) {
-			if ctx == nil || ctx.Project == nil {
-				return nil, nil
+		Expand: func(sess *Session) ([]Instance, error) {
+			if sess == nil {
+				return nil, ErrSessionNil
+			}
+			names, err := sess.LedgerNames()
+			if err != nil {
+				return nil, err
 			}
 			seen := map[string]struct{}{}
 			var out []Instance
-			for _, name := range engine.LedgerNames(ctx.Project) {
-				l, err := ctx.Ledger(name)
+			for _, name := range names {
+				l, err := sess.Ledger(name)
 				if err != nil {
 					return nil, err
 				}
@@ -233,7 +197,7 @@ func registerIndex(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /{$}",
 		Handle:  http.HandlerFunc(s.handleIndex),
-		Expand: func(ctx *SiteCtx) ([]Instance, error) {
+		Expand: func(sess *Session) ([]Instance, error) {
 			return []Instance{{Path: "/", Kind: KindPage}}, nil
 		},
 	})
@@ -243,13 +207,17 @@ func registerAccount(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/account/{account...}",
 		Handle:  http.HandlerFunc(s.handleAccount),
-		Expand: func(ctx *SiteCtx) ([]Instance, error) {
-			if ctx == nil || ctx.Project == nil {
-				return nil, nil
+		Expand: func(sess *Session) ([]Instance, error) {
+			if sess == nil {
+				return nil, ErrSessionNil
+			}
+			names, err := sess.LedgerNames()
+			if err != nil {
+				return nil, err
 			}
 			var out []Instance
-			for _, name := range engine.LedgerNames(ctx.Project) {
-				l, err := ctx.Ledger(name)
+			for _, name := range names {
+				l, err := sess.Ledger(name)
 				if err != nil {
 					return nil, err
 				}
@@ -271,13 +239,17 @@ func registerCommodity(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/commodity/{commodity...}",
 		Handle:  http.HandlerFunc(s.handleCommodity),
-		Expand: func(ctx *SiteCtx) ([]Instance, error) {
-			if ctx == nil || ctx.Project == nil {
-				return nil, nil
+		Expand: func(sess *Session) ([]Instance, error) {
+			if sess == nil {
+				return nil, ErrSessionNil
+			}
+			names, err := sess.LedgerNames()
+			if err != nil {
+				return nil, err
 			}
 			var out []Instance
-			for _, name := range engine.LedgerNames(ctx.Project) {
-				l, err := ctx.Ledger(name)
+			for _, name := range names {
+				l, err := sess.Ledger(name)
 				if err != nil {
 					return nil, err
 				}
@@ -299,15 +271,19 @@ func registerLedgerPage(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/{page}",
 		Handle:  http.HandlerFunc(s.handleLedgerPage),
-		Expand: func(ctx *SiteCtx) ([]Instance, error) {
-			if ctx == nil || ctx.Project == nil {
-				return nil, nil
+		Expand: func(sess *Session) ([]Instance, error) {
+			if sess == nil {
+				return nil, ErrSessionNil
+			}
+			names, err := sess.LedgerNames()
+			if err != nil {
+				return nil, err
 			}
 			pages := ReportPages()
 			var out []Instance
-			for _, name := range engine.LedgerNames(ctx.Project) {
+			for _, name := range names {
 				// Touch ledger so booking errors surface during expand, not mid-render.
-				if _, err := ctx.Ledger(name); err != nil {
+				if _, err := sess.Ledger(name); err != nil {
 					return nil, err
 				}
 				for _, page := range pages {
@@ -327,12 +303,16 @@ func registerLedgerRoot(r *Registry, s *Server) {
 		Handle: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			http.Redirect(w, req, "/l/"+req.PathValue("ledger")+"/check", http.StatusFound)
 		}),
-		Expand: func(ctx *SiteCtx) ([]Instance, error) {
-			if ctx == nil || ctx.Project == nil {
-				return nil, nil
+		Expand: func(sess *Session) ([]Instance, error) {
+			if sess == nil {
+				return nil, ErrSessionNil
+			}
+			names, err := sess.LedgerNames()
+			if err != nil {
+				return nil, err
 			}
 			var out []Instance
-			for _, name := range engine.LedgerNames(ctx.Project) {
+			for _, name := range names {
 				// Trailing slash matches the mux pattern; fileRel → l/{name}/index.html.
 				out = append(out, Instance{
 					Path: "/l/" + url.PathEscape(name) + "/",

@@ -62,16 +62,17 @@ func TestDefaultRegistryMountParity(t *testing.T) {
 
 func TestRegistryInstancesExample(t *testing.T) {
 	root := exampleRoot(t)
-	ctx, err := NewSiteCtx(root)
+	sess := NewSession(root)
+	p, pdb, err := sess.Project()
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := New(ctx.Project, ctx.Prices)
+	s, err := New(p, pdb)
 	if err != nil {
 		t.Fatal(err)
 	}
 	reg := DefaultRegistry(s)
-	insts, err := reg.Instances(ctx)
+	insts, err := reg.Instances(sess)
 	if err != nil {
 		t.Fatal(err)
 	}
