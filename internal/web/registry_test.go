@@ -89,6 +89,8 @@ func TestRegistryInstancesExample(t *testing.T) {
 
 	wantPages := []string{
 		"/",
+		"/l/personal/",
+		"/l/acme/",
 		"/l/personal/check",
 		"/l/personal/pnl",
 		"/l/personal/networth",
@@ -121,10 +123,6 @@ func TestRegistryInstancesExample(t *testing.T) {
 	if commodities == 0 {
 		t.Error("expected commodity pages")
 	}
-	// Live-only redirect is not expanded.
-	if _, ok := byPath["/l/personal/"]; ok {
-		t.Error("ledger root redirect should not expand")
-	}
 }
 
 func TestFileRel(t *testing.T) {
@@ -133,6 +131,7 @@ func TestFileRel(t *testing.T) {
 		want string
 	}{
 		{Instance{Path: "/", Kind: KindPage}, "index.html"},
+		{Instance{Path: "/l/personal/", Kind: KindPage}, "l/personal/index.html"},
 		{Instance{Path: "/l/personal/check", Kind: KindPage}, "l/personal/check/index.html"},
 		{Instance{Path: "/static/app.css", Kind: KindStatic}, "static/app.css"},
 		{Instance{Path: "/docfile/personal/docs/README.md", Kind: KindDoc}, "docfile/personal/docs/README.md"},

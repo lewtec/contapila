@@ -19,6 +19,8 @@ func TestBuildExample(t *testing.T) {
 		"index.html",
 		"static/app.css",
 		"static/charts.js",
+		"l/personal/index.html", // ledger root (live redirect → check)
+		"l/acme/index.html",
 		"l/personal/check/index.html",
 		"l/personal/pnl/index.html",
 		"l/personal/networth/index.html",
@@ -43,6 +45,19 @@ func TestBuildExample(t *testing.T) {
 	}
 	if !strings.Contains(string(index), `href="/l/personal/check"`) {
 		t.Fatalf("index missing personal check link: %s", truncate(string(index), 200))
+	}
+
+	// Ledger root is check content (redirect followed at build time).
+	rootHTML, err := os.ReadFile(filepath.Join(out, "l", "acme", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkHTML, err := os.ReadFile(filepath.Join(out, "l", "acme", "check", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(rootHTML) != string(checkHTML) {
+		t.Fatalf("l/acme/index.html should match check page body (got %d vs %d bytes)", len(rootHTML), len(checkHTML))
 	}
 
 	// At least one account page and commodity page under personal.

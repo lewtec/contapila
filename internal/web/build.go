@@ -171,15 +171,37 @@ func writeInstance(outDir string, h http.Handler, inst Instance) (int64, error) 
 		return 0, fmt.Errorf("web: mkdir for %s: %w", inst.Path, err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, inst.Path, nil)
-	rr := httptest.NewRecorder()
-	h.ServeHTTP(rr, req)
-	if rr.Code != http.StatusOK {
-		return 0, fmt.Errorf("%w: %s status %d", ErrBuildStatus, inst.Path, rr.Code)
+	body, err := fetchBuildBody(h, inst.Path)
+	if err != nil {
+		return 0, err
 	}
-	body := rr.Body.Bytes()
 	if err := os.WriteFile(dest, body, 0o644); err != nil {
 		return 0, fmt.Errorf("web: write %s: %w", dest, err)
 	}
 	return int64(len(body)), nil
+}
+
+// fetchBuildBody GETs path via h. One 3xx hop is followed (ledger root → check)
+// so static output can store the final HTML at the original path.
+func fetchBuildBody(h http.Handler, path string) ([]byte, error) {
+	req := httptest.NewRequest(http.MethodGet, path, nil)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	if rr.Code >= 300 && rr.Code < 400 {
+		loc := rr.Header().Get("Location")
+		if loc == "" {
+			return nil, fmt.Errorf("%w: %s status %d (no Location)", ErrBuildStatus, path, rr.Code)
+		}
+		req2 := httptest.NewRequest(http.MethodGet, loc, nil)
+		rr2 := httptest.NewRecorder()
+		h.ServeHTTP(rr2, req2)
+		if rr2.Code != http.StatusOK {
+			return nil, fmt.Errorf("%w: %s → %s status %d", ErrBuildStatus, path, loc, rr2.Code)
+		}
+		return rr2.Body.Bytes(), nil
+	}
+	if rr.Code != http.StatusOK {
+		return nil, fmt.Errorf("%w: %s status %d", ErrBuildStatus, path, rr.Code)
+	}
+	return rr.Body.Bytes(), nil
 }

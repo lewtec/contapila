@@ -320,13 +320,27 @@ func registerLedgerPage(r *Registry, s *Server) {
 }
 
 func registerLedgerRoot(r *Registry, s *Server) {
-	// Live redirect only; build emits /l/{ledger}/check instead.
+	// Live: 302 → /l/{ledger}/check. Build: materialize l/{ledger}/index.html
+	// (same body as check) so bare /l/{ledger}/ works on static hosts (rclone, etc.).
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/{$}",
 		Handle: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			http.Redirect(w, req, "/l/"+req.PathValue("ledger")+"/check", http.StatusFound)
 		}),
-		Expand: nil,
+		Expand: func(ctx *SiteCtx) ([]Instance, error) {
+			if ctx == nil || ctx.Project == nil {
+				return nil, nil
+			}
+			var out []Instance
+			for _, name := range engine.LedgerNames(ctx.Project) {
+				// Trailing slash matches the mux pattern; fileRel → l/{name}/index.html.
+				out = append(out, Instance{
+					Path: "/l/" + url.PathEscape(name) + "/",
+					Kind: KindPage,
+				})
+			}
+			return out, nil
+		},
 	})
 }
 
