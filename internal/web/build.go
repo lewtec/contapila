@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -223,24 +224,34 @@ func writeInstance(outDir string, h http.Handler, sess *Session, inst Instance) 
 	return int64(len(body)), nil
 }
 
-// staticPageLinkRe matches href/action to root-absolute app paths (not static/docfile).
-// Groups: 1=attr prefix, 2=path, 3=optional query/fragment + closing quote material handled separately.
+// staticPageLinkRe matches href/action to root-absolute /l/… app paths (not static/docfile).
+// Groups: 1=attr prefix, 2=path, 3=optional query/fragment.
 var staticPageLinkRe = regexp.MustCompile(`((?:href|action)=")(/l/[^"?#]*)([?#][^"]*)?"`)
 
-// rewriteStaticPageLinks turns live extensionless page URLs into *.html files
-// written by fileRel, e.g. /l/acme/check → /l/acme/check.html.
-// Directory URLs (trailing /) and non-/l/ paths are left alone.
+// rewriteStaticPageLinks maps live URLs to on-disk static files for dumb hosts
+// (rclone, etc.) that do not implement directory indexes:
+//
+//	/                 → /index.html          (breadcrumb "contapila")
+//	/l/acme/          → /l/acme/index.html   (ledger root)
+//	/l/acme/check     → /l/acme/check.html
 func rewriteStaticPageLinks(body []byte) []byte {
+	// Exact home link only (quote after slash) — not a prefix of /l/… or /static/….
+	body = bytes.ReplaceAll(body, []byte(`href="/"`), []byte(`href="/index.html"`))
+	body = bytes.ReplaceAll(body, []byte(`action="/"`), []byte(`action="/index.html"`))
+
 	return staticPageLinkRe.ReplaceAllFunc(body, func(m []byte) []byte {
 		sub := staticPageLinkRe.FindSubmatch(m)
 		if sub == nil {
 			return m
 		}
 		prefix, p, suffix := string(sub[1]), string(sub[2]), string(sub[3])
-		if p == "" || strings.HasSuffix(p, "/") || strings.HasSuffix(p, ".html") {
+		if p == "" || strings.HasSuffix(p, ".html") {
 			return m
 		}
-		// /l/{ledger}/account/… and /commodity/… and report pages all get .html
+		if strings.HasSuffix(p, "/") {
+			// Directory URL → index.html inside that directory.
+			return []byte(prefix + p + "index.html" + suffix + `"`)
+		}
 		return []byte(prefix + p + ".html" + suffix + `"`)
 	})
 }

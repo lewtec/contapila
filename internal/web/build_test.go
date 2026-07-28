@@ -56,6 +56,17 @@ func TestBuildExample(t *testing.T) {
 		!strings.Contains(string(index), `href="/l/personal/check.html"`) {
 		t.Fatal("live extensionless check link was not rewritten to .html")
 	}
+	// Breadcrumb "contapila" → home must hit index.html on dumb static hosts.
+	checkPage, err := os.ReadFile(filepath.Join(out, "l", "personal", "check.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(checkPage), `href="/index.html"`) {
+		t.Fatalf("check page missing rewritten home link: %s", truncate(string(checkPage), 300))
+	}
+	if strings.Contains(string(checkPage), `href="/"`) {
+		t.Fatal(`check page still has href="/" (should be /index.html)`)
+	}
 
 	// Ledger root is check content (redirect followed at build time).
 	rootHTML, err := os.ReadFile(filepath.Join(out, "l", "acme", "index.html"))
@@ -171,8 +182,8 @@ func TestRewriteStaticPageLinks(t *testing.T) {
 	wantSub := []string{
 		`href="/l/acme/check.html"`,
 		`href="/l/acme/account/Assets:Cash.html"`,
-		`href="/l/acme/"`,
-		`href="/"`,
+		`href="/l/acme/index.html"`,
+		`href="/index.html"`,
 		`href="/static/app.css"`,
 		`href="/docfile/personal/docs/x.txt"`,
 		`action="/l/personal/pnl.html"`,
@@ -185,5 +196,8 @@ func TestRewriteStaticPageLinks(t *testing.T) {
 	}
 	if strings.Contains(got, `href="/l/acme/check"`) {
 		t.Error("extensionless check link should have been rewritten")
+	}
+	if strings.Contains(got, `href="/"`) {
+		t.Error(`bare href="/" should be /index.html`)
 	}
 }
