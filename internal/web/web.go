@@ -102,22 +102,13 @@ func Listen(ctx context.Context, p *project.Project, pdb *prices.DB, defaultLedg
 }
 
 // New builds a web server rooted at p.Root. The prices argument is kept for
-// call-site compatibility; request handlers reload project + prices from disk
-// via engine.OpenProject on every request (not cached on Server).
+// call-site compatibility. Live handlers use a new Session per request (see
+// withSession); project/ledger data is not cached on Server.
 func New(p *project.Project, _ *prices.DB) (*Server, error) {
 	if p == nil || p.Root == "" {
 		return nil, ErrProjectRootRequired
 	}
 	return &Server{Root: p.Root}, nil
-}
-
-// loadProject reloads contapila.cue, project_journals, prices, and ledger discovery.
-func (s *Server) loadProject() (*project.Project, *prices.DB, error) {
-	p, pdb, _, err := engine.OpenProject(s.Root)
-	if err != nil {
-		return nil, nil, err
-	}
-	return p, pdb, nil
 }
 
 // withSecurityHeaders sets baseline browser hardening headers on every response.
@@ -132,24 +123,26 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
+// withSession attaches a cold Session for this request when the context does
+// not already carry one (build pre-attaches a shared Session).
+func (s *Server) withSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if sessionFrom(r.Context()) == nil {
+			r = r.WithContext(withSession(r.Context(), NewSession(s.Root)))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	// Built CSS (daisyUI themes via @plugin) — correct text/css MIME.
-	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
-	// Ledger docs: URL /docfile/<ledger>/docs/by-account/... → <root>/<ledger>/docs/...
-	mux.HandleFunc("GET /docfile/{path...}", s.handleDocFile)
-	mux.HandleFunc("GET /{$}", s.handleIndex)
-	// Named entity routes before generic page so "account"/"commodity" are not page names.
-	mux.HandleFunc("GET /l/{ledger}/account/{account...}", s.handleAccount)
-	mux.HandleFunc("GET /l/{ledger}/commodity/{commodity...}", s.handleCommodity)
-	mux.HandleFunc("GET /l/{ledger}/{page}", s.handleLedgerPage)
-	mux.HandleFunc("GET /l/{ledger}/{$}", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/l/"+r.PathValue("ledger")+"/check", http.StatusFound)
-	})
-	return withSecurityHeaders(mux)
+	DefaultRegistry(s).Mount(mux)
+	return withSecurityHeaders(s.withSession(mux))
 }
 
 type pageData struct {
+	// Sess drives link URL shape (live vs static .html) and is the load Session.
+	Sess         *Session
 	Title        string
 	Page         string
 	LedgerName   string
@@ -256,13 +249,18 @@ type nwRow struct {
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	p, _, err := s.loadProject()
+	sess := sessionFrom(r.Context())
+	if sess == nil {
+		sess = NewSession(s.Root)
+	}
+	p, _, err := sess.Project()
 	if err != nil {
 		slog.Error("web handler", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	data := pageData{
+		Sess:        sess,
 		Title:       "Ledgers",
 		Page:        "home",
 		Ledgers:     engine.LedgerNames(p),
@@ -334,13 +332,13 @@ func parsePageTimeQuery(q url.Values, now time.Time, fromTo, explicitAsOf bool) 
 func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("ledger")
 	page := r.PathValue("page")
-	proj, pdb, l, tq, ok := s.openLedgerRequest(w, r, name)
+	proj, pdb, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
 	if !ok {
 		return
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(proj, l, name, name+" · "+page, page, tq)
+	data := basePageData(sess, proj, l, name, name+" · "+page, page, tq)
 	data.Diags = l.Diags
 	data.HasErrors = l.Diags.HasErrors()
 	data.HasWarnings = l.Diags.HasWarnings()
@@ -422,13 +420,13 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	proj, _, l, tq, ok := s.openLedgerRequest(w, r, name)
+	proj, _, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
 	if !ok {
 		return
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(proj, l, name, account, "account", tq)
+	data := basePageData(sess, proj, l, name, account, "account", tq)
 	data.AccountName = account
 	if perr != nil {
 		s.render(w, r, AccountPage(data))
@@ -801,13 +799,13 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	proj, pdb, l, tq, ok := s.openLedgerRequest(w, r, name)
+	proj, pdb, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
 	if !ok {
 		return
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(proj, l, name, commodity, "commodity", tq)
+	data := basePageData(sess, proj, l, name, commodity, "commodity", tq)
 	data.CommodityName = commodity
 	if perr != nil {
 		s.render(w, r, CommodityPage(data))

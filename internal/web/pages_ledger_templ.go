@@ -283,7 +283,7 @@ func balancesBody(d pageData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = treeAccountCell(r, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = treeAccountCell(d.Sess, r, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -291,7 +291,7 @@ func balancesBody(d pageData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = amountWithCommodityLink(r.Amount, r.Commodity, d.LedgerName, d.Time, r.IsRollup).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = amountWithCommodityLink(d.Sess, r.Amount, r.Commodity, d.LedgerName, d.Time, r.IsRollup).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -376,11 +376,11 @@ func pnlBody(d pageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = pnlSideTree("Income", d.IncomeRows, d.LedgerName, d.Time, "No income postings.").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = pnlSideTree(d.Sess, "Income", d.IncomeRows, d.LedgerName, d.Time, "No income postings.").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = pnlSideTree("Expenses", d.ExpenseRows, d.LedgerName, d.Time, "No expense postings.").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = pnlSideTree(d.Sess, "Expenses", d.ExpenseRows, d.LedgerName, d.Time, "No expense postings.").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -525,7 +525,7 @@ func networthBody(d pageData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = treeAccountCellNW(r, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = treeAccountCellNW(d.Sess, r, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -533,7 +533,7 @@ func networthBody(d pageData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = amountWithCommodityLink(r.Units, r.Commodity, d.LedgerName, d.Time, r.IsRollup).Render(ctx, templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = amountWithCommodityLink(d.Sess, r.Units, r.Commodity, d.LedgerName, d.Time, r.IsRollup).Render(ctx, templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -564,7 +564,7 @@ func networthBody(d pageData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = commodityLink(d.LedgerName, d.OpCurrency, d.Time, true).Render(ctx, templ_7745c5c3_Buffer)
+							templ_7745c5c3_Err = commodityLink(d.Sess, d.LedgerName, d.OpCurrency, d.Time, true).Render(ctx, templ_7745c5c3_Buffer)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -720,7 +720,7 @@ func documentsBody(d pageData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					} else if r.Account != "" {
-						templ_7745c5c3_Err = accountLink(d.LedgerName, r.Account, d.Time, r.Name).Render(ctx, templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = accountLink(d.Sess, d.LedgerName, r.Account, d.Time, r.Name).Render(ctx, templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -859,7 +859,7 @@ func pricesBody(d pageData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = commodityLink(d.LedgerName, s.Base, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = commodityLink(d.Sess, d.LedgerName, s.Base, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -906,7 +906,7 @@ func pricesBody(d pageData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = rateWithQuote(s.LastRate, s.Quote, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = rateWithQuote(d.Sess, s.LastRate, s.Quote, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

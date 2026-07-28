@@ -95,7 +95,7 @@ func AccountPage(d pageData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = commodityLink(d.LedgerName, c, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
+							templ_7745c5c3_Err = commodityLink(d.Sess, d.LedgerName, c, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -134,7 +134,7 @@ func AccountPage(d pageData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = amountCommodityRows(d.AccountBalances, d.LedgerName, d.Time, "Zero / never posted.").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = amountCommodityRows(d.Sess, d.AccountBalances, d.LedgerName, d.Time, "Zero / never posted.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -146,7 +146,7 @@ func AccountPage(d pageData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = amountCommodityRows(d.AccountActivity, d.LedgerName, d.Time, "No activity.").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = amountCommodityRows(d.Sess, d.AccountActivity, d.LedgerName, d.Time, "No activity.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

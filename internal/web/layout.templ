@@ -51,7 +51,8 @@ templ themeScript() {
 }
 
 templ timeFilter(d pageData) {
-	if d.LedgerName != "" {
+	// Static site has no time query surface; hide the box (live keeps it).
+	if d.LedgerName != "" && !sessionStatic(d.Sess) {
 		<form method="get" action={ templ.SafeURL(timeFilterAction(d)) } class="shrink-0 flex items-center">
 			<input
 				id="time-filter"
@@ -73,7 +74,7 @@ templ breadcrumbs(d pageData) {
 	<div class="flex min-w-0 flex-1 items-center text-xs sm:text-sm">
 		<div class="breadcrumbs py-0 shrink-0 overflow-visible">
 			<ul class="flex-nowrap items-center">
-				<li><a href="/" class="link link-hover">contapila</a></li>
+				<li><a href={ templ.SafeURL(homeURL(d.Sess)) } class="link link-hover">contapila</a></li>
 				if len(d.Ledgers) > 0 {
 					<li class="relative z-[60]">
 						<details class="dropdown dropdown-bottom">
@@ -89,13 +90,13 @@ templ breadcrumbs(d pageData) {
 								for _, name := range d.Ledgers {
 									<li>
 										if d.Page == "account" && d.AccountName != "" {
-											<a href={ templ.SafeURL(accountURL(name, d.AccountName, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
+											<a href={ templ.SafeURL(accountURL(d.Sess, name, d.AccountName, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
 										} else if d.Page == "commodity" && d.CommodityName != "" {
-											<a href={ templ.SafeURL(commodityURL(name, d.CommodityName, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
+											<a href={ templ.SafeURL(commodityURL(d.Sess, name, d.CommodityName, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
 										} else if d.Page != "" {
-											<a href={ templ.SafeURL(ledgerURL(name, d.Page, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
+											<a href={ templ.SafeURL(ledgerURL(d.Sess, name, d.Page, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
 										} else {
-											<a href={ templ.SafeURL(ledgerURL(name, "check", "")) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
+											<a href={ templ.SafeURL(ledgerURL(d.Sess, name, "check", "")) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
 										}
 									</li>
 								}
@@ -137,7 +138,7 @@ templ topbar(d pageData) {
 
 templ navItem(d pageData, page, label string) {
 	<li class="w-full">
-		<a href={ templ.SafeURL(ledgerURL(d.LedgerName, page, d.Time)) } class={ "rounded-none w-full", templ.KV("menu-active", d.Page == page) }>{ label }</a>
+		<a href={ templ.SafeURL(ledgerURL(d.Sess, d.LedgerName, page, d.Time)) } class={ "rounded-none w-full", templ.KV("menu-active", d.Page == page) }>{ label }</a>
 	</li>
 }
 
@@ -176,7 +177,7 @@ templ sidebarNav(d pageData) {
 			<li class="menu-title px-3 py-2 text-[0.65rem]"><span>Ledgers</span></li>
 			for _, name := range d.Ledgers {
 				<li class="w-full">
-					<a href={ templ.SafeURL(ledgerURL(name, "check", "")) } class="rounded-none w-full">{ name }</a>
+					<a href={ templ.SafeURL(ledgerURL(d.Sess, name, "check", "")) } class="rounded-none w-full">{ name }</a>
 				</li>
 			}
 		</ul>

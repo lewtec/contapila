@@ -82,9 +82,9 @@ templ balancesBody(d pageData) {
 							class={ templ.KV("font-semibold bg-base-200/40", r.IsRollup) }
 							data-account={ treeDataAccount(r.Path, r.Account) }
 						>
-							@treeAccountCell(r, d.LedgerName, d.Time)
+							@treeAccountCell(d.Sess, r, d.LedgerName, d.Time)
 							<td class="text-right tabular text-xs font-medium whitespace-nowrap">
-								@amountWithCommodityLink(r.Amount, r.Commodity, d.LedgerName, d.Time, r.IsRollup)
+								@amountWithCommodityLink(d.Sess, r.Amount, r.Commodity, d.LedgerName, d.Time, r.IsRollup)
 							</td>
 						</tr>
 					}
@@ -107,8 +107,8 @@ templ pnlBody(d pageData) {
 		.
 	</p>
 	<div class="grid gap-4 md:grid-cols-2">
-		@pnlSideTree("Income", d.IncomeRows, d.LedgerName, d.Time, "No income postings.")
-		@pnlSideTree("Expenses", d.ExpenseRows, d.LedgerName, d.Time, "No expense postings.")
+		@pnlSideTree(d.Sess, "Income", d.IncomeRows, d.LedgerName, d.Time, "No income postings.")
+		@pnlSideTree(d.Sess, "Expenses", d.ExpenseRows, d.LedgerName, d.Time, "No expense postings.")
 	</div>
 	@pnlTreeScript()
 }
@@ -147,15 +147,15 @@ templ networthBody(d pageData) {
 								class={ templ.KV("font-semibold bg-base-200/40", r.IsRollup) }
 								data-account={ r.Path }
 							>
-								@treeAccountCellNW(r, d.LedgerName, d.Time)
+								@treeAccountCellNW(d.Sess, r, d.LedgerName, d.Time)
 								<td class="text-right tabular text-xs font-medium whitespace-nowrap">
-									@amountWithCommodityLink(r.Units, r.Commodity, d.LedgerName, d.Time, r.IsRollup)
+									@amountWithCommodityLink(d.Sess, r.Units, r.Commodity, d.LedgerName, d.Time, r.IsRollup)
 								</td>
 								<td class="text-right tabular text-xs font-medium whitespace-nowrap">
 									{ r.Value }
 									if d.OpCurrency != "" {
 										{ " " }
-										@commodityLink(d.LedgerName, d.OpCurrency, d.Time, true)
+										@commodityLink(d.Sess, d.LedgerName, d.OpCurrency, d.Time, true)
 									}
 								</td>
 								<td class="text-[0.65rem] text-warning">
@@ -202,7 +202,7 @@ templ documentsBody(d pageData) {
 								if r.IsDoc {
 									@fileLink(r.Href, r.Path, r.Name, true)
 								} else if r.Account != "" {
-									@accountLink(d.LedgerName, r.Account, d.Time, r.Name)
+									@accountLink(d.Sess, d.LedgerName, r.Account, d.Time, r.Name)
 								} else {
 									<span>{ r.Name }</span>
 								}
@@ -250,13 +250,13 @@ templ pricesBody(d pageData) {
 					for _, s := range d.PriceSeries {
 						<tr>
 							<td class="font-mono text-xs">
-								@commodityLink(d.LedgerName, s.Base, d.Time, false)
+								@commodityLink(d.Sess, d.LedgerName, s.Base, d.Time, false)
 							</td>
 							<td class="text-right tabular text-xs">{ fmtInt(s.Count) }</td>
 							<td class="font-mono tabular text-xs text-base-content/70">{ s.FirstDate }</td>
 							<td class="font-mono tabular text-xs text-base-content/70">{ s.LastDate }</td>
 							<td class="text-right tabular text-xs font-medium font-mono">
-								@rateWithQuote(s.LastRate, s.Quote, d.LedgerName, d.Time)
+								@rateWithQuote(d.Sess, s.LastRate, s.Quote, d.LedgerName, d.Time)
 							</td>
 							<td class="text-xs text-base-content/70">
 								@metaInline(s.LastMeta)
