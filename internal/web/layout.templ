@@ -51,7 +51,8 @@ templ themeScript() {
 }
 
 templ timeFilter(d pageData) {
-	if d.LedgerName != "" {
+	// Static site has no time query surface; hide the box (live keeps it).
+	if d.LedgerName != "" && !sessionStatic(d.Sess) {
 		<form method="get" action={ templ.SafeURL(timeFilterAction(d)) } class="shrink-0 flex items-center">
 			<input
 				id="time-filter"

@@ -87,6 +87,11 @@ func (s *Session) LedgerRootURL(ledger string) string {
 
 // Package helpers for templ: nil Session ⇒ live (non-static) URLs.
 
+// sessionStatic reports whether links/UI should use the static-site shape.
+func sessionStatic(s *Session) bool {
+	return s != nil && s.Static
+}
+
 func homeURL(s *Session) string {
 	if s == nil {
 		return (&Session{}).HomeURL()

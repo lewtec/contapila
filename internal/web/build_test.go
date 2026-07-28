@@ -62,10 +62,10 @@ func TestBuildExample(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(checkPage), `href="/index.html"`) {
-		t.Fatalf("check page missing rewritten home link: %s", truncate(string(checkPage), 300))
+		t.Fatalf("check page missing home link: %s", truncate(string(checkPage), 300))
 	}
-	if strings.Contains(string(checkPage), `href="/"`) {
-		t.Fatal(`check page still has href="/" (should be /index.html)`)
+	if strings.Contains(string(checkPage), `id="time-filter"`) {
+		t.Fatal("static build should not render the time filter box")
 	}
 
 	// Ledger root is check content (redirect followed at build time).
