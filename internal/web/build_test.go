@@ -103,3 +103,15 @@ func TestBuildRequiresOut(t *testing.T) {
 		t.Fatalf("got %v want %v", err, ErrBuildOutRequired)
 	}
 }
+
+func TestKindLabel(t *testing.T) {
+	if got := kindLabel(KindPage); got != "page" {
+		t.Fatalf("page: %q", got)
+	}
+	if got := kindLabel(KindStatic); got != "static" {
+		t.Fatalf("static: %q", got)
+	}
+	if got := kindLabel(KindDoc); got != "doc" {
+		t.Fatalf("doc: %q", got)
+	}
+}

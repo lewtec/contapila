@@ -685,6 +685,7 @@ func buildCmd() *cobra.Command {
 			if err := web.Build(cwd, out); err != nil {
 				return err
 			}
+			// Phase detail is on stderr via slog; keep a one-line stdout summary.
 			fmt.Fprintf(cmd.OutOrStdout(), "wrote static site to %s\n", out)
 			return nil
 		},
