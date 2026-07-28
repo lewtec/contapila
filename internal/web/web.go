@@ -134,18 +134,7 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	// Built CSS (daisyUI themes via @plugin) — correct text/css MIME.
-	mux.Handle("GET /static/", http.FileServer(http.FS(staticFS)))
-	// Ledger docs: URL /docfile/<ledger>/docs/by-account/... → <root>/<ledger>/docs/...
-	mux.HandleFunc("GET /docfile/{path...}", s.handleDocFile)
-	mux.HandleFunc("GET /{$}", s.handleIndex)
-	// Named entity routes before generic page so "account"/"commodity" are not page names.
-	mux.HandleFunc("GET /l/{ledger}/account/{account...}", s.handleAccount)
-	mux.HandleFunc("GET /l/{ledger}/commodity/{commodity...}", s.handleCommodity)
-	mux.HandleFunc("GET /l/{ledger}/{page}", s.handleLedgerPage)
-	mux.HandleFunc("GET /l/{ledger}/{$}", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/l/"+r.PathValue("ledger")+"/check", http.StatusFound)
-	})
+	DefaultRegistry(s).Mount(mux)
 	return withSecurityHeaders(mux)
 }
 

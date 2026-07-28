@@ -137,6 +137,7 @@ Contapila took poetic license on tooling so the stack stays small: one binary, f
 | `ingest --file path [-- CMD …]` | JSONL → beancount merge |
 | `dump <dialect> <path>` | PDF/XLSX element tree → compact JSON (`--password` for encrypted files) |
 | `web [ledger]` | Read-only HTTP UI |
+| `build` | Static HTML site (`--out`, default `site`; no time filters) |
 | `desktop [ledger]` | Same UI via eletrocromo |
 | `lsp` | Language server (stdio) |
 

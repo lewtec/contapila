@@ -83,7 +83,7 @@ func main() {
 	}
 	root.PersistentFlags().StringVarP(&workDir, "directory", "C", "", "run as if contapila started in this directory (project discovery)")
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable debug logging on stderr")
-	root.AddCommand(statusCmd(), checkCmd(), balancesCmd(), journalCmd(), pnlCmd(), networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), desktopCmd(), lspCmd(), dumpCmd())
+	root.AddCommand(statusCmd(), checkCmd(), balancesCmd(), journalCmd(), pnlCmd(), networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), buildCmd(), desktopCmd(), lspCmd(), dumpCmd())
 
 	// Not-a-TTY bare launch / project path → desktop (SPEC §3.2.1).
 	// After flag registration so workDir is not wiped by StringVarP defaults;
@@ -668,6 +668,28 @@ func webCmd() *cobra.Command {
 		},
 	}
 	c.Flags().StringVar(&addr, "addr", "127.0.0.1:8765", "listen address (host:port)")
+	return c
+}
+
+func buildCmd() *cobra.Command {
+	var out string
+	c := &cobra.Command{
+		Use:   "build",
+		Short: "Write a static HTML site from the project (no time filters)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cwd, err := projectCwd()
+			if err != nil {
+				return err
+			}
+			if err := web.Build(cwd, out); err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "wrote static site to %s\n", out)
+			return nil
+		},
+	}
+	c.Flags().StringVarP(&out, "out", "o", "site", "output directory")
 	return c
 }
 
