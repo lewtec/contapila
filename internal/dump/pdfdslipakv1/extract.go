@@ -25,6 +25,7 @@
 package pdfdslipakv1
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -295,10 +296,7 @@ func pdfString(v pdf.Value) string {
 	if v.Kind() != pdf.String {
 		return nameOrString(v)
 	}
-	if t := v.Text(); t != "" {
-		return t
-	}
-	return v.RawString()
+	return cmp.Or(v.Text(), v.RawString())
 }
 
 func nameOrString(v pdf.Value) string {
