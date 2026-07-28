@@ -673,6 +673,7 @@ func webCmd() *cobra.Command {
 
 func buildCmd() *cobra.Command {
 	var out string
+	var jobs int
 	c := &cobra.Command{
 		Use:   "build",
 		Short: "Write a static HTML site from the project (no time filters)",
@@ -682,7 +683,7 @@ func buildCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := web.Build(cwd, out); err != nil {
+			if err := web.Build(cwd, out, jobs); err != nil {
 				return err
 			}
 			// Phase detail is on stderr via slog; keep a one-line stdout summary.
@@ -691,6 +692,7 @@ func buildCmd() *cobra.Command {
 		},
 	}
 	c.Flags().StringVarP(&out, "out", "o", "site", "output directory")
+	c.Flags().IntVarP(&jobs, "jobs", "j", 0, "parallel render workers (0 = GOMAXPROCS)")
 	return c
 }
 

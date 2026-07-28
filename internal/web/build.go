@@ -9,10 +9,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/engine"
+	"golang.org/x/sync/errgroup"
 )
 
 // Build sentinel errors.
@@ -25,9 +28,12 @@ var (
 // Pages use empty time filters (all-time / as-of latest). Live-only routes
 // (ledger root redirects) are omitted; report pages include check instead.
 //
+// jobs caps concurrent render workers. If jobs <= 0, GOMAXPROCS is used.
+// One Session is shared across workers (Project Once + ledger map mutex).
+//
 // Progress is logged with slog (Info for pages and phase summaries; Debug for
 // static assets and docs). Use contapila --verbose for asset-level detail.
-func Build(root, outDir string) error {
+func Build(root, outDir string, jobs int) error {
 	if root == "" {
 		return ErrProjectRootRequired
 	}
@@ -38,9 +44,15 @@ func Build(root, outDir string) error {
 	if err != nil {
 		return fmt.Errorf("web: build out: %w", err)
 	}
+	if jobs <= 0 {
+		jobs = runtime.GOMAXPROCS(0)
+	}
+	if jobs < 1 {
+		jobs = 1
+	}
 
 	start := time.Now()
-	slog.Info("build start", "root", root, "out", absOut)
+	slog.Info("build start", "root", root, "out", absOut, "jobs", jobs)
 
 	// One Session for expand + every page: OpenProject / OpenLedger warm once.
 	sess := NewSession(root)
@@ -87,64 +99,88 @@ func Build(root, outDir string) error {
 		"duration", time.Since(expandStart).Round(time.Millisecond),
 	)
 
+	// Warm every ledger before the pool so workers only read the map.
+	for _, name := range ledgers {
+		if _, err := sess.Ledger(name); err != nil {
+			return err
+		}
+	}
+
 	h := s.Handler()
 
 	if err := os.MkdirAll(absOut, 0o755); err != nil {
 		return fmt.Errorf("web: mkdir %s: %w", absOut, err)
 	}
 
-	var wrotePage, wroteStatic, wroteDoc int
-	var bytesTotal int64
+	var (
+		wrotePage   atomic.Int64
+		wroteStatic atomic.Int64
+		wroteDoc    atomic.Int64
+		bytesTotal  atomic.Int64
+		done        atomic.Int64
+	)
 	renderStart := time.Now()
 	total := len(insts)
+
+	g := new(errgroup.Group)
+	g.SetLimit(jobs)
 	for i, inst := range insts {
-		n, err := writeInstance(absOut, h, sess, inst)
-		if err != nil {
-			slog.Error("build path failed",
-				"path", inst.Path,
-				"kind", kindLabel(inst.Kind),
-				"index", i+1,
-				"total", total,
-				"err", err,
-			)
-			return err
-		}
-		bytesTotal += n
-		switch inst.Kind {
-		case KindPage:
-			wrotePage++
-			slog.Info("build page",
-				"path", inst.Path,
-				"bytes", n,
-				"index", wrotePage,
-				"pages", nPage,
-				"progress", fmt.Sprintf("%d/%d", i+1, total),
-			)
-		case KindStatic:
-			wroteStatic++
-			slog.Debug("build static",
-				"path", inst.Path,
-				"bytes", n,
-				"index", wroteStatic,
-				"static", nStatic,
-			)
-		case KindDoc:
-			wroteDoc++
-			slog.Debug("build doc",
-				"path", inst.Path,
-				"bytes", n,
-				"index", wroteDoc,
-				"docs", nDoc,
-			)
-		}
+		i, inst := i, inst
+		g.Go(func() error {
+			n, err := writeInstance(absOut, h, sess, inst)
+			if err != nil {
+				slog.Error("build path failed",
+					"path", inst.Path,
+					"kind", kindLabel(inst.Kind),
+					"index", i+1,
+					"total", total,
+					"err", err,
+				)
+				return err
+			}
+			bytesTotal.Add(n)
+			completed := done.Add(1)
+			switch inst.Kind {
+			case KindPage:
+				idx := wrotePage.Add(1)
+				slog.Info("build page",
+					"path", inst.Path,
+					"bytes", n,
+					"index", idx,
+					"pages", nPage,
+					"progress", fmt.Sprintf("%d/%d", completed, total),
+				)
+			case KindStatic:
+				idx := wroteStatic.Add(1)
+				slog.Debug("build static",
+					"path", inst.Path,
+					"bytes", n,
+					"index", idx,
+					"static", nStatic,
+				)
+			case KindDoc:
+				idx := wroteDoc.Add(1)
+				slog.Debug("build doc",
+					"path", inst.Path,
+					"bytes", n,
+					"index", idx,
+					"docs", nDoc,
+				)
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return err
 	}
 
 	slog.Info("build complete",
 		"out", absOut,
-		"pages", wrotePage,
-		"static", wroteStatic,
-		"docs", wroteDoc,
-		"bytes", bytesTotal,
+		"pages", wrotePage.Load(),
+		"static", wroteStatic.Load(),
+		"docs", wroteDoc.Load(),
+		"bytes", bytesTotal.Load(),
+		"jobs", jobs,
 		"duration", time.Since(start).Round(time.Millisecond),
 		"render", time.Since(renderStart).Round(time.Millisecond),
 	)

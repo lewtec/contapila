@@ -12,7 +12,7 @@ import (
 func TestBuildExample(t *testing.T) {
 	root := exampleRoot(t)
 	out := t.TempDir()
-	if err := Build(root, out); err != nil {
+	if err := Build(root, out, 0); err != nil {
 		t.Fatal(err)
 	}
 
@@ -127,9 +127,20 @@ func TestBuildExample(t *testing.T) {
 }
 
 func TestBuildRequiresOut(t *testing.T) {
-	err := Build(exampleRoot(t), "")
+	err := Build(exampleRoot(t), "", 0)
 	if !errors.Is(err, ErrBuildOutRequired) {
 		t.Fatalf("got %v want %v", err, ErrBuildOutRequired)
+	}
+}
+
+func TestBuildJobsOne(t *testing.T) {
+	// Explicit serial path still succeeds (same outputs as default pool).
+	out := t.TempDir()
+	if err := Build(exampleRoot(t), out, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(out, "l", "personal", "check.html")); err != nil {
+		t.Fatal(err)
 	}
 }
 
