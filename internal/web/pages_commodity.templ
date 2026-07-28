@@ -12,7 +12,7 @@ templ CommodityPage(d pageData) {
 		if len(d.CommodityPrices) > 0 {
 			<section class="mb-4">
 				@sectionTitleExtra("Prices") {
-					<a class="ml-2 font-normal normal-case tracking-normal link link-hover link-primary text-xs" href={ templ.SafeURL(ledgerURL(d.LedgerName, "prices", d.Time)) }>all pairs</a>
+					<a class="ml-2 font-normal normal-case tracking-normal link link-hover link-primary text-xs" href={ templ.SafeURL(ledgerURL(d.Sess, d.LedgerName, "prices", d.Time)) }>all pairs</a>
 				}
 				<div class="overflow-x-auto border border-base-300 max-h-64 overflow-y-auto">
 					<table class="table table-xs table-zebra">
@@ -28,7 +28,7 @@ templ CommodityPage(d pageData) {
 								<tr>
 									<td class="font-mono tabular text-xs text-base-content/70">{ p.Date }</td>
 									<td class="text-right tabular text-xs font-medium font-mono">
-										@rateWithQuote(p.Rate, p.Quote, d.LedgerName, d.Time)
+										@rateWithQuote(d.Sess, p.Rate, p.Quote, d.LedgerName, d.Time)
 									</td>
 									<td class="text-xs text-base-content/70">
 										@metaInline(p.Metadata)
@@ -43,11 +43,11 @@ templ CommodityPage(d pageData) {
 		<div class="grid gap-4 md:grid-cols-2 mb-4">
 			<section>
 				@sectionTitle("Balance by account")
-				@accountAmountRows(d.CommodityBalances, d.LedgerName, d.Time, "Zero / never held.")
+				@accountAmountRows(d.Sess, d.CommodityBalances, d.LedgerName, d.Time, "Zero / never held.")
 			</section>
 			<section>
 				@sectionTitle("Change in period")
-				@accountAmountRows(d.CommodityActivity, d.LedgerName, d.Time, "No activity.")
+				@accountAmountRows(d.Sess, d.CommodityActivity, d.LedgerName, d.Time, "No activity.")
 			</section>
 		</div>
 		<section>

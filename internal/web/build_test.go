@@ -167,37 +167,30 @@ func TestKindLabel(t *testing.T) {
 	}
 }
 
-func TestRewriteStaticPageLinks(t *testing.T) {
-	in := []byte(`
-<a href="/l/acme/check">c</a>
-<a href="/l/acme/account/Assets:Cash">a</a>
-<a href="/l/acme/">root</a>
-<a href="/">home</a>
-<link href="/static/app.css"/>
-<a href="/docfile/personal/docs/x.txt">d</a>
-<form action="/l/personal/pnl"></form>
-<a href="/l/personal/check?time=2024">q</a>
-`)
-	got := string(rewriteStaticPageLinks(in))
-	wantSub := []string{
-		`href="/l/acme/check.html"`,
-		`href="/l/acme/account/Assets:Cash.html"`,
-		`href="/l/acme/index.html"`,
-		`href="/index.html"`,
-		`href="/static/app.css"`,
-		`href="/docfile/personal/docs/x.txt"`,
-		`action="/l/personal/pnl.html"`,
-		`href="/l/personal/check.html?time=2024"`,
+func TestSessionStaticURLs(t *testing.T) {
+	live := &Session{}
+	if live.HomeURL() != "/" {
+		t.Fatalf("live home: %q", live.HomeURL())
 	}
-	for _, w := range wantSub {
-		if !strings.Contains(got, w) {
-			t.Errorf("missing %s in:\n%s", w, got)
-		}
+	if live.LedgerURL("acme", "check", "2024") != "/l/acme/check?time=2024" {
+		t.Fatalf("live ledger: %q", live.LedgerURL("acme", "check", "2024"))
 	}
-	if strings.Contains(got, `href="/l/acme/check"`) {
-		t.Error("extensionless check link should have been rewritten")
+
+	st := &Session{Static: true}
+	if st.HomeURL() != "/index.html" {
+		t.Fatalf("static home: %q", st.HomeURL())
 	}
-	if strings.Contains(got, `href="/"`) {
-		t.Error(`bare href="/" should be /index.html`)
+	if st.LedgerURL("acme", "check", "2024") != "/l/acme/check.html" {
+		t.Fatalf("static ledger (no query): %q", st.LedgerURL("acme", "check", "2024"))
+	}
+	if st.AccountURL("acme", "Assets:Cash", "") != "/l/acme/account/Assets:Cash.html" {
+		t.Fatalf("static account: %q", st.AccountURL("acme", "Assets:Cash", ""))
+	}
+	if st.LedgerRootURL("acme") != "/l/acme/index.html" {
+		t.Fatalf("static root: %q", st.LedgerRootURL("acme"))
+	}
+	// Expand/httptest paths stay live-shaped.
+	if PathLedger("acme", "check") != "/l/acme/check" {
+		t.Fatalf("PathLedger: %q", PathLedger("acme", "check"))
 	}
 }

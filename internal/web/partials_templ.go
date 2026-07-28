@@ -316,7 +316,7 @@ func sectionTitleExtra(title string) templ.Component {
 	})
 }
 
-func accountLink(ledger, account, timeFilter, label string) templ.Component {
+func accountLink(s *Session, ledger, account, timeFilter, label string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -342,9 +342,9 @@ func accountLink(ledger, account, timeFilter, label string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var15 templ.SafeURL
-		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(accountURL(ledger, account, timeFilter)))
+		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(accountURL(s, ledger, account, timeFilter)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/partials.templ`, Line: 53, Col: 102}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/partials.templ`, Line: 53, Col: 105}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
@@ -357,7 +357,7 @@ func accountLink(ledger, account, timeFilter, label string) templ.Component {
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(account)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/partials.templ`, Line: 53, Col: 120}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/partials.templ`, Line: 53, Col: 123}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 		if templ_7745c5c3_Err != nil {
@@ -396,7 +396,7 @@ func accountLink(ledger, account, timeFilter, label string) templ.Component {
 	})
 }
 
-func commodityLink(ledger, commodity, timeFilter string, mono bool) templ.Component {
+func commodityLink(s *Session, ledger, commodity, timeFilter string, mono bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -440,9 +440,9 @@ func commodityLink(ledger, commodity, timeFilter string, mono bool) templ.Compon
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var22 templ.SafeURL
-		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(commodityURL(ledger, commodity, timeFilter)))
+		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(commodityURL(s, ledger, commodity, timeFilter)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/partials.templ`, Line: 65, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/partials.templ`, Line: 65, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -470,7 +470,7 @@ func commodityLink(ledger, commodity, timeFilter string, mono bool) templ.Compon
 }
 
 // rateWithQuote is "1.23 USD" with the quote commodity linked (prices tables).
-func rateWithQuote(rate, quote, ledger, timeFilter string) templ.Component {
+func rateWithQuote(s *Session, rate, quote, ledger, timeFilter string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -513,7 +513,7 @@ func rateWithQuote(rate, quote, ledger, timeFilter string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = commodityLink(ledger, quote, timeFilter, false).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = commodityLink(s, ledger, quote, timeFilter, false).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -947,7 +947,7 @@ func metaInline(rows []metaKV) templ.Component {
 }
 
 // amountWithCommodityLink is the units/amount cell used by balances and net-worth trees.
-func amountWithCommodityLink(amount, commodity, ledger, timeFilter string, isRollup bool) templ.Component {
+func amountWithCommodityLink(s *Session, amount, commodity, ledger, timeFilter string, isRollup bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -992,13 +992,13 @@ func amountWithCommodityLink(amount, commodity, ledger, timeFilter string, isRol
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = commodityLink(ledger, commodity, timeFilter, true).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = commodityLink(s, ledger, commodity, timeFilter, true).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		} else if commodity != "" && !isRollup {
-			templ_7745c5c3_Err = commodityLink(ledger, commodity, timeFilter, true).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = commodityLink(s, ledger, commodity, timeFilter, true).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1044,7 +1044,7 @@ func treeToggle(isRollup bool) templ.Component {
 }
 
 // treeAccountCell is the collapsible account column shared by balances / PnL / networth trees.
-func treeAccountCell(row balanceRow, ledger, timeFilter string) templ.Component {
+func treeAccountCell(s *Session, row balanceRow, ledger, timeFilter string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -1096,7 +1096,7 @@ func treeAccountCell(row balanceRow, ledger, timeFilter string) templ.Component 
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = accountLink(ledger, row.Account, timeFilter, row.Name).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = accountLink(s, ledger, row.Account, timeFilter, row.Name).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1109,7 +1109,7 @@ func treeAccountCell(row balanceRow, ledger, timeFilter string) templ.Component 
 }
 
 // treeAccountCellNW adapts nwRow to the shared tree account cell.
-func treeAccountCellNW(row nwRow, ledger, timeFilter string) templ.Component {
+func treeAccountCellNW(s *Session, row nwRow, ledger, timeFilter string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -1130,7 +1130,7 @@ func treeAccountCellNW(row nwRow, ledger, timeFilter string) templ.Component {
 			templ_7745c5c3_Var57 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = treeAccountCell(balanceRow{
+		templ_7745c5c3_Err = treeAccountCell(s, balanceRow{
 			Account:  row.Account,
 			Name:     row.Name,
 			IsRollup: row.IsRollup,
@@ -1253,7 +1253,7 @@ func borderTable() templ.Component {
 }
 
 // amountCommodityRows: account page balance / activity (amount + commodity link).
-func amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) templ.Component {
+func amountCommodityRows(s *Session, rows []balanceRow, ledger, timeFilter, emptyMsg string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -1314,7 +1314,7 @@ func amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = commodityLink(ledger, r.Commodity, timeFilter, false).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = commodityLink(s, ledger, r.Commodity, timeFilter, false).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1339,7 +1339,7 @@ func amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string)
 }
 
 // accountAmountRows: commodity page balance / activity (account link + amount).
-func accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) templ.Component {
+func accountAmountRows(s *Session, rows []balanceRow, ledger, timeFilter, emptyMsg string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -1387,7 +1387,7 @@ func accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) t
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = accountLink(ledger, r.Account, timeFilter, "").Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = accountLink(s, ledger, r.Account, timeFilter, "").Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1425,7 +1425,7 @@ func accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) t
 }
 
 // pnlSideTree: income or expenses column on the PnL report.
-func pnlSideTree(title string, rows []balanceRow, ledger, timeFilter, emptyMsg string) templ.Component {
+func pnlSideTree(s *Session, title string, rows []balanceRow, ledger, timeFilter, emptyMsg string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -1512,7 +1512,7 @@ func pnlSideTree(title string, rows []balanceRow, ledger, timeFilter, emptyMsg s
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = treeAccountCell(r, ledger, timeFilter).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = treeAccountCell(s, r, ledger, timeFilter).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1820,7 +1820,7 @@ func journalEntry(e engine.JournalEntry, d pageData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = accountLink(d.LedgerName, p.Account, d.Time, "").Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = accountLink(d.Sess, d.LedgerName, p.Account, d.Time, "").Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1838,7 +1838,7 @@ func journalEntry(e engine.JournalEntry, d pageData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = commodityLink(d.LedgerName, p.Units.Commodity, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = commodityLink(d.Sess, d.LedgerName, p.Units.Commodity, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

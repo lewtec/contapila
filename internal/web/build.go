@@ -1,7 +1,6 @@
 package web
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -9,9 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -56,7 +53,9 @@ func Build(root, outDir string, jobs int) error {
 	slog.Info("build start", "root", root, "out", absOut, "jobs", jobs)
 
 	// One Session for expand + every page: OpenProject / OpenLedger warm once.
+	// Static=true so Session link methods emit .html / index.html hrefs natively.
 	sess := NewSession(root)
+	sess.Static = true
 	p, pdb, err := sess.Project()
 	if err != nil {
 		return err
@@ -215,45 +214,10 @@ func writeInstance(outDir string, h http.Handler, sess *Session, inst Instance) 
 	if err != nil {
 		return 0, err
 	}
-	if inst.Kind == KindPage {
-		body = rewriteStaticPageLinks(body)
-	}
 	if err := os.WriteFile(dest, body, 0o644); err != nil {
 		return 0, fmt.Errorf("web: write %s: %w", dest, err)
 	}
 	return int64(len(body)), nil
-}
-
-// staticPageLinkRe matches href/action to root-absolute /l/… app paths (not static/docfile).
-// Groups: 1=attr prefix, 2=path, 3=optional query/fragment.
-var staticPageLinkRe = regexp.MustCompile(`((?:href|action)=")(/l/[^"?#]*)([?#][^"]*)?"`)
-
-// rewriteStaticPageLinks maps live URLs to on-disk static files for dumb hosts
-// (rclone, etc.) that do not implement directory indexes:
-//
-//	/                 → /index.html          (breadcrumb "contapila")
-//	/l/acme/          → /l/acme/index.html   (ledger root)
-//	/l/acme/check     → /l/acme/check.html
-func rewriteStaticPageLinks(body []byte) []byte {
-	// Exact home link only (quote after slash) — not a prefix of /l/… or /static/….
-	body = bytes.ReplaceAll(body, []byte(`href="/"`), []byte(`href="/index.html"`))
-	body = bytes.ReplaceAll(body, []byte(`action="/"`), []byte(`action="/index.html"`))
-
-	return staticPageLinkRe.ReplaceAllFunc(body, func(m []byte) []byte {
-		sub := staticPageLinkRe.FindSubmatch(m)
-		if sub == nil {
-			return m
-		}
-		prefix, p, suffix := string(sub[1]), string(sub[2]), string(sub[3])
-		if p == "" || strings.HasSuffix(p, ".html") {
-			return m
-		}
-		if strings.HasSuffix(p, "/") {
-			// Directory URL → index.html inside that directory.
-			return []byte(prefix + p + "index.html" + suffix + `"`)
-		}
-		return []byte(prefix + p + ".html" + suffix + `"`)
-	})
 }
 
 // fetchBuildBody GETs path via h with sess on the request context so handlers

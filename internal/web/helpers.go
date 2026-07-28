@@ -16,9 +16,9 @@ import (
 // or build-attached), then parses the shared time/as-of query.
 // On failure it writes the HTTP error and returns ok=false.
 func (s *Server) openLedgerRequest(w http.ResponseWriter, r *http.Request, ledgerName string) (
-	proj *project.Project, pdb *prices.DB, l *engine.Ledger, tq pageTimeQuery, ok bool,
+	proj *project.Project, pdb *prices.DB, l *engine.Ledger, tq pageTimeQuery, sess *Session, ok bool,
 ) {
-	sess := sessionFrom(r.Context())
+	sess = sessionFrom(r.Context())
 	if sess == nil {
 		sess = NewSession(s.Root)
 	}
@@ -44,8 +44,9 @@ func (s *Server) openLedgerRequest(w http.ResponseWriter, r *http.Request, ledge
 }
 
 // basePageData fills ledger-scoped shell fields shared by report/account/commodity pages.
-func basePageData(proj *project.Project, l *engine.Ledger, ledgerName, title, page string, tq pageTimeQuery) pageData {
+func basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledgerName, title, page string, tq pageTimeQuery) pageData {
 	data := pageData{
+		Sess:        sess,
 		Title:       title,
 		Page:        page,
 		LedgerName:  ledgerName,

@@ -93,9 +93,9 @@ func CommodityPage(d pageData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var4 templ.SafeURL
-					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(ledgerURL(d.LedgerName, "prices", d.Time)))
+					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(ledgerURL(d.Sess, d.LedgerName, "prices", d.Time)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/pages_commodity.templ`, Line: 15, Col: 161}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/pages_commodity.templ`, Line: 15, Col: 169}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 					if templ_7745c5c3_Err != nil {
@@ -133,7 +133,7 @@ func CommodityPage(d pageData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = rateWithQuote(p.Rate, p.Quote, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = rateWithQuote(d.Sess, p.Rate, p.Quote, d.LedgerName, d.Time).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -163,7 +163,7 @@ func CommodityPage(d pageData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = accountAmountRows(d.CommodityBalances, d.LedgerName, d.Time, "Zero / never held.").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = accountAmountRows(d.Sess, d.CommodityBalances, d.LedgerName, d.Time, "Zero / never held.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -175,7 +175,7 @@ func CommodityPage(d pageData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = accountAmountRows(d.CommodityActivity, d.LedgerName, d.Time, "No activity.").Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = accountAmountRows(d.Sess, d.CommodityActivity, d.LedgerName, d.Time, "No activity.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

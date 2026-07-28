@@ -22,8 +22,12 @@ var ErrSessionNil = errors.New("web: session is nil")
 //     and OpenLedger run once per name for the whole site.
 //
 // All ingestion should go through Project / Ledger — not engine.Open* ad hoc.
+// URL helpers (HomeURL, LedgerURL, …) honor Static so build emits .html / index.html
+// hrefs natively without post-processing HTML.
 type Session struct {
 	Root string
+	// Static is true for contapila build: link methods use on-disk URL shapes.
+	Static bool
 
 	onceProject sync.Once
 	project     *project.Project

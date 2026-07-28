@@ -17,7 +17,7 @@ templ AccountPage(d pageData) {
 											if i > 0 {
 												{ " " }
 											}
-											@commodityLink(d.LedgerName, c, d.Time, false)
+											@commodityLink(d.Sess, d.LedgerName, c, d.Time, false)
 										}
 									</td>
 								</tr>
@@ -33,11 +33,11 @@ templ AccountPage(d pageData) {
 		<div class="grid gap-4 md:grid-cols-2 mb-4">
 			<section>
 				@sectionTitle("Balance")
-				@amountCommodityRows(d.AccountBalances, d.LedgerName, d.Time, "Zero / never posted.")
+				@amountCommodityRows(d.Sess, d.AccountBalances, d.LedgerName, d.Time, "Zero / never posted.")
 			</section>
 			<section>
 				@sectionTitle("Change in period")
-				@amountCommodityRows(d.AccountActivity, d.LedgerName, d.Time, "No activity.")
+				@amountCommodityRows(d.Sess, d.AccountActivity, d.LedgerName, d.Time, "No activity.")
 			</section>
 		</div>
 		<section class="mb-4">

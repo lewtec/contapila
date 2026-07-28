@@ -141,6 +141,8 @@ func (s *Server) Handler() http.Handler {
 }
 
 type pageData struct {
+	// Sess drives link URL shape (live vs static .html) and is the load Session.
+	Sess         *Session
 	Title        string
 	Page         string
 	LedgerName   string
@@ -258,6 +260,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := pageData{
+		Sess:        sess,
 		Title:       "Ledgers",
 		Page:        "home",
 		Ledgers:     engine.LedgerNames(p),
@@ -329,13 +332,13 @@ func parsePageTimeQuery(q url.Values, now time.Time, fromTo, explicitAsOf bool) 
 func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("ledger")
 	page := r.PathValue("page")
-	proj, pdb, l, tq, ok := s.openLedgerRequest(w, r, name)
+	proj, pdb, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
 	if !ok {
 		return
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(proj, l, name, name+" · "+page, page, tq)
+	data := basePageData(sess, proj, l, name, name+" · "+page, page, tq)
 	data.Diags = l.Diags
 	data.HasErrors = l.Diags.HasErrors()
 	data.HasWarnings = l.Diags.HasWarnings()
@@ -417,13 +420,13 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	proj, _, l, tq, ok := s.openLedgerRequest(w, r, name)
+	proj, _, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
 	if !ok {
 		return
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(proj, l, name, account, "account", tq)
+	data := basePageData(sess, proj, l, name, account, "account", tq)
 	data.AccountName = account
 	if perr != nil {
 		s.render(w, r, AccountPage(data))
@@ -796,13 +799,13 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	proj, pdb, l, tq, ok := s.openLedgerRequest(w, r, name)
+	proj, pdb, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
 	if !ok {
 		return
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(proj, l, name, commodity, "commodity", tq)
+	data := basePageData(sess, proj, l, name, commodity, "commodity", tq)
 	data.CommodityName = commodity
 	if perr != nil {
 		s.render(w, r, CommodityPage(data))

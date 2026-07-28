@@ -227,7 +227,7 @@ func registerAccount(r *Registry, s *Server) {
 				}
 				sort.Strings(accts)
 				for _, a := range accts {
-					out = append(out, Instance{Path: accountURL(name, a, ""), Kind: KindPage})
+					out = append(out, Instance{Path: PathAccount(name, a), Kind: KindPage})
 				}
 			}
 			return out, nil
@@ -259,7 +259,7 @@ func registerCommodity(r *Registry, s *Server) {
 				}
 				sort.Strings(comms)
 				for _, c := range comms {
-					out = append(out, Instance{Path: commodityURL(name, c, ""), Kind: KindPage})
+					out = append(out, Instance{Path: PathCommodity(name, c), Kind: KindPage})
 				}
 			}
 			return out, nil
@@ -287,7 +287,7 @@ func registerLedgerPage(r *Registry, s *Server) {
 					return nil, err
 				}
 				for _, page := range pages {
-					out = append(out, Instance{Path: ledgerURL(name, page, ""), Kind: KindPage})
+					out = append(out, Instance{Path: PathLedger(name, page), Kind: KindPage})
 				}
 			}
 			return out, nil
@@ -315,7 +315,7 @@ func registerLedgerRoot(r *Registry, s *Server) {
 			for _, name := range names {
 				// Trailing slash matches the mux pattern; fileRel → l/{name}/index.html.
 				out = append(out, Instance{
-					Path: "/l/" + url.PathEscape(name) + "/",
+					Path: PathLedgerRoot(name),
 					Kind: KindPage,
 				})
 			}

@@ -49,8 +49,8 @@ templ sectionTitleExtra(title string) {
 	</h2>
 }
 
-templ accountLink(ledger, account, timeFilter, label string) {
-	<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(ledger, account, timeFilter)) } title={ account }>
+templ accountLink(s *Session, ledger, account, timeFilter, label string) {
+	<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(s, ledger, account, timeFilter)) } title={ account }>
 		if label != "" {
 			{ label }
 		} else {
@@ -59,17 +59,17 @@ templ accountLink(ledger, account, timeFilter, label string) {
 	</a>
 }
 
-templ commodityLink(ledger, commodity, timeFilter string, mono bool) {
+templ commodityLink(s *Session, ledger, commodity, timeFilter string, mono bool) {
 	<a
 		class={ "link link-hover link-primary", templ.KV("font-mono", mono) }
-		href={ templ.SafeURL(commodityURL(ledger, commodity, timeFilter)) }
+		href={ templ.SafeURL(commodityURL(s, ledger, commodity, timeFilter)) }
 	>{ commodity }</a>
 }
 
 // rateWithQuote is "1.23 USD" with the quote commodity linked (prices tables).
-templ rateWithQuote(rate, quote, ledger, timeFilter string) {
+templ rateWithQuote(s *Session, rate, quote, ledger, timeFilter string) {
 	{ rate } { " " }
-	@commodityLink(ledger, quote, timeFilter, false)
+	@commodityLink(s, ledger, quote, timeFilter, false)
 }
 
 // fileLink is a document path: linked when Href is set, plain span otherwise.
@@ -142,15 +142,15 @@ templ metaInline(rows []metaKV) {
 }
 
 // amountWithCommodityLink is the units/amount cell used by balances and net-worth trees.
-templ amountWithCommodityLink(amount, commodity, ledger, timeFilter string, isRollup bool) {
+templ amountWithCommodityLink(s *Session, amount, commodity, ledger, timeFilter string, isRollup bool) {
 	if amount != "" {
 		{ amount }
 		if commodity != "" {
 			{ " " }
-			@commodityLink(ledger, commodity, timeFilter, true)
+			@commodityLink(s, ledger, commodity, timeFilter, true)
 		}
 	} else if commodity != "" && !isRollup {
-		@commodityLink(ledger, commodity, timeFilter, true)
+		@commodityLink(s, ledger, commodity, timeFilter, true)
 	}
 }
 
@@ -163,7 +163,7 @@ templ treeToggle(isRollup bool) {
 }
 
 // treeAccountCell is the collapsible account column shared by balances / PnL / networth trees.
-templ treeAccountCell(row balanceRow, ledger, timeFilter string) {
+templ treeAccountCell(s *Session, row balanceRow, ledger, timeFilter string) {
 	<td
 		class="font-mono text-xs"
 		if row.PadLeft != "" {
@@ -171,13 +171,13 @@ templ treeAccountCell(row balanceRow, ledger, timeFilter string) {
 		}
 	>
 		@treeToggle(row.IsRollup)
-		@accountLink(ledger, row.Account, timeFilter, row.Name)
+		@accountLink(s, ledger, row.Account, timeFilter, row.Name)
 	</td>
 }
 
 // treeAccountCellNW adapts nwRow to the shared tree account cell.
-templ treeAccountCellNW(row nwRow, ledger, timeFilter string) {
-	@treeAccountCell(balanceRow{
+templ treeAccountCellNW(s *Session, row nwRow, ledger, timeFilter string) {
+	@treeAccountCell(s, balanceRow{
 		Account:  row.Account,
 		Name:     row.Name,
 		IsRollup: row.IsRollup,
@@ -201,7 +201,7 @@ templ borderTable() {
 }
 
 // amountCommodityRows: account page balance / activity (amount + commodity link).
-templ amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) {
+templ amountCommodityRows(s *Session, rows []balanceRow, ledger, timeFilter, emptyMsg string) {
 	if len(rows) == 0 {
 		@emptyNote(emptyMsg)
 	} else {
@@ -212,7 +212,7 @@ templ amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string
 						<tr>
 							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
 							<td class="font-mono text-xs">
-								@commodityLink(ledger, r.Commodity, timeFilter, false)
+								@commodityLink(s, ledger, r.Commodity, timeFilter, false)
 							</td>
 						</tr>
 					}
@@ -223,7 +223,7 @@ templ amountCommodityRows(rows []balanceRow, ledger, timeFilter, emptyMsg string
 }
 
 // accountAmountRows: commodity page balance / activity (account link + amount).
-templ accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) {
+templ accountAmountRows(s *Session, rows []balanceRow, ledger, timeFilter, emptyMsg string) {
 	if len(rows) == 0 {
 		@emptyNote(emptyMsg)
 	} else {
@@ -239,7 +239,7 @@ templ accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) 
 					for _, r := range rows {
 						<tr>
 							<td class="font-mono text-xs">
-								@accountLink(ledger, r.Account, timeFilter, "")
+								@accountLink(s, ledger, r.Account, timeFilter, "")
 							</td>
 							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
 						</tr>
@@ -251,7 +251,7 @@ templ accountAmountRows(rows []balanceRow, ledger, timeFilter, emptyMsg string) 
 }
 
 // pnlSideTree: income or expenses column on the PnL report.
-templ pnlSideTree(title string, rows []balanceRow, ledger, timeFilter, emptyMsg string) {
+templ pnlSideTree(s *Session, title string, rows []balanceRow, ledger, timeFilter, emptyMsg string) {
 	<section>
 		@sectionTitle(title)
 		if len(rows) == 0 {
@@ -265,7 +265,7 @@ templ pnlSideTree(title string, rows []balanceRow, ledger, timeFilter, emptyMsg 
 								class={ templ.KV("font-semibold bg-base-200/40", r.IsRollup) }
 								data-account={ r.Account }
 							>
-								@treeAccountCell(r, ledger, timeFilter)
+								@treeAccountCell(s, r, ledger, timeFilter)
 								<td class="text-right tabular text-xs whitespace-nowrap">
 									{ r.Amount }
 									if r.Commodity != "" {
@@ -333,11 +333,11 @@ templ journalEntry(e engine.JournalEntry, d pageData) {
 						}
 					>
 						<div class="flex flex-wrap justify-between gap-2">
-							@accountLink(d.LedgerName, p.Account, d.Time, "")
+							@accountLink(d.Sess, d.LedgerName, p.Account, d.Time, "")
 							if p.Units != nil {
 								<span class="tabular text-base-content/90">
 									{ p.Units.Number.FloatString(4) + " " }
-									@commodityLink(d.LedgerName, p.Units.Commodity, d.Time, false)
+									@commodityLink(d.Sess, d.LedgerName, p.Units.Commodity, d.Time, false)
 								</span>
 							}
 						</div>

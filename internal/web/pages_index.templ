@@ -18,7 +18,7 @@ templ IndexPage(d pageData) {
 					<tbody>
 						for _, name := range d.Ledgers {
 							<tr>
-								<td class="font-medium"><a class="link link-hover link-primary" href={ templ.SafeURL("/l/" + name + "/check") }>{ name }</a></td>
+								<td class="font-medium"><a class="link link-hover link-primary" href={ templ.SafeURL(ledgerURL(d.Sess, name, "check", "")) }>{ name }</a></td>
 								<td class="text-right text-xs opacity-50">check →</td>
 							</tr>
 						}
