@@ -127,3 +127,73 @@ func TestRequestReloadsProjectConfigAndPrices(t *testing.T) {
 		}
 	}
 }
+
+// F5 must see ledger journal edits: each request uses a cold Session, so
+// balances re-book from disk rather than memoizing the process-lifetime server.
+func TestRequestReloadsLedgerFileOnRefresh(t *testing.T) {
+	root := t.TempDir()
+	mustWrite := func(rel, body string) {
+		t.Helper()
+		path := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	mustWrite("contapila.cue", "{}\n")
+	mustWrite("personal/main.beancount", `option "operating_currency" "BRL"
+2024-01-01 open Assets:Cash BRL
+2024-01-01 open Equity:Opening
+2024-01-01 * "seed"
+  Assets:Cash         100.00 BRL
+  Equity:Opening
+`)
+
+	p, pdb, _, err := engine.OpenProject(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(p, pdb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := s.Handler()
+
+	getBalances := func(t *testing.T) string {
+		t.Helper()
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/l/personal/balances", nil))
+		if rr.Code != http.StatusOK {
+			t.Fatalf("balances status %d body=%s", rr.Code, truncate(rr.Body.String(), 300))
+		}
+		return rr.Body.String()
+	}
+
+	before := getBalances(t)
+	if !strings.Contains(before, "100.00") && !strings.Contains(before, "100.0000") {
+		t.Fatalf("expected seed balance 100 in body: %s", truncate(before, 400))
+	}
+	if strings.Contains(before, "250.00") || strings.Contains(before, "250.0000") {
+		t.Fatalf("pre-edit page should not show 250: %s", truncate(before, 400))
+	}
+
+	// Edit journal on disk without restarting the server.
+	mustWrite("personal/main.beancount", `option "operating_currency" "BRL"
+2024-01-01 open Assets:Cash BRL
+2024-01-01 open Equity:Opening
+2024-01-01 * "seed"
+  Assets:Cash         250.00 BRL
+  Equity:Opening
+`)
+
+	after := getBalances(t)
+	if !strings.Contains(after, "250.00") && !strings.Contains(after, "250.0000") {
+		t.Fatalf("refresh did not pick up ledger edit (want 250): %s", truncate(after, 400))
+	}
+	if strings.Contains(after, "100.00") || strings.Contains(after, "100.0000") {
+		t.Fatalf("refresh still shows stale balance 100: %s", truncate(after, 400))
+	}
+}
