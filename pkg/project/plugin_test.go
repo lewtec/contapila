@@ -3,6 +3,7 @@ package project
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/lucasew/contapila-go/internal/config"
@@ -63,6 +64,21 @@ plugin "web/does-not-exist"
 	}
 	if ok {
 		t.Fatal("unknown plugin must not enable in CUE")
+	}
+	if !p.Diags.HasWarnings() {
+		t.Fatal("want project-level warn diag for unknown plugin")
+	}
+	found := false
+	for _, d := range p.Diags {
+		if d.IsWarn() && strings.Contains(d.Message, "web/does-not-exist") {
+			found = true
+			if d.Line < 1 {
+				t.Fatalf("want line number on diag: %+v", d)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("diag message missing: %v", p.Diags)
 	}
 }
 

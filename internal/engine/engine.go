@@ -126,6 +126,10 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	if err != nil {
 		return nil, err
 	}
+	// Project-level warnings (unknown plugin directives, …) show on check.
+	if p != nil {
+		diags.Merge(p.Diags)
+	}
 	// filter stream: drop includes
 	var stream []ast.Directive
 	for _, d := range dirs {
