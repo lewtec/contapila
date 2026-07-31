@@ -25,7 +25,6 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
-
 // AsOfLatest is an as-of far in the future meaning "latest known state".
 var AsOfLatest = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 
@@ -147,16 +146,25 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	stream, idiags := injectProjectStreamJournals(fsys, p, stream)
 	diags.Merge(idiags)
 
-	// {cost, date} on postings → synthetic price directives (+ PriceDB points).
-	stream = booking.ExpandDatedCosts(stream, pdb)
+	root := ""
+	var cfg cue.Value
+	if p != nil {
+		root = p.Root
+		if p.Config != nil {
+			cfg = p.Config.Value
+		}
+	}
+	h := &plugin.Host{Ledger: name, Root: root, Prices: pdb}
 
-	// interest_rate opens → income counterpart opens + pad day-before balance.
-	diags.Merge(booking.ValidateAutoInterestRates(stream))
-	var adiags diag.List
-	stream, adiags = booking.ExpandAutoInterest(stream)
-	diags.Merge(adiags)
+	// PhaseEarly: dated_costs (and other early expanders).
+	_, stream, pd := plugin.RunPhase(cfg, h, stream, plugin.PhaseEarly)
+	diags.Merge(pd)
 
-	// Collect documents, opens, commodities after expand (includes synth income opens).
+	// PhaseMid: autointerest expand (synth income opens before account collect).
+	_, stream, pd = plugin.RunPhase(cfg, h, stream, plugin.PhaseMid)
+	diags.Merge(pd)
+
+	// Collect documents, opens, commodities after mid expand (includes synth income opens).
 	var ledgerDocs []ast.Document
 	accounts := map[string]AccountInfo{}
 	commodities := map[string]CommodityInfo{}
@@ -193,26 +201,29 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	setupBooking := func(e *booking.Engine) {
 		e.CommTol = commTol
 	}
+	h.Setup = setupBooking
 
-	var pdiags diag.List
-	stream, pdiags = booking.ExpandPads(stream, setupBooking)
-	diags.Merge(pdiags)
-
-	// Stream/book modules (e.g. check_closing) or default Book.
-	b, stream, cdiags := bookLedgerStream(p, name, stream, setupBooking)
-	diags.Merge(cdiags)
+	// PhaseBook: pads then check_closing (or other bookers); last Engine wins.
+	b, stream, pd := plugin.RunPhase(cfg, h, stream, plugin.PhaseBook)
+	diags.Merge(pd)
+	if b == nil {
+		if booking.HasClosingMeta(stream) {
+			diags.Warn("", 0, `closing: TRUE present but plugin "check_closing" is not enabled; autoclose skipped`)
+		}
+		b = booking.New()
+		setupBooking(b)
+		b.Book(stream)
+		diags.Merge(b.Diags)
+	}
 
 	autoInterest := booking.CollectAutoInterest(stream)
 	indexDB := booking.LoadIndexDB(stream)
 
-	// Expand <ledger>/docs/by-account into synthetic document directives.
-	synth, err := docs.ScanByAccount(p.Root, name)
-	if err != nil {
-		slog.Warn("docs scan failed", "ledger", name, "err", err)
-	}
-	// Also expand document: "…" keys from txn/posting metadata (runtime only; not CUE).
-	fromMeta := docsFromMetadata(stream)
-	allDocs := docs.Merge(ledgerDocs, append(synth, fromMeta...))
+	// PhaseLate: docs_folder / docs_meta append to h.Documents (not the stream).
+	h.Documents = nil
+	_, stream, pd = plugin.RunPhase(cfg, h, stream, plugin.PhaseLate)
+	diags.Merge(pd)
+	allDocs := docs.Merge(ledgerDocs, h.Documents)
 
 	op := inferOpCurrency(stream, p)
 	return &Ledger{
@@ -229,39 +240,6 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 		AutoInterest: autoInterest,
 		IndexDB:      indexDB,
 	}, nil
-}
-
-// bookLedgerStream runs enabled stream plugins (iter in → iter out), then books
-// unless a plugin already produced an Engine (e.g. check_closing).
-func bookLedgerStream(p *project.Project, ledger string, stream []ast.Directive, setup func(*booking.Engine)) (*booking.Engine, []ast.Directive, diag.List) {
-	var diags diag.List
-	root := ""
-	var cfg cue.Value
-	if p != nil {
-		root = p.Root
-		if p.Config != nil {
-			cfg = p.Config.Value
-		}
-	}
-	h := &plugin.Host{Ledger: ledger, Root: root, Setup: setup}
-	if cfg.Exists() {
-		e, out, pd := plugin.RunStream(cfg, h, stream)
-		diags.Merge(pd)
-		stream = out
-		if e != nil {
-			return e, stream, diags
-		}
-	}
-	if booking.HasClosingMeta(stream) {
-		diags.Warn("", 0, `closing: TRUE present but plugin "check_closing" is not enabled; autoclose skipped`)
-	}
-	e := booking.New()
-	if setup != nil {
-		setup(e)
-	}
-	e.Book(stream)
-	diags.Merge(e.Diags)
-	return e, stream, diags
 }
 
 // canonicalPath returns an absolute, symlink-resolved path when possible so
@@ -361,41 +339,6 @@ func commodityTolerances(p *project.Project, journal map[string]CommodityInfo) m
 	}
 	if len(out) == 0 {
 		return nil
-	}
-	return out
-}
-
-// docsFromMetadata turns document: "path" keys on txns/postings into document directives.
-// Account for txn-level document: is the first posting account (if any).
-func docsFromMetadata(dirs []ast.Directive) []ast.Document {
-	var out []ast.Document
-	for _, d := range dirs {
-		t, ok := d.(ast.Transaction)
-		if !ok {
-			continue
-		}
-		firstAcct := ""
-		if len(t.Postings) > 0 {
-			firstAcct = t.Postings[0].Account
-		}
-		if path := t.Metadata["document"]; path != "" {
-			out = append(out, ast.Document{
-				Meta:      ast.Meta{Date: t.Date, File: t.File, Line: t.Line},
-				Account:   firstAcct,
-				Path:      path,
-				Synthetic: true,
-			})
-		}
-		for _, p := range t.Postings {
-			if path := p.Metadata["document"]; path != "" {
-				out = append(out, ast.Document{
-					Meta:      ast.Meta{Date: t.Date, File: t.File, Line: t.Line},
-					Account:   p.Account,
-					Path:      path,
-					Synthetic: true,
-				})
-			}
-		}
 	}
 	return out
 }

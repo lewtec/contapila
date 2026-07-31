@@ -181,6 +181,8 @@ type pageData struct {
 	AccountCurrencies []string
 	// AccountList is the /accounts report (plugin web/accounts).
 	AccountList []AccountListRow
+	// EventList is the /events report (plugin web/events).
+	EventList []EventListRow
 	// Documents is the ledger documents report (/documents) list.
 	Documents []docRow
 	// Prices is the shared price-pairs report (/prices).
@@ -197,9 +199,9 @@ type pageData struct {
 	ChartJSON  string
 	NeedCharts bool
 	// Debug page (core): plugin enablement + CUE dump.
-	PluginRows   []PluginStatusRow
-	PluginsCUE   string // plugins subtree after unify
-	ConfigCUE    string // full project config after unify
+	PluginRows []PluginStatusRow
+	PluginsCUE string // plugins subtree after unify
+	ConfigCUE  string // full project config after unify
 }
 
 // PluginStatusRow is one registered module on the debug page.
@@ -216,6 +218,13 @@ type AccountListRow struct {
 	Account    string
 	OpenDate   string
 	Currencies []string
+}
+
+// EventListRow is one journal event on the events report.
+type EventListRow struct {
+	Date string
+	Type string
+	Desc string
 }
 
 // priceSeriesRow is one base/quote pair summary on the prices report.

@@ -26,9 +26,11 @@ import (
 	"github.com/lucasew/contapila-go/pkg/version"
 	"github.com/spf13/cobra"
 
-	// First-party modules (ContributePage / known plugin ids).
+	// First-party modules. Stream expanders (dated_costs, autointerest, pads,
+	// docs_*) register via internal/engine blank imports. Opt-in pages/bookers here.
 	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
 	_ "github.com/lucasew/contapila-go/internal/plugins/checkclosing"
+	_ "github.com/lucasew/contapila-go/internal/plugins/events"
 )
 
 // workDir is the optional start directory for project discovery (global -C).

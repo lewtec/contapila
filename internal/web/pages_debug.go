@@ -28,12 +28,16 @@ func fillDebug(pc PageContext, data *PageData) {
 	seen := map[string]bool{}
 	for _, info := range infos {
 		seen[info.ID] = true
-		on, _ := config.PluginEnabled(cfg, info.ID)
+		on := plugin.IsEnabled(cfg, info.ID)
 		inCfg := flags != nil && containsPluginFlag(flags, info.ID)
 		entry := plugin.PluginValue(cfg, info.ID)
 		entryStr := formatCUE(entry)
 		if !inCfg {
-			entryStr = "(not in unified plugins map — default off)"
+			if info.DefaultOn {
+				entryStr = "(not in unified plugins map — DefaultOn)"
+			} else {
+				entryStr = "(not in unified plugins map — default off)"
+			}
 		}
 		data.PluginRows = append(data.PluginRows, PluginStatusRow{
 			ID:        info.ID,
