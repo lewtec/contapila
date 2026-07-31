@@ -158,13 +158,9 @@ templ sidebarNav(d pageData) {
 	if d.LedgerName != "" {
 		<ul class="menu menu-sm w-full p-0 gap-0 rounded-none">
 			<li class="menu-title px-3 py-2 text-[0.65rem]"><span>Reports</span></li>
-			@navItem(d, "check", "Check")
-			@navItem(d, "balances", "Balances")
-			@navItem(d, "journal", "Journal")
-			@navItem(d, "pnl", "Income statement")
-			@navItem(d, "networth", "Net worth")
-			@navItem(d, "documents", "Documents")
-			@navItem(d, "prices", "Prices")
+			for _, p := range sidebarReportPages(d) {
+				@navItem(d, p.ID, p.Label)
+			}
 			if d.Page == "account" {
 				@sidebarCurrentEntity("Account", d.AccountName)
 			}

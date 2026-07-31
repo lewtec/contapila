@@ -44,6 +44,7 @@ func (s *Server) openLedgerRequest(w http.ResponseWriter, r *http.Request, ledge
 }
 
 // basePageData fills ledger-scoped shell fields shared by report/account/commodity pages.
+// Pages is left nil (DefaultPages via pagesFor) unless the caller sets Server.pageRegistry().
 func basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledgerName, title, page string, tq pageTimeQuery) pageData {
 	data := pageData{
 		Sess:        sess,
@@ -60,6 +61,13 @@ func basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledger
 	if tq.PeriodErr != nil {
 		data.Error = tq.PeriodErr.Error()
 	}
+	return data
+}
+
+// basePageData attaches this server's PageRegistry (sidebar / body lookup).
+func (s *Server) basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledgerName, title, page string, tq pageTimeQuery) pageData {
+	data := basePageData(sess, proj, l, ledgerName, title, page, tq)
+	data.Pages = s.pageRegistry()
 	return data
 }
 

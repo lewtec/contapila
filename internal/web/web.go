@@ -49,6 +49,9 @@ type Server struct {
 	// discovery, and journals are reloaded from disk on every request so F5
 	// always reflects current files — no process-lifetime cache of project state.
 	Root string
+	// Pages is the ledger report table (sidebar + /l/{ledger}/{page} + build).
+	// Nil means DefaultPages() builtins.
+	Pages *PageRegistry
 }
 
 // Listen serves the web UI until ctx is canceled or the process receives
@@ -142,7 +145,9 @@ func (s *Server) Handler() http.Handler {
 
 type pageData struct {
 	// Sess drives link URL shape (live vs static .html) and is the load Session.
-	Sess         *Session
+	Sess *Session
+	// Pages selects sidebar/body for this render; nil means DefaultPages().
+	Pages        *PageRegistry
 	Title        string
 	Page         string
 	LedgerName   string
@@ -331,80 +336,39 @@ func parsePageTimeQuery(q url.Values, now time.Time, fromTo, explicitAsOf bool) 
 
 func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("ledger")
-	page := r.PathValue("page")
+	pageID := r.PathValue("page")
+	reg := s.pageRegistry()
+	pg, ok := reg.Lookup(pageID)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
 	proj, pdb, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
 	if !ok {
 		return
 	}
-	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(sess, proj, l, name, name+" · "+page, page, tq)
+	title := name + " · " + pg.Label
+	if pg.Label == "" {
+		title = name + " · " + pageID
+	}
+	data := s.basePageData(sess, proj, l, name, title, pageID, tq)
 	data.Diags = l.Diags
 	data.HasErrors = l.Diags.HasErrors()
 	data.HasWarnings = l.Diags.HasWarnings()
 	data.OK = !l.Diags.HasErrors()
 
-	switch page {
-	case "check":
-		// ok
-	case "balances":
-		data.BalanceRows = buildBalanceTreeRows(l.BalancesTree(asOf))
-	case "journal":
-		if perr == nil {
-			data.Journal = l.Journal(pr.Start, pr.End)
-		}
-	case "pnl":
-		if perr == nil {
-			inc, exp := l.PnLTree(pr.Start, pr.End)
-			data.IncomeRows = buildPnLRows(inc)
-			data.ExpenseRows = buildPnLRows(exp)
-			kind := period.ChartBin(tq.Time, pr)
-			bars := l.PnLBars(pr.Start, pr.End, kind)
-			if js, err := chartBarsJSON(bars, l.OpCurrency); err == nil {
-				setChart(&data, "chart-pnl", "Income vs expenses", js)
-			}
-		}
-	case "networth":
-		tree, total, err := l.NetWorthTree(asOf)
-		if err != nil {
-			data.Error = err.Error()
-		} else {
-			data.NetWorthTot = total.FloatString(2)
-			data.NetWorthRows = buildNetWorthRows(tree)
-			// Event series over filter range (or full history if open).
-			if pts, serr := l.NetWorthSeries(pr.Start, pr.End); serr == nil {
-				if js, jerr := chartLineJSON(pts, l.OpCurrency, "Net worth"); jerr == nil {
-					setChart(&data, "chart-networth", "Net worth over time", js)
-				}
-			}
-		}
-	case "documents":
-		data.Documents = documentTreeRows(l.Documents)
-	case "prices":
-		data.PriceSeries = priceSeriesRows(pdb)
-		// Chart the busiest base (or ?base=) so the prices report is not table-only.
-		base := r.URL.Query().Get("base")
-		if base == "" {
-			var bestN int
-			for _, row := range data.PriceSeries {
-				if row.Count > bestN {
-					bestN = row.Count
-					base = row.Base
-				}
-			}
-		}
-		if base != "" {
-			if js, quote, jerr := chartPriceJSON(pdb, base, l.OpCurrency, time.Time{}, time.Time{}); jerr == nil {
-				title := base + " price"
-				if quote != "" {
-					title = base + " price (" + quote + ")"
-				}
-				setChart(&data, "chart-prices", title, js)
-			}
-		}
-	default:
-		http.NotFound(w, r)
-		return
+	if pg.Fill != nil {
+		pg.Fill(PageContext{
+			Request:   r,
+			Project:   proj,
+			Prices:    pdb,
+			Ledger:    l,
+			TimeQuery: tq,
+			Period:    tq.Period,
+			PeriodErr: tq.PeriodErr,
+			AsOf:      tq.AsOf,
+		}, &data)
 	}
 	s.render(w, r, LedgerPage(data))
 }
@@ -426,7 +390,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(sess, proj, l, name, account, "account", tq)
+	data := s.basePageData(sess, proj, l, name, account, "account", tq)
 	data.AccountName = account
 	if perr != nil {
 		s.render(w, r, AccountPage(data))
@@ -805,7 +769,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := basePageData(sess, proj, l, name, commodity, "commodity", tq)
+	data := s.basePageData(sess, proj, l, name, commodity, "commodity", tq)
 	data.CommodityName = commodity
 	if perr != nil {
 		s.render(w, r, CommodityPage(data))

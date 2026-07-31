@@ -1,23 +1,9 @@
 package web
 
+// LedgerPage renders a registered report: shell + pageBody from PageRegistry.
 templ LedgerPage(d pageData) {
 	@reportLayout(d) {
-		switch d.Page {
-			case "check":
-				@checkBody(d)
-			case "balances":
-				@balancesBody(d)
-			case "journal":
-				@journalList(d)
-			case "pnl":
-				@pnlBody(d)
-			case "networth":
-				@networthBody(d)
-			case "documents":
-				@documentsBody(d)
-			case "prices":
-				@pricesBody(d)
-		}
+		@pageBody(d)
 	}
 }
 

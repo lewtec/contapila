@@ -110,13 +110,9 @@ func (r *Registry) Instances(sess *Session) ([]Instance, error) {
 	return out, nil
 }
 
-// ReportPages is the fixed ledger report set (sidebar + build).
-func ReportPages() []string {
-	return []string{"check", "balances", "journal", "pnl", "networth", "documents", "prices"}
-}
-
 // DefaultRegistry wires the built-in UI routes for s.
 // Registration order matches the historical Handler() table (specific before {page}).
+// Ledger report slugs come from s.pageRegistry() (sidebar + build + handler).
 func DefaultRegistry(s *Server) *Registry {
 	r := NewRegistry()
 	registerStatic(r)
@@ -279,7 +275,7 @@ func registerLedgerPage(r *Registry, s *Server) {
 			if err != nil {
 				return nil, err
 			}
-			pages := ReportPages()
+			pages := s.pageRegistry().BuildIDs()
 			var out []Instance
 			for _, name := range names {
 				// Touch ledger so booking errors surface during expand, not mid-render.

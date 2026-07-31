@@ -121,28 +121,8 @@ func commodityURL(s *Session, ledger, commodity, timeFilter string) string {
 }
 
 func pageTitle(d pageData) string {
-	switch d.Page {
-	case "pnl":
-		return "Income statement"
-	case "networth":
-		return "Net worth"
-	case "check":
-		return "Check"
-	case "balances":
-		return "Balances"
-	case "journal":
-		return "Journal"
-	case "documents":
-		return "Documents"
-	case "account":
-		return d.AccountName
-	case "commodity":
-		return d.CommodityName
-	case "":
-		return "Ledgers"
-	default:
-		return d.Page
-	}
+	// Report labels come from PageRegistry; account/commodity/home handled in pageLabel.
+	return pageLabel(d)
 }
 
 func timeFilterAction(d pageData) string {
