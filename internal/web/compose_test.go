@@ -51,7 +51,7 @@ func TestPluginScopePageAndReportPages(t *testing.T) {
 	resetPluginPagesForTest()
 	t.Cleanup(resetPluginPagesForTest)
 
-	// Simulate middleman for a module (same path as AttachWeb).
+	// Simulate Reg.Page path: host middleman on package-local registry.
 	s := &scope{moduleID: "web/contrib-a"}
 	s.Page(Page{
 		ID: "contrib-a", Label: "A", Order: 1, Sidebar: true, Build: true,

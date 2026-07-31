@@ -7,11 +7,11 @@
 //	})
 //
 //	plugin.RegisterTyped("web/accounts", func(reg *plugin.Reg[Settings]) {
-//	    web.ScopeOf(reg.Web).Page(...)
+//	    reg.Page(web.Page{...}) // scope is on Reg; host implements Web.Page
 //	})
 //
 // S is settings only (plugins.<id>.settings). enabled is host-gated.
-// Reg is the scoped middleman (Web + OnProcess).
+// Reg is the scoped middleman (Page + OnProcess).
 package plugin
 
 import (
@@ -30,8 +30,10 @@ import (
 )
 
 // Web is the host middleman for UI registration (package-local registry on the host).
+// Page accepts a host page value (e.g. web.Page) as any to avoid import cycles.
 type Web interface {
 	ModuleID() string
+	Page(page any)
 }
 
 // Host is per-ledger-open context for stream processing.
@@ -48,11 +50,21 @@ type Host struct {
 type ProcessFunc func(settings any, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive]
 
 // Reg is the scoped handle passed into the plugin setup function.
+// Web/page registration and OnProcess hang off this value — not a separate ScopeOf.
 type Reg[S any] struct {
 	ModuleID string
-	Web      Web // nil until host BindWeb; page registration no-ops until then
+	Web      Web // nil until host BindWeb; Page no-ops until then
 
 	onProcess func(settings S, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive]
+}
+
+// Page registers a ledger report via the host middleman (no-op if Web not bound yet).
+// page is typically a web.Page.
+func (r *Reg[S]) Page(page any) {
+	if r == nil || r.Web == nil || page == nil {
+		return
+	}
+	r.Web.Page(page)
 }
 
 // OnProcess registers the stream transformer. settings come from plugins.<id>.settings.

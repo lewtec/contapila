@@ -16,20 +16,21 @@ type sampleSettings struct {
 	MaxDays int `json:"max_days"`
 }
 
-type fakeWeb struct{ id string }
+type fakeWeb struct {
+	id    string
+	pages int
+}
 
-func (f fakeWeb) ModuleID() string { return f.id }
+func (f *fakeWeb) ModuleID() string { return f.id }
+func (f *fakeWeb) Page(page any)    { f.pages++ }
 
 func TestRegisterTypedSetupAndProcess(t *testing.T) {
 	resetForTest()
 	t.Cleanup(resetForTest)
 
 	var gotDays int
-	var attachedID string
 	RegisterTyped("sample", func(reg *Reg[sampleSettings]) {
-		if reg.Web != nil {
-			attachedID = reg.Web.ModuleID()
-		}
+		reg.Page("ignored-until-bound") // no-op when Web nil
 		reg.OnProcess(func(s sampleSettings, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
 			gotDays = s.MaxDays
 			dirs := slices.Collect(in)
@@ -39,9 +40,13 @@ func TestRegisterTypedSetupAndProcess(t *testing.T) {
 			return slices.Values(dirs)
 		})
 	})
-	BindWeb(func(moduleID string) Web { return fakeWeb{id: moduleID} })
-	if attachedID != "sample" {
-		t.Fatalf("setup Web id after BindWeb=%q", attachedID)
+	fw := &fakeWeb{}
+	BindWeb(func(moduleID string) Web {
+		fw.id = moduleID
+		return fw
+	})
+	if fw.id != "sample" || fw.pages != 1 {
+		t.Fatalf("BindWeb middleman id=%q pages=%d", fw.id, fw.pages)
 	}
 	if !config.IsKnownPlugin("sample") {
 		t.Fatal("expected known plugin")

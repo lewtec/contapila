@@ -6,7 +6,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/plugin"
 )
 
-// Package-local registry for pages contributed through plugin.Web middlemen.
+// Package-local registry for pages contributed through plugin.Reg.Page / Web middlemen.
 var (
 	pluginPagesMu sync.Mutex
 	pluginPages   = NewPageRegistry()
@@ -14,11 +14,10 @@ var (
 	pageModuleKey = map[string]string{}
 )
 
-// scope is the middleman passed into plugin setup (reg.Web). It only writes into
+// scope is the Web middleman embedded in plugin.Reg. It only writes into
 // this package's pluginPages registry, tagged with the module ID.
 type scope struct {
 	moduleID string
-	discard  bool // true when Web is nil (pre-bind setup)
 }
 
 func (s *scope) ModuleID() string {
@@ -28,13 +27,14 @@ func (s *scope) ModuleID() string {
 	return s.moduleID
 }
 
-// Page registers a ledger report for this module (enable key = ModuleID).
-func (s *scope) Page(p Page) {
-	if s == nil || s.discard {
+// Page implements plugin.Web. page must be a web.Page.
+func (s *scope) Page(page any) {
+	if s == nil || s.moduleID == "" {
 		return
 	}
-	if s.moduleID == "" {
-		panic("web: Plugin scope missing module ID")
+	p, ok := page.(Page)
+	if !ok {
+		panic("web: plugin.Web.Page expects web.Page")
 	}
 	if p.ID == "" {
 		panic("web: page with empty ID")
@@ -44,10 +44,9 @@ func (s *scope) Page(p Page) {
 	}
 	pluginPagesMu.Lock()
 	defer pluginPagesMu.Unlock()
-	if _, ok := pageModuleKey[p.ID]; ok {
-		// BindWeb re-runs setup; allow same module to re-register the same page.
-		if pageModuleKey[p.ID] == s.moduleID {
-			// Replace body/fill by re-registering: drop old index carefully — simplest skip.
+	if prev, ok := pageModuleKey[p.ID]; ok {
+		// BindWeb re-runs setup; same module re-registering is a no-op.
+		if prev == s.moduleID {
 			return
 		}
 		panic("web: duplicate plugin page ID " + p.ID)
@@ -57,22 +56,8 @@ func (s *scope) Page(p Page) {
 	pageModuleKey[p.ID] = s.moduleID
 }
 
-// ScopeOf returns the host middleman for page registration.
-// When Web is nil (setup before BindWeb), returns a discard scope so OnProcess-only
-// modules can register at init without panicking.
-func ScopeOf(w plugin.Web) *scope {
-	if w == nil {
-		return &scope{discard: true}
-	}
-	s, ok := w.(*scope)
-	if !ok || s == nil {
-		panic("web: ScopeOf expects middleman from web.BindPluginPages")
-	}
-	return s
-}
-
-// BindPluginPages wires plugin AttachWeb hooks to this package's local registry.
-// Safe to call repeatedly; BindWeb runs attach once per process.
+// BindPluginPages wires plugin setup to this package's local registry.
+// Safe to call repeatedly; BindWeb runs once per process.
 func BindPluginPages() {
 	plugin.BindWeb(func(moduleID string) plugin.Web {
 		return &scope{moduleID: moduleID}
@@ -93,7 +78,7 @@ func pluginContributedPages() []Page {
 }
 
 // resetPluginPagesForTest clears the package-local plugin page registry
-// and allows BindWeb to re-run AttachWeb hooks.
+// and allows BindWeb to re-run setup hooks.
 func resetPluginPagesForTest() {
 	pluginPagesMu.Lock()
 	pluginPages = NewPageRegistry()

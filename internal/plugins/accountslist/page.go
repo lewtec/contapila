@@ -21,8 +21,8 @@ type Settings struct{}
 
 func init() {
 	plugin.RegisterTyped(PluginKey, func(reg *plugin.Reg[Settings]) {
-		// Scoped middleman → package-local web registry.
-		web.ScopeOf(reg.Web).Page(web.Page{
+		// Scope lives on reg (host middleman); no web.ScopeOf.
+		reg.Page(web.Page{
 			ID:      PageID,
 			Label:   "Accounts",
 			Order:   25,
