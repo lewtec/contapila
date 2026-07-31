@@ -13,7 +13,6 @@ templ accountsBody(d web.PageData) {
 						<th>Account</th>
 						<th class="w-28">Opened</th>
 						<th>Currencies</th>
-						<th>Institution</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -31,7 +30,6 @@ templ accountsBody(d web.PageData) {
 									@web.CommodityLink(d.Sess, d.LedgerName, c, d.Time, true)
 								}
 							</td>
-							<td class="text-xs">{ row.Institution }</td>
 						</tr>
 					}
 				</tbody>

@@ -200,10 +200,9 @@ type pageData struct {
 
 // AccountListRow is one open account on the accounts report.
 type AccountListRow struct {
-	Account     string
-	OpenDate    string
-	Currencies  []string
-	Institution string
+	Account    string
+	OpenDate   string
+	Currencies []string
 }
 
 // priceSeriesRow is one base/quote pair summary on the prices report.

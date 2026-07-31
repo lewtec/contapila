@@ -43,16 +43,11 @@ func fill(pc web.PageContext, data *web.PageData) {
 		if !info.OpenDate.IsZero() {
 			open = info.OpenDate.Format("2006-01-02")
 		}
-		inst := ""
-		if info.Metadata != nil {
-			inst = info.Metadata["institution"]
-		}
 		curs := append([]string(nil), info.Currencies...)
 		rows = append(rows, web.AccountListRow{
-			Account:     name,
-			OpenDate:    open,
-			Currencies:  curs,
-			Institution: inst,
+			Account:    name,
+			OpenDate:   open,
+			Currencies: curs,
 		})
 	}
 	data.AccountList = rows

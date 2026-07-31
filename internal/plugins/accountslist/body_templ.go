@@ -37,7 +37,7 @@ func accountsBody(d web.PageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"overflow-x-auto border border-base-300\"><table class=\"table table-xs\"><thead><tr><th>Account</th><th class=\"w-28\">Opened</th><th>Currencies</th><th>Institution</th></tr></thead> <tbody>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"overflow-x-auto border border-base-300\"><table class=\"table table-xs\"><thead><tr><th>Account</th><th class=\"w-28\">Opened</th><th>Currencies</th></tr></thead> <tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -57,7 +57,7 @@ func accountsBody(d web.PageData) templ.Component {
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(row.OpenDate)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/plugins/accountslist/body.templ`, Line: 25, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/plugins/accountslist/body.templ`, Line: 24, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -72,7 +72,7 @@ func accountsBody(d web.PageData) templ.Component {
 						var templ_7745c5c3_Var3 string
 						templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(" ")
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/plugins/accountslist/body.templ`, Line: 29, Col: 15}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/plugins/accountslist/body.templ`, Line: 28, Col: 15}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 						if templ_7745c5c3_Err != nil {
@@ -88,25 +88,12 @@ func accountsBody(d web.PageData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</td><td class=\"text-xs\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var4 string
-				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(row.Institution)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/plugins/accountslist/body.templ`, Line: 34, Col: 44}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</tbody></table></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</tbody></table></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
