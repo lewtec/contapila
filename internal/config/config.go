@@ -57,9 +57,7 @@ func Load(userCue []byte, userFilename string, discovered []Ledger, pricePairs [
 	return LoadWithPlugins(userCue, userFilename, discovered, pricePairs, nil)
 }
 
-// LoadWithPlugins is Load plus journal plugin directives (plugin "name") injected as
-// plugins.<name>.enabled: true before the user contapila.cue overlay.
-// journalPlugins are module keys (e.g. "web/accounts"); empty names are skipped.
+// LoadWithPlugins is Load plus journal plugin "name" → plugins.<name>.enabled: true.
 func LoadWithPlugins(userCue []byte, userFilename string, discovered []Ledger, pricePairs []PricePair, journalPlugins []string) (*Config, error) {
 	ctx := cuecontext.New()
 
@@ -93,7 +91,7 @@ func LoadWithPlugins(userCue []byte, userFilename string, discovered []Ledger, p
 		return nil, fmt.Errorf("compile user config: %w", err)
 	}
 
-	// Journal enables first; user contapila.cue may set options or conflict on enabled.
+	// Journal enables first; user contapila.cue may overlay or conflict on enabled.
 	unified := prelude.Unify(gen).Unify(pairs).Unify(jplugins).Unify(user)
 	if err := unified.Validate(); err != nil {
 		return nil, fmt.Errorf("config unification failed: %w", err)

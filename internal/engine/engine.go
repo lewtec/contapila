@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"cuelang.org/go/cue"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/booking"
 	"github.com/lucasew/contapila-go/internal/config"
@@ -18,6 +20,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/loader"
 	"github.com/lucasew/contapila-go/internal/period"
+	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/prices"
 	"github.com/lucasew/contapila-go/pkg/project"
 )
@@ -194,8 +197,8 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	stream, pdiags = booking.ExpandPads(stream, setupBooking)
 	diags.Merge(pdiags)
 
-	// closing: TRUE autoclose is the check_closing plugin (opt-in).
-	b, stream, cdiags := bookLedgerStream(p, stream, setupBooking)
+	// Stream/book modules (e.g. check_closing) or default Book.
+	b, stream, cdiags := bookLedgerStream(p, name, stream, setupBooking)
 	diags.Merge(cdiags)
 
 	autoInterest := booking.CollectAutoInterest(stream)
@@ -227,25 +230,37 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	}, nil
 }
 
-// PluginCheckClosing is the journal plugin / CUE key for closing: TRUE autoclose.
-const PluginCheckClosing = "check_closing"
-
-// bookLedgerStream books stream, optionally expanding closing: TRUE when the
-// check_closing plugin is enabled on the project.
-func bookLedgerStream(p *project.Project, stream []ast.Directive, setup func(*booking.Engine)) (*booking.Engine, []ast.Directive, diag.List) {
+// bookLedgerStream runs an enabled Book module, or default booking.
+func bookLedgerStream(p *project.Project, ledger string, stream []ast.Directive, setup func(*booking.Engine)) (*booking.Engine, []ast.Directive, diag.List) {
 	var diags diag.List
-	closingOn := false
-	if p != nil && p.Config != nil {
-		on, err := config.PluginEnabled(p.Config.Value, PluginCheckClosing)
-		if err != nil {
-			// Treat as off; config errors surface elsewhere.
-			closingOn = false
-		} else {
-			closingOn = on
+	root := ""
+	var cfg cue.Value
+	if p != nil {
+		root = p.Root
+		if p.Config != nil {
+			cfg = p.Config.Value
 		}
 	}
-	if closingOn {
-		return booking.BookWithClosing(stream, setup)
+	if cfg.Exists() {
+		if books := plugin.EnabledBookModules(cfg); len(books) > 0 {
+			m := books[0]
+			if len(books) > 1 {
+				var ids []string
+				for _, b := range books {
+					ids = append(ids, b.ID)
+				}
+				diags.Warn("", 0, fmt.Sprintf("multiple book plugins enabled %v; using %s", ids, m.ID))
+			}
+			opts, err := plugin.DecodeOptions(cfg, m)
+			if err != nil {
+				diags.Error("", 0, err.Error())
+				// fall through to default book
+			} else {
+				e, out, bd := m.Book(plugin.BookContext{Ledger: ledger, Root: root, Setup: setup}, stream, opts)
+				diags.Merge(bd)
+				return e, out, diags
+			}
+		}
 	}
 	if booking.HasClosingMeta(stream) {
 		diags.Warn("", 0, `closing: TRUE present but plugin "check_closing" is not enabled; autoclose skipped`)

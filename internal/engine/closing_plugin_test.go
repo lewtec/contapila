@@ -8,11 +8,11 @@ import (
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/config"
-	"github.com/lucasew/contapila-go/internal/plugins/checkclosing"
+	_ "github.com/lucasew/contapila-go/internal/plugins/checkclosing"
 )
 
 func TestCheckClosingPluginGatesAutoclose(t *testing.T) {
-	config.RegisterKnownPlugin(checkclosing.PluginKey)
+	// checkclosing init registers the module + known plugin name.
 
 	writeProj := func(t *testing.T, main string) string {
 		t.Helper()
@@ -75,7 +75,7 @@ plugin "check_closing"
 		if err != nil {
 			t.Fatal(err)
 		}
-		on, err := config.PluginEnabled(p.Config.Value, checkclosing.PluginKey)
+		on, err := config.PluginEnabled(p.Config.Value, "check_closing")
 		if err != nil || !on {
 			t.Fatalf("plugin should be on: %v %v", on, err)
 		}

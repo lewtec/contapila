@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/lucasew/contapila-go/internal/config"
+	"github.com/lucasew/contapila-go/internal/plugin"
 )
 
 // ContributePage registers a first-party ledger report for composition into
@@ -28,8 +29,11 @@ func ContributePage(p Page) {
 	config.RegisterKnownPlugin(PagePluginKey(p.ID))
 }
 
-// ContributedPages returns a copy of pages registered via ContributePage.
+// ContributedPages returns a copy of pages registered via ContributePage
+// (after first-party modules AttachWeb).
 func ContributedPages() []Page {
+	// Modules register pages through AttachWeb → ContributePage.
+	plugin.AttachAllWeb()
 	contribMu.Lock()
 	defer contribMu.Unlock()
 	if len(contribPages) == 0 {

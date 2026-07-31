@@ -14,6 +14,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/loader"
+	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/prices"
 )
 
@@ -232,6 +233,11 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 			return nil, fmt.Errorf("load config with injects: %w", err)
 		}
 		cfg = cfg2
+	}
+
+	// Typed plugin options (Go structs via cue.Decode) — surface bad fields early.
+	if err := plugin.ValidateOptions(cfg.Value); err != nil {
+		return nil, fmt.Errorf("plugin options: %w", err)
 	}
 
 	return &Project{
