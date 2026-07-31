@@ -21,6 +21,6 @@ func init() {
 	})
 }
 
-func book(ctx plugin.BookContext, dirs []ast.Directive, _ plugin.Options[Settings]) (*booking.Engine, []ast.Directive, diag.List) {
+func book(ctx plugin.BookContext, dirs []ast.Directive, _ Settings) (*booking.Engine, []ast.Directive, diag.List) {
 	return booking.BookWithClosing(dirs, ctx.Setup)
 }

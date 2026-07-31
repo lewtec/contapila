@@ -22,16 +22,17 @@ type Settings struct{}
 func init() {
 	plugin.RegisterTyped(plugin.TypedModule[Settings]{
 		ID: PluginKey,
-	})
-	// Web pages: register from this package's init (not a host AttachWeb hook).
-	web.ContributePage(web.Page{
-		ID:      PageID,
-		Label:   "Accounts",
-		Order:   25,
-		Sidebar: true,
-		Build:   true,
-		Fill:    fill,
-		Body:    func(d web.PageData) templ.Component { return accountsBody(d) },
+		AttachWeb: func() {
+			web.ContributePage(web.Page{
+				ID:      PageID,
+				Label:   "Accounts",
+				Order:   25,
+				Sidebar: true,
+				Build:   true,
+				Fill:    fill,
+				Body:    func(d web.PageData) templ.Component { return accountsBody(d) },
+			})
+		},
 	})
 }
 

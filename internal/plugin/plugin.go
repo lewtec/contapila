@@ -1,11 +1,10 @@
 // Package plugin hosts first-party modules.
 //
-// Options is always { enabled, settings }. The type parameter is only Settings;
-// plugins never declare Enabled themselves. Settings is decoded from CUE via
-// cue.Value.Decode and json tags.
+// Options[S] is the CUE plugins.<id> shape: enabled + settings.
+// The type parameter S is only settings; Book handlers receive S, not Options.
 //
-// Web: plugins call web.ContributePage (or similar) from their own init — not
-// via a host-invoked AttachWeb hook.
+// AttachWeb is a field on the module definition; RegisterTyped runs it once
+// when the plugin package registers (plugin-scoped init), not a host registry.
 package plugin
 
 import (
@@ -21,7 +20,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/diag"
 )
 
-// Options is the common plugins.<id> shape. S is module-specific settings.
+// Options is the common plugins.<id> value. S is module-specific settings only.
 type Options[S any] struct {
 	Enabled  bool `json:"enabled"`
 	Settings S    `json:"settings"`
@@ -34,21 +33,24 @@ type BookContext struct {
 	Setup  func(*booking.Engine)
 }
 
-// BookFunc is a type-erased booker. opts is Options[S] as any.
+// BookFunc is type-erased; opts is Options[S] as any (Book unwraps to S).
 type BookFunc func(ctx BookContext, dirs []ast.Directive, opts any) (*booking.Engine, []ast.Directive, diag.List)
 
 // Module is one capability bundle (type-erased). Prefer RegisterTyped.
 type Module struct {
 	ID            string
-	DecodeOptions func(v cue.Value) (any, error)
+	DecodeOptions func(v cue.Value) (any, error) // returns Options[S]
 	Book          BookFunc
 }
 
-// TypedModule registers a module whose settings type is S.
+// TypedModule registers a module with settings type S.
 type TypedModule[S any] struct {
 	ID string
-	// Book is optional (e.g. check_closing). Receives full Options[S].
-	Book func(ctx BookContext, dirs []ast.Directive, opts Options[S]) (*booking.Engine, []ast.Directive, diag.List)
+	// Book is optional. Receives settings only (enabled is host-gated).
+	Book func(ctx BookContext, dirs []ast.Directive, settings S) (*booking.Engine, []ast.Directive, diag.List)
+	// AttachWeb is optional. Run once at RegisterTyped (from the plugin package's
+	// init path) so web setup stays scoped to this module definition.
+	AttachWeb func()
 }
 
 var (
@@ -57,7 +59,8 @@ var (
 	byID    = map[string]int{}
 )
 
-// RegisterTyped adds a typed module and registers its journal plugin name.
+// RegisterTyped adds a typed module, registers the journal plugin name, and
+// runs AttachWeb if set (still during the plugin package's init).
 func RegisterTyped[S any](m TypedModule[S]) {
 	if m.ID == "" {
 		panic("plugin: RegisterTyped with empty ID")
@@ -65,13 +68,13 @@ func RegisterTyped[S any](m TypedModule[S]) {
 	var book BookFunc
 	if m.Book != nil {
 		book = func(ctx BookContext, dirs []ast.Directive, opts any) (*booking.Engine, []ast.Directive, diag.List) {
-			var o Options[S]
+			var settings S
 			if opts != nil {
-				if typed, ok := opts.(Options[S]); ok {
-					o = typed
+				if o, ok := opts.(Options[S]); ok {
+					settings = o.Settings
 				}
 			}
-			return m.Book(ctx, dirs, o)
+			return m.Book(ctx, dirs, settings)
 		}
 	}
 	Register(Module{
@@ -88,6 +91,9 @@ func RegisterTyped[S any](m TypedModule[S]) {
 		},
 		Book: book,
 	})
+	if m.AttachWeb != nil {
+		m.AttachWeb()
+	}
 }
 
 // Register adds a type-erased module. Prefer RegisterTyped.

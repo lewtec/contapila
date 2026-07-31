@@ -20,15 +20,20 @@ func TestRegisterTypedDecode(t *testing.T) {
 	t.Cleanup(resetForTest)
 
 	var gotDays int
+	var webAttached bool
 	RegisterTyped(TypedModule[sampleSettings]{
 		ID: "sample",
-		Book: func(ctx BookContext, dirs []ast.Directive, opts Options[sampleSettings]) (*booking.Engine, []ast.Directive, diag.List) {
-			gotDays = opts.Settings.MaxDays
+		Book: func(ctx BookContext, dirs []ast.Directive, settings sampleSettings) (*booking.Engine, []ast.Directive, diag.List) {
+			gotDays = settings.MaxDays
 			e := booking.New()
 			e.Book(dirs)
 			return e, dirs, e.Diags
 		},
+		AttachWeb: func() { webAttached = true },
 	})
+	if !webAttached {
+		t.Fatal("AttachWeb should run at RegisterTyped")
+	}
 	if !config.IsKnownPlugin("sample") {
 		t.Fatal("expected known plugin")
 	}
