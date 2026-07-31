@@ -5,6 +5,7 @@ go 1.26.4
 require (
 	cuelang.org/go v0.17.0
 	github.com/a-h/templ v0.3.1020
+	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
 	github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f
 	github.com/mattn/go-isatty v0.0.20
@@ -18,7 +19,6 @@ require (
 
 require (
 	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
-	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cli/browser v1.3.0 // indirect

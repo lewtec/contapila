@@ -25,7 +25,6 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
-
 // AsOfLatest is an as-of far in the future meaning "latest known state".
 var AsOfLatest = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 
