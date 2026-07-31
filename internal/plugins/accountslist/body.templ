@@ -1,0 +1,37 @@
+package accountslist
+
+import "github.com/lucasew/contapila-go/internal/web"
+
+templ accountsBody(d web.PageData) {
+	if len(d.AccountList) == 0 {
+		<p class="text-xs text-base-content/60">No open accounts.</p>
+	} else {
+		<div class="overflow-x-auto border border-base-300">
+			<table class="table table-xs">
+				<thead>
+					<tr>
+						<th>Account</th>
+						<th class="w-28">Opened</th>
+						<th>Currencies</th>
+						<th>Institution</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, row := range d.AccountList {
+						<tr>
+							<td class="font-mono text-[0.7rem]">
+								<a
+									href={ templ.SafeURL(web.AccountHref(d.Sess, d.LedgerName, row.Account, d.Time)) }
+									class="link link-hover"
+								>{ row.Account }</a>
+							</td>
+							<td class="tabular text-xs whitespace-nowrap">{ row.OpenDate }</td>
+							<td class="font-mono text-[0.7rem]">{ row.Currencies }</td>
+							<td class="text-xs">{ row.Institution }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}

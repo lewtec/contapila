@@ -25,6 +25,9 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 	"github.com/lucasew/contapila-go/pkg/version"
 	"github.com/spf13/cobra"
+
+	// First-party web report plugins (ContributePage).
+	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
 )
 
 // workDir is the optional start directory for project discovery (global -C).

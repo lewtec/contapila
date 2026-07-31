@@ -94,6 +94,13 @@ ledgers: [Name=string]: #Ledger & {
 	missing: "warn" | "ignore" | *"ignore"
 }
 
+// First-party module switch (web pages, later stream/dump). Keys like "web/accounts".
+// Absent key → enabled (Helix defaults). Set enabled: false to hide a module.
+#Plugin: {
+	enabled: bool | *true
+	...
+}
+
 #Config: {
 	commodities: [string]: #Commodity
 	operating_currency?: [...string]
@@ -102,12 +109,14 @@ ledgers: [Name=string]: #Ledger & {
 	price_pairs?: [string]: #PricePair
 	// Auto-imported root journals (override wholesale in contapila.cue if needed).
 	project_journals: [...#ProjectJournal]
+	plugins?: [string]: #Plugin
 }
 
 // Default instance fields (unified with host inject + user contapila.cue).
 commodities: [string]: #Commodity
 links?:      [...#LedgerLink]
 price_pairs: [string]: #PricePair
+plugins: [string]: #Plugin
 
 // Default auto-imports — replace the whole list in contapila.cue to customize.
 project_journals: [...#ProjectJournal] | *[

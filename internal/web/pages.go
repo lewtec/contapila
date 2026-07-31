@@ -8,6 +8,7 @@ import (
 
 	"github.com/a-h/templ"
 
+	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/period"
 	"github.com/lucasew/contapila-go/internal/prices"
@@ -29,11 +30,11 @@ type Page struct {
 	Sidebar bool
 	// Build materializes /l/{ledger}/{ID} during contapila build.
 	Build bool
-	// Fill loads report data into pageData after base shell fields and diags are set.
+	// Fill loads report data into PageData after base shell fields and diags are set.
 	// Nil means no extra data (e.g. check uses only diags).
-	Fill func(pc PageContext, data *pageData)
+	Fill func(pc PageContext, data *PageData)
 	// Body returns the main content inside reportLayout. Required for a usable page.
-	Body func(d pageData) templ.Component
+	Body func(d PageData) templ.Component
 }
 
 // PageContext is the live request + ledger snapshot passed to Page.Fill.
@@ -126,13 +127,14 @@ func (r *PageRegistry) BuildIDs() []string {
 	return out
 }
 
-// ReportPages is the ledger report slug list used by build expansion and tests.
-// Order matches registration of Build pages (same as historical ReportPages).
+// ReportPages is the composed ledger report slug list (builtins + ContributePage),
+// without CUE plugin filtering. Used by tests and as the pre-filter expand set.
 func ReportPages() []string {
-	return DefaultPages().BuildIDs()
+	return ComposePages(DefaultPages(), ContributedPages()...).BuildIDs()
 }
 
 // DefaultPages returns the built-in ledger report registry (singleton).
+// Callers that add pages must Clone or ComposePages — do not Register on this value.
 func DefaultPages() *PageRegistry {
 	return defaultPages()
 }
@@ -143,16 +145,35 @@ var defaultPages = sync.OnceValue(func() *PageRegistry {
 	return r
 })
 
-// pageRegistry resolves the registry for s (custom or default builtins).
-func (s *Server) pageRegistry() *PageRegistry {
+// resolvedPages is the live registry: explicit s.Pages, else builtins + contrib
+// filtered by contapila.cue plugins (when sess can open the project).
+func (s *Server) resolvedPages(sess *Session) *PageRegistry {
 	if s != nil && s.Pages != nil {
 		return s.Pages
 	}
-	return DefaultPages()
+	reg := ComposePages(DefaultPages(), ContributedPages()...)
+	if sess == nil {
+		return reg
+	}
+	p, _, err := sess.Project()
+	if err != nil || p == nil || p.Config == nil {
+		return reg
+	}
+	fn, err := config.PluginsEnabledFunc(p.Config.Value)
+	if err != nil {
+		// Keep defaults; config decode issues should not blank the UI.
+		return reg
+	}
+	return FilterPagesByPlugins(reg, fn)
+}
+
+// pageRegistry is resolvedPages without a session (no CUE filter).
+func (s *Server) pageRegistry() *PageRegistry {
+	return s.resolvedPages(nil)
 }
 
 // pagesFor resolves the registry on page data (custom or default builtins).
-func pagesFor(d pageData) *PageRegistry {
+func pagesFor(d PageData) *PageRegistry {
 	if d.Pages != nil {
 		return d.Pages
 	}
@@ -160,12 +181,12 @@ func pagesFor(d pageData) *PageRegistry {
 }
 
 // sidebarReportPages is used by layout.templ for the Reports rail.
-func sidebarReportPages(d pageData) []Page {
+func sidebarReportPages(d PageData) []Page {
 	return pagesFor(d).Sidebar()
 }
 
 // pageBody resolves the registered Body for d.Page (empty component if unknown).
-func pageBody(d pageData) templ.Component {
+func pageBody(d PageData) templ.Component {
 	if p, ok := pagesFor(d).Lookup(d.Page); ok && p.Body != nil {
 		return p.Body(d)
 	}
@@ -174,7 +195,7 @@ func pageBody(d pageData) templ.Component {
 }
 
 // pageLabel returns the sidebar/breadcrumb label for a report id, or id itself.
-func pageLabel(d pageData) string {
+func pageLabel(d PageData) string {
 	if p, ok := pagesFor(d).Lookup(d.Page); ok && p.Label != "" {
 		return p.Label
 	}
@@ -193,51 +214,51 @@ func pageLabel(d pageData) string {
 func registerBuiltinPages(r *PageRegistry) {
 	r.Register(Page{
 		ID: "check", Label: "Check", Order: 10, Sidebar: true, Build: true,
-		Body: func(d pageData) templ.Component { return checkBody(d) },
+		Body: func(d PageData) templ.Component { return checkBody(d) },
 	})
 	r.Register(Page{
 		ID: "balances", Label: "Balances", Order: 20, Sidebar: true, Build: true,
 		Fill: fillBalances,
-		Body: func(d pageData) templ.Component { return balancesBody(d) },
+		Body: func(d PageData) templ.Component { return balancesBody(d) },
 	})
 	r.Register(Page{
 		ID: "journal", Label: "Journal", Order: 30, Sidebar: true, Build: true,
 		Fill: fillJournal,
-		Body: func(d pageData) templ.Component { return journalList(d) },
+		Body: func(d PageData) templ.Component { return journalList(d) },
 	})
 	r.Register(Page{
 		ID: "pnl", Label: "Income statement", Order: 40, Sidebar: true, Build: true,
 		Fill: fillPnL,
-		Body: func(d pageData) templ.Component { return pnlBody(d) },
+		Body: func(d PageData) templ.Component { return pnlBody(d) },
 	})
 	r.Register(Page{
 		ID: "networth", Label: "Net worth", Order: 50, Sidebar: true, Build: true,
 		Fill: fillNetWorth,
-		Body: func(d pageData) templ.Component { return networthBody(d) },
+		Body: func(d PageData) templ.Component { return networthBody(d) },
 	})
 	r.Register(Page{
 		ID: "documents", Label: "Documents", Order: 60, Sidebar: true, Build: true,
 		Fill: fillDocuments,
-		Body: func(d pageData) templ.Component { return documentsBody(d) },
+		Body: func(d PageData) templ.Component { return documentsBody(d) },
 	})
 	r.Register(Page{
 		ID: "prices", Label: "Prices", Order: 70, Sidebar: true, Build: true,
 		Fill: fillPrices,
-		Body: func(d pageData) templ.Component { return pricesBody(d) },
+		Body: func(d PageData) templ.Component { return pricesBody(d) },
 	})
 }
 
-func fillBalances(pc PageContext, data *pageData) {
+func fillBalances(pc PageContext, data *PageData) {
 	data.BalanceRows = buildBalanceTreeRows(pc.Ledger.BalancesTree(pc.AsOf))
 }
 
-func fillJournal(pc PageContext, data *pageData) {
+func fillJournal(pc PageContext, data *PageData) {
 	if pc.PeriodErr == nil {
 		data.Journal = pc.Ledger.Journal(pc.Period.Start, pc.Period.End)
 	}
 }
 
-func fillPnL(pc PageContext, data *pageData) {
+func fillPnL(pc PageContext, data *PageData) {
 	if pc.PeriodErr != nil {
 		return
 	}
@@ -252,7 +273,7 @@ func fillPnL(pc PageContext, data *pageData) {
 	}
 }
 
-func fillNetWorth(pc PageContext, data *pageData) {
+func fillNetWorth(pc PageContext, data *PageData) {
 	l := pc.Ledger
 	tree, total, err := l.NetWorthTree(pc.AsOf)
 	if err != nil {
@@ -268,11 +289,11 @@ func fillNetWorth(pc PageContext, data *pageData) {
 	}
 }
 
-func fillDocuments(pc PageContext, data *pageData) {
+func fillDocuments(pc PageContext, data *PageData) {
 	data.Documents = documentTreeRows(pc.Ledger.Documents)
 }
 
-func fillPrices(pc PageContext, data *pageData) {
+func fillPrices(pc PageContext, data *PageData) {
 	data.PriceSeries = priceSeriesRows(pc.Prices)
 	base := ""
 	if pc.Request != nil {

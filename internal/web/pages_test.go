@@ -11,6 +11,9 @@ import (
 )
 
 func TestDefaultPagesSidebarAndBuild(t *testing.T) {
+	resetContributedPagesForTest()
+	t.Cleanup(resetContributedPagesForTest)
+
 	r := DefaultPages()
 	side := r.Sidebar()
 	if len(side) != 7 {
@@ -23,7 +26,7 @@ func TestDefaultPagesSidebarAndBuild(t *testing.T) {
 	if len(build) != 7 || build[0] != "check" || build[len(build)-1] != "prices" {
 		t.Fatalf("build ids: %v", build)
 	}
-	// ReportPages stays the public alias for build slugs.
+	// With no contributions, ReportPages matches builtins.
 	rp := ReportPages()
 	if len(rp) != len(build) {
 		t.Fatalf("ReportPages %v vs BuildIDs %v", rp, build)
@@ -39,7 +42,7 @@ func TestPageRegistryRegisterAndLookup(t *testing.T) {
 	r := NewPageRegistry()
 	r.Register(Page{
 		ID: "extra", Label: "Extra", Order: 5, Sidebar: true, Build: true,
-		Body: func(d pageData) templ.Component { return templ.Raw("extra-body") },
+		Body: func(d PageData) templ.Component { return templ.Raw("extra-body") },
 	})
 	p, ok := r.Lookup("extra")
 	if !ok || p.Label != "Extra" {
@@ -57,7 +60,7 @@ func TestPageRegistryRegisterAndLookup(t *testing.T) {
 func TestPageRegistryDuplicatePanics(t *testing.T) {
 	r := NewPageRegistry()
 	r.Register(Page{
-		ID: "x", Label: "X", Body: func(d pageData) templ.Component { return templ.NopComponent },
+		ID: "x", Label: "X", Body: func(d PageData) templ.Component { return templ.NopComponent },
 	})
 	defer func() {
 		if recover() == nil {
@@ -65,7 +68,7 @@ func TestPageRegistryDuplicatePanics(t *testing.T) {
 		}
 	}()
 	r.Register(Page{
-		ID: "x", Label: "X2", Body: func(d pageData) templ.Component { return templ.NopComponent },
+		ID: "x", Label: "X2", Body: func(d PageData) templ.Component { return templ.NopComponent },
 	})
 }
 
@@ -79,7 +82,7 @@ func TestCustomPagesOnServer(t *testing.T) {
 	// Minimal set: only check, so custom slug 404s and build only expands check.
 	reg.Register(Page{
 		ID: "check", Label: "Check", Order: 10, Sidebar: true, Build: true,
-		Body: func(d pageData) templ.Component { return checkBody(d) },
+		Body: func(d PageData) templ.Component { return checkBody(d) },
 	})
 	s, err := New(p, pdb)
 	if err != nil {

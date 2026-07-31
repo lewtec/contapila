@@ -275,7 +275,7 @@ func registerLedgerPage(r *Registry, s *Server) {
 			if err != nil {
 				return nil, err
 			}
-			pages := s.pageRegistry().BuildIDs()
+			pages := s.resolvedPages(sess).BuildIDs()
 			var out []Instance
 			for _, name := range names {
 				// Touch ledger so booking errors surface during expand, not mid-render.

@@ -143,6 +143,10 @@ func (s *Server) Handler() http.Handler {
 	return withSecurityHeaders(s.withSession(mux))
 }
 
+// PageData is the render model for ledger reports. First-party plugins outside
+// package web use this type for Page.Fill / Page.Body.
+type PageData = pageData
+
 type pageData struct {
 	// Sess drives link URL shape (live vs static .html) and is the load Session.
 	Sess *Session
@@ -175,6 +179,8 @@ type pageData struct {
 	AccountDocs       []docRow
 	AccountMeta       []metaKV
 	AccountCurrencies []string
+	// AccountList is the /accounts report (plugin web/accounts).
+	AccountList []AccountListRow
 	// Documents is the ledger documents report (/documents) list.
 	Documents []docRow
 	// Prices is the shared price-pairs report (/prices).
@@ -190,6 +196,14 @@ type pageData struct {
 	ChartTitle string
 	ChartJSON  string
 	NeedCharts bool
+}
+
+// AccountListRow is one open account on the accounts report.
+type AccountListRow struct {
+	Account     string
+	OpenDate    string
+	Currencies  string
+	Institution string
 }
 
 // priceSeriesRow is one base/quote pair summary on the prices report.
@@ -337,14 +351,14 @@ func parsePageTimeQuery(q url.Values, now time.Time, fromTo, explicitAsOf bool) 
 func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("ledger")
 	pageID := r.PathValue("page")
-	reg := s.pageRegistry()
+	proj, pdb, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
+	if !ok {
+		return
+	}
+	reg := s.resolvedPages(sess)
 	pg, ok := reg.Lookup(pageID)
 	if !ok {
 		http.NotFound(w, r)
-		return
-	}
-	proj, pdb, l, tq, sess, ok := s.openLedgerRequest(w, r, name)
-	if !ok {
 		return
 	}
 
@@ -353,6 +367,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 		title = name + " · " + pageID
 	}
 	data := s.basePageData(sess, proj, l, name, title, pageID, tq)
+	data.Pages = reg
 	data.Diags = l.Diags
 	data.HasErrors = l.Diags.HasErrors()
 	data.HasWarnings = l.Diags.HasWarnings()

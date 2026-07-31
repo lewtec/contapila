@@ -2,7 +2,7 @@ package web
 
 import "github.com/lucasew/contapila-go/internal/booking"
 
-func journalPostingHighlight(p booking.FilledPosting, d pageData) bool {
+func journalPostingHighlight(p booking.FilledPosting, d PageData) bool {
 	if d.AccountName != "" && p.Account == d.AccountName {
 		return true
 	}

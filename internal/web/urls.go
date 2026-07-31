@@ -120,12 +120,12 @@ func commodityURL(s *Session, ledger, commodity, timeFilter string) string {
 	return s.CommodityURL(ledger, commodity, timeFilter)
 }
 
-func pageTitle(d pageData) string {
+func pageTitle(d PageData) string {
 	// Report labels come from PageRegistry; account/commodity/home handled in pageLabel.
 	return pageLabel(d)
 }
 
-func timeFilterAction(d pageData) string {
+func timeFilterAction(d PageData) string {
 	s := d.Sess
 	switch d.Page {
 	case "account":
@@ -137,7 +137,7 @@ func timeFilterAction(d pageData) string {
 	}
 }
 
-func chartAriaLabel(d pageData) string {
+func chartAriaLabel(d PageData) string {
 	if d.ChartTitle != "" {
 		return d.ChartTitle
 	}
