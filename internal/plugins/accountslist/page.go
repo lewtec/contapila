@@ -3,7 +3,6 @@ package accountslist
 
 import (
 	"sort"
-	"strings"
 
 	"github.com/a-h/templ"
 
@@ -48,10 +47,11 @@ func fill(pc web.PageContext, data *web.PageData) {
 		if info.Metadata != nil {
 			inst = info.Metadata["institution"]
 		}
+		curs := append([]string(nil), info.Currencies...)
 		rows = append(rows, web.AccountListRow{
 			Account:     name,
 			OpenDate:    open,
-			Currencies:  strings.Join(info.Currencies, " "),
+			Currencies:  curs,
 			Institution: inst,
 		})
 	}

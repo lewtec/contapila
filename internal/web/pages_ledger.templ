@@ -141,7 +141,7 @@ templ networthBody(d pageData) {
 									{ r.Value }
 									if d.OpCurrency != "" {
 										{ " " }
-										@commodityLink(d.Sess, d.LedgerName, d.OpCurrency, d.Time, true)
+										@CommodityLink(d.Sess, d.LedgerName, d.OpCurrency, d.Time, true)
 									}
 								</td>
 								<td class="text-[0.65rem] text-warning">
@@ -188,7 +188,7 @@ templ documentsBody(d pageData) {
 								if r.IsDoc {
 									@fileLink(r.Href, r.Path, r.Name, true)
 								} else if r.Account != "" {
-									@accountLink(d.Sess, d.LedgerName, r.Account, d.Time, r.Name)
+									@AccountLink(d.Sess, d.LedgerName, r.Account, d.Time, r.Name)
 								} else {
 									<span>{ r.Name }</span>
 								}
@@ -236,7 +236,7 @@ templ pricesBody(d pageData) {
 					for _, s := range d.PriceSeries {
 						<tr>
 							<td class="font-mono text-xs">
-								@commodityLink(d.Sess, d.LedgerName, s.Base, d.Time, false)
+								@CommodityLink(d.Sess, d.LedgerName, s.Base, d.Time, false)
 							</td>
 							<td class="text-right tabular text-xs">{ fmtInt(s.Count) }</td>
 							<td class="font-mono tabular text-xs text-base-content/70">{ s.FirstDate }</td>

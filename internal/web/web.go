@@ -202,7 +202,7 @@ type pageData struct {
 type AccountListRow struct {
 	Account     string
 	OpenDate    string
-	Currencies  string
+	Currencies  []string
 	Institution string
 }
 

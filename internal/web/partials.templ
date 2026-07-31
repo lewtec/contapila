@@ -49,8 +49,9 @@ templ sectionTitleExtra(title string) {
 	</h2>
 }
 
-templ accountLink(s *Session, ledger, account, timeFilter, label string) {
-	<a class="link link-hover link-primary" href={ templ.SafeURL(accountURL(s, ledger, account, timeFilter)) } title={ account }>
+// AccountLink is the shared account <a> (core reports + first-party plugins).
+templ AccountLink(s *Session, ledger, account, timeFilter, label string) {
+	<a class="link link-hover link-primary" href={ templ.SafeURL(AccountHref(s, ledger, account, timeFilter)) } title={ account }>
 		if label != "" {
 			{ label }
 		} else {
@@ -59,17 +60,19 @@ templ accountLink(s *Session, ledger, account, timeFilter, label string) {
 	</a>
 }
 
-templ commodityLink(s *Session, ledger, commodity, timeFilter string, mono bool) {
+// CommodityLink is the shared commodity <a> (core reports + first-party plugins).
+// mono applies font-mono (tree/amount cells); false for prose-ish prices tables.
+templ CommodityLink(s *Session, ledger, commodity, timeFilter string, mono bool) {
 	<a
 		class={ "link link-hover link-primary", templ.KV("font-mono", mono) }
-		href={ templ.SafeURL(commodityURL(s, ledger, commodity, timeFilter)) }
+		href={ templ.SafeURL(CommodityHref(s, ledger, commodity, timeFilter)) }
 	>{ commodity }</a>
 }
 
 // rateWithQuote is "1.23 USD" with the quote commodity linked (prices tables).
 templ rateWithQuote(s *Session, rate, quote, ledger, timeFilter string) {
 	{ rate } { " " }
-	@commodityLink(s, ledger, quote, timeFilter, false)
+	@CommodityLink(s, ledger, quote, timeFilter, false)
 }
 
 // fileLink is a document path: linked when Href is set, plain span otherwise.
@@ -147,10 +150,10 @@ templ amountWithCommodityLink(s *Session, amount, commodity, ledger, timeFilter 
 		{ amount }
 		if commodity != "" {
 			{ " " }
-			@commodityLink(s, ledger, commodity, timeFilter, true)
+			@CommodityLink(s, ledger, commodity, timeFilter, true)
 		}
 	} else if commodity != "" && !isRollup {
-		@commodityLink(s, ledger, commodity, timeFilter, true)
+		@CommodityLink(s, ledger, commodity, timeFilter, true)
 	}
 }
 
@@ -171,7 +174,7 @@ templ treeAccountCell(s *Session, row balanceRow, ledger, timeFilter string) {
 		}
 	>
 		@treeToggle(row.IsRollup)
-		@accountLink(s, ledger, row.Account, timeFilter, row.Name)
+		@AccountLink(s, ledger, row.Account, timeFilter, row.Name)
 	</td>
 }
 
@@ -212,7 +215,7 @@ templ amountCommodityRows(s *Session, rows []balanceRow, ledger, timeFilter, emp
 						<tr>
 							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
 							<td class="font-mono text-xs">
-								@commodityLink(s, ledger, r.Commodity, timeFilter, false)
+								@CommodityLink(s, ledger, r.Commodity, timeFilter, false)
 							</td>
 						</tr>
 					}
@@ -239,7 +242,7 @@ templ accountAmountRows(s *Session, rows []balanceRow, ledger, timeFilter, empty
 					for _, r := range rows {
 						<tr>
 							<td class="font-mono text-xs">
-								@accountLink(s, ledger, r.Account, timeFilter, "")
+								@AccountLink(s, ledger, r.Account, timeFilter, "")
 							</td>
 							<td class="text-right tabular text-xs font-medium">{ r.Amount }</td>
 						</tr>
@@ -333,11 +336,11 @@ templ journalEntry(e engine.JournalEntry, d pageData) {
 						}
 					>
 						<div class="flex flex-wrap justify-between gap-2">
-							@accountLink(d.Sess, d.LedgerName, p.Account, d.Time, "")
+							@AccountLink(d.Sess, d.LedgerName, p.Account, d.Time, "")
 							if p.Units != nil {
 								<span class="tabular text-base-content/90">
 									{ p.Units.Number.FloatString(4) + " " }
-									@commodityLink(d.Sess, d.LedgerName, p.Units.Commodity, d.Time, false)
+									@CommodityLink(d.Sess, d.LedgerName, p.Units.Commodity, d.Time, false)
 								</span>
 							}
 						</div>

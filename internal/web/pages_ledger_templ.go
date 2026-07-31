@@ -532,7 +532,7 @@ func networthBody(d pageData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = commodityLink(d.Sess, d.LedgerName, d.OpCurrency, d.Time, true).Render(ctx, templ_7745c5c3_Buffer)
+							templ_7745c5c3_Err = CommodityLink(d.Sess, d.LedgerName, d.OpCurrency, d.Time, true).Render(ctx, templ_7745c5c3_Buffer)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -688,7 +688,7 @@ func documentsBody(d pageData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					} else if r.Account != "" {
-						templ_7745c5c3_Err = accountLink(d.Sess, d.LedgerName, r.Account, d.Time, r.Name).Render(ctx, templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = AccountLink(d.Sess, d.LedgerName, r.Account, d.Time, r.Name).Render(ctx, templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -827,7 +827,7 @@ func pricesBody(d pageData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = commodityLink(d.Sess, d.LedgerName, s.Base, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = CommodityLink(d.Sess, d.LedgerName, s.Base, d.Time, false).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

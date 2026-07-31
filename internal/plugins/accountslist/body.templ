@@ -20,13 +20,17 @@ templ accountsBody(d web.PageData) {
 					for _, row := range d.AccountList {
 						<tr>
 							<td class="font-mono text-[0.7rem]">
-								<a
-									href={ templ.SafeURL(web.AccountHref(d.Sess, d.LedgerName, row.Account, d.Time)) }
-									class="link link-hover"
-								>{ row.Account }</a>
+								@web.AccountLink(d.Sess, d.LedgerName, row.Account, d.Time, "")
 							</td>
 							<td class="tabular text-xs whitespace-nowrap">{ row.OpenDate }</td>
-							<td class="font-mono text-[0.7rem]">{ row.Currencies }</td>
+							<td class="text-[0.7rem]">
+								for i, c := range row.Currencies {
+									if i > 0 {
+										{ " " }
+									}
+									@web.CommodityLink(d.Sess, d.LedgerName, c, d.Time, true)
+								}
+							</td>
 							<td class="text-xs">{ row.Institution }</td>
 						</tr>
 					}
