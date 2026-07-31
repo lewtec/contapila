@@ -95,33 +95,37 @@ ledgers: [Name=string]: #Ledger & {
 }
 
 // First-party modules (web pages, stream/book, …). Keys like "web/accounts".
-// Shape matches plugin.Options[S]: enabled + optional settings (module-specific).
+// Closed: only enabled + settings (no enable/plugin typos as free fields).
 // Opt-in: enabled defaults false. Core ledger reports are not plugins.
 #Plugin: {
 	enabled:   bool | *false
 	settings?: _
-	...
 }
 
+// Closed project root — unknown top-level keys (e.g. plugin: vs plugins:) fail unify.
 #Config: {
 	commodities: [string]: #Commodity
 	operating_currency?: [...string]
 	ledgers: [string]: #Ledger
 	links?:  [...#LedgerLink]
-	price_pairs?: [string]: #PricePair
+	price_pairs: [string]: #PricePair
 	// Auto-imported root journals (override wholesale in contapila.cue if needed).
 	project_journals: [...#ProjectJournal]
-	plugins?: [string]: #Plugin
+	plugins: [string]: #Plugin
 }
 
 // Default instance fields (unified with host inject + user contapila.cue).
 commodities: [string]: #Commodity
 links?:      [...#LedgerLink]
 price_pairs: [string]: #PricePair
-plugins: [string]: #Plugin
+plugins:     [string]: #Plugin
 
 // Default auto-imports — replace the whole list in contapila.cue to customize.
 project_journals: [...#ProjectJournal] | *[
 	{path: "prices.beancount", role: "prices", missing: "warn"},
 	{path: "indexes.beancount", role: "stream", missing: "ignore"},
 ]
+
+// Constrain the whole root (closed #Config rejects stray fields).
+#Config
+

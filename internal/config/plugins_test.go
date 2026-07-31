@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"cuelang.org/go/cue"
@@ -119,5 +120,45 @@ func TestLoadWithPluginsFromJournal(t *testing.T) {
 	_, err = LoadWithPlugins([]byte(`plugins: { "web/accounts": { enabled: false } }`), "t.cue", nil, nil, []string{"web/accounts"})
 	if err == nil {
 		t.Fatal("want unify conflict journal true vs cue false")
+	}
+}
+
+func TestClosedConfigRejectsPluginTypos(t *testing.T) {
+	// Top-level must be plugins (not plugin).
+	_, err := Load([]byte(`
+plugin: {
+	check_closing: { enabled: true }
+}
+`), "t.cue", nil, nil)
+	if err == nil {
+		t.Fatal("want error for top-level plugin: (use plugins:)")
+	}
+	if !strings.Contains(err.Error(), "plugin") && !strings.Contains(err.Error(), "field not allowed") {
+		// CUE wording varies; still require failure above.
+		t.Logf("error was: %v", err)
+	}
+
+	// Field must be enabled (not enable).
+	_, err = Load([]byte(`
+plugins: {
+	check_closing: { enable: true }
+}
+`), "t.cue", nil, nil)
+	if err == nil {
+		t.Fatal("want error for enable: (use enabled:)")
+	}
+
+	// Correct form still works.
+	cfg, err := Load([]byte(`
+plugins: {
+	check_closing: { enabled: true }
+}
+`), "t.cue", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok, err := PluginEnabled(cfg.Value, "check_closing")
+	if err != nil || !ok {
+		t.Fatalf("enabled: ok=%v err=%v", ok, err)
 	}
 }
