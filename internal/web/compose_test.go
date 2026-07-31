@@ -111,57 +111,77 @@ func TestResolvedPagesRespectsCUEPlugins(t *testing.T) {
 	t.Cleanup(resetContributedPagesForTest)
 	ContributePage(Page{
 		ID: "accounts", Label: "Accounts", Order: 25, Sidebar: true, Build: true,
-		DefaultEnabled: true,
-		Body:           func(d PageData) templ.Component { return templ.NopComponent },
+		Body: func(d PageData) templ.Component { return templ.NopComponent },
 	})
 
-	dir := t.TempDir()
-	// Minimal project: contapila.cue disables web/accounts + one ledger.
-	if err := os.WriteFile(filepath.Join(dir, "contapila.cue"), []byte(`
-plugins: {
-	"web/accounts": { enabled: false }
-}
-`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	ledgerDir := filepath.Join(dir, "personal")
-	if err := os.Mkdir(ledgerDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(ledgerDir, "main.beancount"), []byte(`
+	writeProj := func(t *testing.T, cue string) string {
+		t.Helper()
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "contapila.cue"), []byte(cue), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		ledgerDir := filepath.Join(dir, "personal")
+		if err := os.Mkdir(ledgerDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(ledgerDir, "main.beancount"), []byte(`
 option "operating_currency" "BRL"
 2020-01-01 open Assets:Cash BRL
 `), 0o644); err != nil {
-		t.Fatal(err)
+			t.Fatal(err)
+		}
+		return dir
 	}
 
-	p, pdb, _, err := engine.OpenProject(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, err := New(p, pdb)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Dynamic registry (s.Pages nil).
-	sess := NewSession(dir)
-	reg := s.resolvedPages(sess)
-	if _, ok := reg.Lookup("accounts"); ok {
-		t.Fatal("accounts should be disabled by CUE")
-	}
-	if _, ok := reg.Lookup("check"); !ok {
-		t.Fatal("check should remain")
-	}
+	t.Run("opt-in off by default", func(t *testing.T) {
+		dir := writeProj(t, "// empty\n")
+		p, pdb, _, err := engine.OpenProject(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := New(p, pdb)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reg := s.resolvedPages(NewSession(dir))
+		if _, ok := reg.Lookup("accounts"); ok {
+			t.Fatal("accounts should be off without plugins stanza")
+		}
+		if _, ok := reg.Lookup("check"); !ok {
+			t.Fatal("check should remain")
+		}
+		h := s.Handler()
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/l/personal/accounts", nil))
+		if rr.Code != http.StatusNotFound {
+			t.Fatalf("accounts status %d want 404", rr.Code)
+		}
+	})
 
-	h := s.Handler()
-	rr := httptest.NewRecorder()
-	h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/l/personal/accounts", nil))
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("accounts status %d want 404", rr.Code)
-	}
-	rr = httptest.NewRecorder()
-	h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/l/personal/check", nil))
-	if rr.Code != http.StatusOK {
-		t.Fatalf("check status %d", rr.Code)
-	}
+	t.Run("explicit enable", func(t *testing.T) {
+		dir := writeProj(t, `plugins: { "web/accounts": { enabled: true } }`)
+		p, pdb, _, err := engine.OpenProject(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, err := New(p, pdb)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reg := s.resolvedPages(NewSession(dir))
+		if _, ok := reg.Lookup("accounts"); !ok {
+			t.Fatal("accounts should be on when enabled: true")
+		}
+		h := s.Handler()
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/l/personal/check", nil))
+		if rr.Code != http.StatusOK {
+			t.Fatalf("check status %d", rr.Code)
+		}
+		rr = httptest.NewRecorder()
+		h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/l/personal/accounts", nil))
+		if rr.Code != http.StatusOK {
+			t.Fatalf("accounts status %d want 200", rr.Code)
+		}
+	})
 }

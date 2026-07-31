@@ -17,14 +17,13 @@ const PageID = "accounts"
 
 func init() {
 	web.ContributePage(web.Page{
-		ID:             PageID,
-		Label:          "Accounts",
-		Order:          25, // after balances, before journal
-		Sidebar:        true,
-		Build:          true,
-		DefaultEnabled: true, // on unless plugins."web/accounts".enabled: false
-		Fill:           fill,
-		Body:           func(d web.PageData) templ.Component { return accountsBody(d) },
+		ID:      PageID,
+		Label:   "Accounts",
+		Order:   25, // after balances, before journal
+		Sidebar: true,
+		Build:   true,
+		Fill:    fill,
+		Body:    func(d web.PageData) templ.Component { return accountsBody(d) },
 	})
 }
 

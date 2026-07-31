@@ -15,6 +15,11 @@ commodities: {
 	CIGPK: {precision: 0}
 }
 
+// First-party web plugins (opt-in).
+plugins: {
+	"web/accounts": {enabled: true}
+}
+
 // Cross-ledger hints; ledger fields must be #LedgerName (discovered keys).
 // Not enforced by check yet — CUE validates names only.
 links: [
