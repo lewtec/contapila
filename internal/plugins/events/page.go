@@ -1,4 +1,4 @@
-// Package events is the web/events report module (journal event directives).
+// Package events is the web_events report module (journal event directives).
 package events
 
 import (
@@ -10,13 +10,13 @@ import (
 	"github.com/lucasew/contapila-go/internal/web"
 )
 
-// PluginKey is the journal plugin / CUE plugins map key.
-const PluginKey = "web/events"
+// PluginKey is the journal plugin / CUE plugins map key (no '/').
+const PluginKey = "web_events"
 
 // PageID is the URL slug under /l/{ledger}/{PageID}.
 const PageID = "events"
 
-// Settings is plugins."web/events".settings (none yet).
+// Settings is plugins.web_events.settings (none yet).
 type Settings struct{}
 
 func init() {

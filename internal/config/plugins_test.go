@@ -21,7 +21,7 @@ func TestPluginFlags(t *testing.T) {
 		if len(flags) != 0 {
 			t.Fatalf("want no concrete flags, got %v", flags)
 		}
-		ok, err := PluginEnabled(cfg.Value, "web/accounts")
+		ok, err := PluginEnabled(cfg.Value, "web_accounts")
 		if err != nil || ok {
 			t.Fatalf("missing key is off at CUE layer: ok=%v err=%v", ok, err)
 		}
@@ -30,7 +30,7 @@ func TestPluginFlags(t *testing.T) {
 	t.Run("disable accounts", func(t *testing.T) {
 		user := `
 plugins: {
-	"web/accounts": { enabled: false }
+	"web_accounts": { enabled: false }
 }
 `
 		cfg, err := Load([]byte(user), "t.cue", nil, nil)
@@ -41,7 +41,7 @@ plugins: {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if flags["web/accounts"] {
+		if flags["web_accounts"] {
 			t.Fatal("accounts should be disabled")
 		}
 	})
@@ -49,14 +49,14 @@ plugins: {
 	t.Run("enabled defaults false when object empty", func(t *testing.T) {
 		user := `
 plugins: {
-	"web/future": {}
+	"web_future": {}
 }
 `
 		cfg, err := Load([]byte(user), "t.cue", nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		en := cfg.Value.LookupPath(cue.ParsePath(`plugins."web/future".enabled`))
+		en := cfg.Value.LookupPath(cue.ParsePath(`plugins."web_future".enabled`))
 		b, err := en.Bool()
 		if err != nil {
 			t.Fatal(err)
@@ -68,7 +68,7 @@ plugins: {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if flags["web/future"] {
+		if flags["web_future"] {
 			t.Fatal("empty object should decode as disabled")
 		}
 	})
@@ -76,14 +76,14 @@ plugins: {
 	t.Run("explicit enable", func(t *testing.T) {
 		user := `
 plugins: {
-	"web/future": { enabled: true }
+	"web_future": { enabled: true }
 }
 `
 		cfg, err := Load([]byte(user), "t.cue", nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		ok, err := PluginEnabled(cfg.Value, "web/future")
+		ok, err := PluginEnabled(cfg.Value, "web_future")
 		if err != nil || !ok {
 			t.Fatalf("want on: ok=%v err=%v", ok, err)
 		}
@@ -91,7 +91,7 @@ plugins: {
 }
 
 func TestPluginsEnabledFunc(t *testing.T) {
-	cfg, err := Load([]byte(`plugins: { "web/accounts": { enabled: false } }`), "t.cue", nil, nil)
+	cfg, err := Load([]byte(`plugins: { "web_accounts": { enabled: false } }`), "t.cue", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestPluginsEnabledFunc(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fn("web/accounts") {
+	if fn("web_accounts") {
 		t.Fatal("want accounts off")
 	}
 	if fn("web/check") {
@@ -108,16 +108,16 @@ func TestPluginsEnabledFunc(t *testing.T) {
 }
 
 func TestLoadWithPluginsFromJournal(t *testing.T) {
-	cfg, err := LoadWithPlugins([]byte("{}"), "t.cue", nil, nil, []string{"web/accounts", "web/accounts", ""})
+	cfg, err := LoadWithPlugins([]byte("{}"), "t.cue", nil, nil, []string{"web_accounts", "web_accounts", ""})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ok, err := PluginEnabled(cfg.Value, "web/accounts")
+	ok, err := PluginEnabled(cfg.Value, "web_accounts")
 	if err != nil || !ok {
 		t.Fatalf("journal plugin should enable: ok=%v err=%v", ok, err)
 	}
 	// User can still force off (unifies to false — conflict with true).
-	_, err = LoadWithPlugins([]byte(`plugins: { "web/accounts": { enabled: false } }`), "t.cue", nil, nil, []string{"web/accounts"})
+	_, err = LoadWithPlugins([]byte(`plugins: { "web_accounts": { enabled: false } }`), "t.cue", nil, nil, []string{"web_accounts"})
 	if err == nil {
 		t.Fatal("want unify conflict journal true vs cue false")
 	}

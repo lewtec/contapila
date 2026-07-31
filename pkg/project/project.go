@@ -253,8 +253,8 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 }
 
 // collectJournalPluginNames loads each ledger main (+ stream journals) and
-// returns unique known plugin directive names (e.g. "web/accounts").
-// Unknown names are skipped; a warn diag (and slog) is emitted with file/line.
+// returns unique known plugin directive names (e.g. "web_accounts").
+// Unknown names and ids with '/' are skipped; a warn diag (and slog) is emitted.
 func collectJournalPluginNames(fsys filesys.FS, ledgers []Ledger, streams []StreamJournal) ([]string, diag.List) {
 	if fsys == nil {
 		fsys = filesys.OS{}
@@ -274,6 +274,20 @@ func collectJournalPluginNames(fsys filesys.FS, ledgers []Ledger, streams []Stre
 		for _, d := range dirs {
 			p, ok := d.(ast.Plugin)
 			if !ok || p.Name == "" {
+				continue
+			}
+			if err := config.ValidatePluginID(p.Name); err != nil {
+				if !seen[p.Name] {
+					seen[p.Name] = true
+					msg := fmt.Sprintf("invalid plugin id %q: '/' not allowed", p.Name)
+					diags.Warn(p.File, p.Line, msg)
+					slog.Warn("invalid plugin directive",
+						"plugin", p.Name,
+						"file", p.File,
+						"line", p.Line,
+						"err", err.Error(),
+					)
+				}
 				continue
 			}
 			if !config.IsKnownPlugin(p.Name) {

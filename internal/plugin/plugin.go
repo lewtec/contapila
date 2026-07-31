@@ -114,9 +114,10 @@ var (
 )
 
 // RegisterTyped registers a module. setup receives scoped Reg; call from init.
+// id must be a valid plugin id (no '/'; see config.ValidatePluginID).
 func RegisterTyped[S any](id string, setup func(reg *Reg[S])) {
-	if id == "" {
-		panic("plugin: RegisterTyped with empty ID")
+	if err := config.ValidatePluginID(id); err != nil {
+		panic("plugin: RegisterTyped: " + err.Error())
 	}
 	if setup == nil {
 		panic("plugin: RegisterTyped nil setup")

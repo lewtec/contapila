@@ -7,7 +7,7 @@ import (
 )
 
 // PluginFlags reads plugins from a unified config value.
-// Keys present (e.g. "web/accounts") map to their enabled flag after CUE defaults
+// Keys present (e.g. "web_accounts") map to their enabled flag after CUE defaults
 // (enabled defaults false unless the key sets true or the prelude product default).
 // Empty/absent plugins map yields nil.
 func PluginFlags(v cue.Value) (map[string]bool, error) {

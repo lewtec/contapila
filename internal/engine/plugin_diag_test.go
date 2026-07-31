@@ -18,7 +18,7 @@ func TestOpenLedgerMergesProjectPluginDiags(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(ledgerDir, "main.beancount"), []byte(`
 option "operating_currency" "BRL"
-plugin "web/does-not-exist"
+plugin "web_does_not_exist"
 2020-01-01 open Assets:Cash BRL
 `), 0o644); err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ plugin "web/does-not-exist"
 	}
 	found := false
 	for _, d := range l.Diags {
-		if d.IsWarn() && strings.Contains(d.Message, "web/does-not-exist") {
+		if d.IsWarn() && strings.Contains(d.Message, "web_does_not_exist") {
 			found = true
 		}
 	}

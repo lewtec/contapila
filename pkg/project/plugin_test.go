@@ -10,7 +10,7 @@ import (
 )
 
 func TestOpenProjectJournalPluginEnables(t *testing.T) {
-	config.RegisterKnownPlugin("web/accounts")
+	config.RegisterKnownPlugin("web_accounts")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "contapila.cue"), []byte("// empty\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -21,7 +21,7 @@ func TestOpenProjectJournalPluginEnables(t *testing.T) {
 	}
 	main := `
 option "operating_currency" "BRL"
-plugin "web/accounts"
+plugin "web_accounts"
 2020-01-01 open Assets:Cash BRL
 `
 	if err := os.WriteFile(filepath.Join(ledgerDir, "main.beancount"), []byte(main), 0o644); err != nil {
@@ -32,9 +32,9 @@ plugin "web/accounts"
 	if err != nil {
 		t.Fatal(err)
 	}
-	ok, err := config.PluginEnabled(p.Config.Value, "web/accounts")
+	ok, err := config.PluginEnabled(p.Config.Value, "web_accounts")
 	if err != nil || !ok {
-		t.Fatalf("want web/accounts enabled from plugin directive: ok=%v err=%v", ok, err)
+		t.Fatalf("want web_accounts enabled from plugin directive: ok=%v err=%v", ok, err)
 	}
 }
 
@@ -49,7 +49,7 @@ func TestOpenProjectUnknownPluginSkipped(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(ledgerDir, "main.beancount"), []byte(`
 option "operating_currency" "BRL"
-plugin "web/does-not-exist"
+plugin "web_does_not_exist"
 2020-01-01 open Assets:Cash BRL
 `), 0o644); err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ plugin "web/does-not-exist"
 	if err != nil {
 		t.Fatal(err)
 	}
-	ok, err := config.PluginEnabled(p.Config.Value, "web/does-not-exist")
+	ok, err := config.PluginEnabled(p.Config.Value, "web_does_not_exist")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ plugin "web/does-not-exist"
 	}
 	found := false
 	for _, d := range p.Diags {
-		if d.IsWarn() && strings.Contains(d.Message, "web/does-not-exist") {
+		if d.IsWarn() && strings.Contains(d.Message, "web_does_not_exist") {
 			found = true
 			if d.Line < 1 {
 				t.Fatalf("want line number on diag: %+v", d)
@@ -101,11 +101,11 @@ option "operating_currency" "BRL"
 	if err != nil {
 		t.Fatal(err)
 	}
-	ok, err := config.PluginEnabled(p.Config.Value, "web/accounts")
+	ok, err := config.PluginEnabled(p.Config.Value, "web_accounts")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ok {
-		t.Fatal("want web/accounts off without plugin directive")
+		t.Fatal("want web_accounts off without plugin directive")
 	}
 }

@@ -52,7 +52,7 @@ func TestPluginScopePageAndReportPages(t *testing.T) {
 	t.Cleanup(resetPluginPagesForTest)
 
 	// Simulate Reg.Page path: host middleman on package-local registry.
-	s := &scope{moduleID: "web/contrib-a"}
+	s := &scope{moduleID: "web_contrib_a"}
 	s.Page(Page{
 		ID: "contrib-a", Label: "A", Order: 1, Sidebar: true, Build: true,
 		Body: func(d PageData) templ.Component { return templ.NopComponent },
@@ -73,7 +73,7 @@ func TestPluginScopePageAndReportPages(t *testing.T) {
 	pages := pluginContributedPages()
 	foundKey := false
 	for _, p := range pages {
-		if p.ID == "contrib-a" && p.PluginKey == "web/contrib-a" {
+		if p.ID == "contrib-a" && p.PluginKey == "web_contrib_a" {
 			foundKey = true
 		}
 	}
@@ -90,8 +90,8 @@ func TestFilterContribPages(t *testing.T) {
 		{ID: "forced-on", DefaultEnabled: false},
 	}
 	got := filterContribPages(pages, map[string]bool{
-		"web/forced-off": false,
-		"web/forced-on":  true,
+		"web_forced-off": false, // PagePluginKey("forced-off")
+		"web_forced-on":  true,
 	})
 	ids := map[string]bool{}
 	for _, p := range got {
@@ -112,7 +112,7 @@ func TestFilterContribPages(t *testing.T) {
 }
 
 func TestPagePluginKey(t *testing.T) {
-	if PagePluginKey("accounts") != "web/accounts" {
+	if PagePluginKey("accounts") != "web_accounts" {
 		t.Fatal(PagePluginKey("accounts"))
 	}
 }
@@ -120,7 +120,7 @@ func TestPagePluginKey(t *testing.T) {
 func TestResolvedPagesRespectsCUEPlugins(t *testing.T) {
 	resetPluginPagesForTest()
 	t.Cleanup(resetPluginPagesForTest)
-	(&scope{moduleID: "web/accounts"}).Page(Page{
+	(&scope{moduleID: "web_accounts"}).Page(Page{
 		ID: "accounts", Label: "Accounts", Order: 25, Sidebar: true, Build: true,
 		Body: func(d PageData) templ.Component { return templ.NopComponent },
 	})
@@ -170,7 +170,7 @@ option "operating_currency" "BRL"
 	})
 
 	t.Run("explicit enable", func(t *testing.T) {
-		dir := writeProj(t, `plugins: { "web/accounts": { enabled: true } }`)
+		dir := writeProj(t, `plugins: { "web_accounts": { enabled: true } }`)
 		p, pdb, _, err := engine.OpenProject(dir)
 		if err != nil {
 			t.Fatal(err)

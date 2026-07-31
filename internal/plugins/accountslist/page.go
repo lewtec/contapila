@@ -1,4 +1,4 @@
-// Package accountslist is the web/accounts report module.
+// Package accountslist is the web_accounts report module.
 package accountslist
 
 import (
@@ -10,13 +10,13 @@ import (
 	"github.com/lucasew/contapila-go/internal/web"
 )
 
-// PluginKey is the journal plugin / CUE plugins map key.
-const PluginKey = "web/accounts"
+// PluginKey is the journal plugin / CUE plugins map key (no '/').
+const PluginKey = "web_accounts"
 
 // PageID is the URL slug under /l/{ledger}/{PageID}.
 const PageID = "accounts"
 
-// Settings is plugins."web/accounts".settings (none yet).
+// Settings is plugins.web_accounts.settings (none yet).
 type Settings struct{}
 
 func init() {

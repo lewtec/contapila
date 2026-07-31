@@ -179,9 +179,9 @@ type pageData struct {
 	AccountDocs       []docRow
 	AccountMeta       []metaKV
 	AccountCurrencies []string
-	// AccountList is the /accounts report (plugin web/accounts).
+	// AccountList is the /accounts report (plugin web_accounts).
 	AccountList []AccountListRow
-	// EventList is the /events report (plugin web/events).
+	// EventList is the /events report (plugin web_events).
 	EventList []EventListRow
 	// Documents is the ledger documents report (/documents) list.
 	Documents []docRow
