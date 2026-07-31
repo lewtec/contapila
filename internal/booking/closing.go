@@ -140,6 +140,11 @@ func BookWithClosing(dirs []ast.Directive, setup func(*Engine)) (e *Engine, out 
 	return e, out, diags
 }
 
+// HasClosingMeta reports whether any posting has truthy closing metadata.
+func HasClosingMeta(dirs []ast.Directive) bool {
+	return hasClosingMeta(dirs)
+}
+
 func hasClosingMeta(dirs []ast.Directive) bool {
 	for _, d := range dirs {
 		t, ok := d.(ast.Transaction)

@@ -194,8 +194,8 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	stream, pdiags = booking.ExpandPads(stream, setupBooking)
 	diags.Merge(pdiags)
 
-	// closing: TRUE expands after residual fill (BookWithClosing), then re-books.
-	b, stream, cdiags := booking.BookWithClosing(stream, setupBooking)
+	// closing: TRUE autoclose is the check_closing plugin (opt-in).
+	b, stream, cdiags := bookLedgerStream(p, stream, setupBooking)
 	diags.Merge(cdiags)
 
 	autoInterest := booking.CollectAutoInterest(stream)
@@ -225,6 +225,38 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 		AutoInterest: autoInterest,
 		IndexDB:      indexDB,
 	}, nil
+}
+
+// PluginCheckClosing is the journal plugin / CUE key for closing: TRUE autoclose.
+const PluginCheckClosing = "check_closing"
+
+// bookLedgerStream books stream, optionally expanding closing: TRUE when the
+// check_closing plugin is enabled on the project.
+func bookLedgerStream(p *project.Project, stream []ast.Directive, setup func(*booking.Engine)) (*booking.Engine, []ast.Directive, diag.List) {
+	var diags diag.List
+	closingOn := false
+	if p != nil && p.Config != nil {
+		on, err := config.PluginEnabled(p.Config.Value, PluginCheckClosing)
+		if err != nil {
+			// Treat as off; config errors surface elsewhere.
+			closingOn = false
+		} else {
+			closingOn = on
+		}
+	}
+	if closingOn {
+		return booking.BookWithClosing(stream, setup)
+	}
+	if booking.HasClosingMeta(stream) {
+		diags.Warn("", 0, `closing: TRUE present but plugin "check_closing" is not enabled; autoclose skipped`)
+	}
+	e := booking.New()
+	if setup != nil {
+		setup(e)
+	}
+	e.Book(stream)
+	diags.Merge(e.Diags)
+	return e, stream, diags
 }
 
 // canonicalPath returns an absolute, symlink-resolved path when possible so
