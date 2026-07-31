@@ -71,8 +71,14 @@ func TestPluginScopePageAndReportPages(t *testing.T) {
 		t.Fatal("contrib should not be on DefaultPages singleton")
 	}
 	pages := pluginContributedPages()
-	if len(pages) != 1 || pages[0].PluginKey != "web/contrib-a" {
-		t.Fatalf("plugin key tag: %+v", pages)
+	foundKey := false
+	for _, p := range pages {
+		if p.ID == "contrib-a" && p.PluginKey == "web/contrib-a" {
+			foundKey = true
+		}
+	}
+	if !foundKey {
+		t.Fatalf("plugin key tag missing: %+v", pages)
 	}
 }
 

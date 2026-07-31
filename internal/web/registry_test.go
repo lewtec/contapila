@@ -152,10 +152,20 @@ func TestFileRel(t *testing.T) {
 
 func TestReportPages(t *testing.T) {
 	pages := ReportPages()
-	if len(pages) != 7 {
+	// builtins include debug; plugin pages may append after BindPluginPages.
+	if len(pages) < 8 {
 		t.Fatalf("got %d pages: %v", len(pages), pages)
 	}
-	if pages[0] != "check" || pages[len(pages)-1] != "prices" {
+	if pages[0] != "check" {
 		t.Fatalf("unexpected order: %v", pages)
+	}
+	foundDebug := false
+	for _, p := range pages {
+		if p == "debug" {
+			foundDebug = true
+		}
+	}
+	if !foundDebug {
+		t.Fatalf("missing debug page: %v", pages)
 	}
 }

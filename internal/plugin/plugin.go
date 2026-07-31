@@ -248,6 +248,24 @@ func IDs() []string {
 	return out
 }
 
+// Info is a debug snapshot of one registered module.
+type Info struct {
+	ID        string
+	HasStream bool // registered OnProcess
+}
+
+// Infos returns registered modules in sorted id order (for debug UI).
+func Infos() []Info {
+	mu.RLock()
+	defer mu.RUnlock()
+	out := make([]Info, 0, len(modules))
+	for _, m := range modules {
+		out = append(out, Info{ID: m.id, HasStream: m.process != nil})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
+
 func resetForTest() {
 	mu.Lock()
 	defer mu.Unlock()

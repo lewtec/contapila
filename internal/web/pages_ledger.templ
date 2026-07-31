@@ -7,6 +7,75 @@ templ LedgerPage(d pageData) {
 	}
 }
 
+templ debugBody(d pageData) {
+	<section class="mb-6">
+		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">Plugins</h2>
+		<p class="text-xs text-base-content/60 mb-3">
+			Registered first-party modules and whether they are enabled after CUE unify
+			(journal <code class="font-mono">plugin "…"</code> and <code class="font-mono">plugins</code> in contapila.cue).
+		</p>
+		if len(d.PluginRows) == 0 {
+			<p class="text-xs text-base-content/60">No modules registered in this binary.</p>
+		} else {
+			@borderTable() {
+				<table class="table table-xs">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th class="w-20">Enabled</th>
+							<th class="w-24">In config</th>
+							<th class="w-20">Stream</th>
+							<th>Entry (CUE)</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, row := range d.PluginRows {
+							<tr>
+								<td class="font-mono text-[0.7rem]">{ row.ID }</td>
+								<td>
+									if row.Enabled {
+										<span class="text-success font-medium text-xs">on</span>
+									} else {
+										<span class="text-base-content/50 text-xs">off</span>
+									}
+								</td>
+								<td class="text-xs">
+									if row.InConfig {
+										yes
+									} else {
+										<span class="text-base-content/50">default</span>
+									}
+								</td>
+								<td class="text-xs">
+									if row.HasStream {
+										yes
+									} else {
+										—
+									}
+								</td>
+								<td>
+									<pre class="text-[0.65rem] font-mono whitespace-pre-wrap m-0 max-w-xl overflow-x-auto">{ row.EntryCUE }</pre>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		}
+	</section>
+	<section class="mb-6">
+		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">plugins (unified)</h2>
+		<pre class="text-[0.7rem] font-mono whitespace-pre-wrap p-3 bg-base-200 border border-base-300 overflow-x-auto">{ d.PluginsCUE }</pre>
+	</section>
+	<section>
+		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">Full config (unified)</h2>
+		<p class="text-xs text-base-content/60 mb-2">
+			Prelude ⊔ discovered ledgers ⊔ price pairs ⊔ journal plugins ⊔ contapila.cue
+		</p>
+		<pre class="text-[0.65rem] font-mono whitespace-pre-wrap p-3 bg-base-200 border border-base-300 overflow-x-auto max-h-[32rem] overflow-y-auto">{ d.ConfigCUE }</pre>
+	</section>
+}
+
 templ checkBody(d pageData) {
 	if d.OK {
 		<div role="alert" class="alert alert-success alert-soft py-2 text-xs mb-3">

@@ -196,6 +196,19 @@ type pageData struct {
 	ChartTitle string
 	ChartJSON  string
 	NeedCharts bool
+	// Debug page (core): plugin enablement + CUE dump.
+	PluginRows   []PluginStatusRow
+	PluginsCUE   string // plugins subtree after unify
+	ConfigCUE    string // full project config after unify
+}
+
+// PluginStatusRow is one registered module on the debug page.
+type PluginStatusRow struct {
+	ID        string
+	Enabled   bool
+	InConfig  bool // concrete entry under plugins after unify
+	HasStream bool
+	EntryCUE  string // plugins.<id> fragment
 }
 
 // AccountListRow is one open account on the accounts report.

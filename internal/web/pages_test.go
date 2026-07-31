@@ -16,24 +16,24 @@ func TestDefaultPagesSidebarAndBuild(t *testing.T) {
 
 	r := DefaultPages()
 	side := r.Sidebar()
-	if len(side) != 7 {
-		t.Fatalf("sidebar len %d want 7: %v", len(side), ids(side))
+	if len(side) != 8 {
+		t.Fatalf("sidebar len %d want 8: %v", len(side), ids(side))
 	}
-	if side[0].ID != "check" || side[len(side)-1].ID != "prices" {
+	if side[0].ID != "check" || side[len(side)-1].ID != "debug" {
 		t.Fatalf("sidebar order: %v", ids(side))
 	}
 	build := r.BuildIDs()
-	if len(build) != 7 || build[0] != "check" || build[len(build)-1] != "prices" {
+	if len(build) != 8 || build[0] != "check" || build[len(build)-1] != "debug" {
 		t.Fatalf("build ids: %v", build)
 	}
-	// With no contributions, ReportPages matches builtins.
+	// ReportPages is builtins then any bound plugin pages.
 	rp := ReportPages()
-	if len(rp) != len(build) {
-		t.Fatalf("ReportPages %v vs BuildIDs %v", rp, build)
+	if len(rp) < len(build) {
+		t.Fatalf("ReportPages %v shorter than builtins %v", rp, build)
 	}
-	for i := range rp {
+	for i := range build {
 		if rp[i] != build[i] {
-			t.Fatalf("ReportPages[%d]=%q BuildIDs[%d]=%q", i, rp[i], i, build[i])
+			t.Fatalf("ReportPages builtins prefix: %v want start %v", rp, build)
 		}
 	}
 }

@@ -285,6 +285,11 @@ func registerBuiltinPages(r *PageRegistry) {
 		Fill: fillPrices,
 		Body: func(d PageData) templ.Component { return pricesBody(d) },
 	})
+	r.Register(Page{
+		ID: "debug", Label: "Debug", Order: 100, Sidebar: true, Build: true,
+		Fill: fillDebug,
+		Body: func(d PageData) templ.Component { return debugBody(d) },
+	})
 }
 
 func fillBalances(pc PageContext, data *PageData) {
