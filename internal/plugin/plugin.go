@@ -1,8 +1,11 @@
-// Package plugin hosts first-party modules. One RegisterTyped can attach typed
-// options (Go struct + cue.Value.Decode), a stream booker, and/or web setup.
+// Package plugin hosts first-party modules.
 //
-// Options are plain Go structs with json tags; CUE fills them via Decode
-// (same interop as the rest of contapila). Prelude #Plugin supplies enabled.
+// Options is always { enabled, settings }. The type parameter is only Settings;
+// plugins never declare Enabled themselves. Settings is decoded from CUE via
+// cue.Value.Decode and json tags.
+//
+// Web: plugins call web.ContributePage (or similar) from their own init — not
+// via a host-invoked AttachWeb hook.
 package plugin
 
 import (
@@ -18,6 +21,12 @@ import (
 	"github.com/lucasew/contapila-go/internal/diag"
 )
 
+// Options is the common plugins.<id> shape. S is module-specific settings.
+type Options[S any] struct {
+	Enabled  bool `json:"enabled"`
+	Settings S    `json:"settings"`
+}
+
 // BookContext is the ledger-open context for stream/book modules.
 type BookContext struct {
 	Ledger string
@@ -25,7 +34,7 @@ type BookContext struct {
 	Setup  func(*booking.Engine)
 }
 
-// BookFunc is a type-erased booker. opts is the module's decoded options.
+// BookFunc is a type-erased booker. opts is Options[S] as any.
 type BookFunc func(ctx BookContext, dirs []ast.Directive, opts any) (*booking.Engine, []ast.Directive, diag.List)
 
 // Module is one capability bundle (type-erased). Prefer RegisterTyped.
@@ -33,57 +42,51 @@ type Module struct {
 	ID            string
 	DecodeOptions func(v cue.Value) (any, error)
 	Book          BookFunc
-	AttachWeb     func()
 }
 
-// TypedModule registers a module with options type T (json tags + cue Decode).
-type TypedModule[T any] struct {
+// TypedModule registers a module whose settings type is S.
+type TypedModule[S any] struct {
 	ID string
-	// Book is optional (e.g. check_closing).
-	Book func(ctx BookContext, dirs []ast.Directive, opts T) (*booking.Engine, []ast.Directive, diag.List)
-	// AttachWeb is optional (e.g. ContributePage).
-	AttachWeb func()
+	// Book is optional (e.g. check_closing). Receives full Options[S].
+	Book func(ctx BookContext, dirs []ast.Directive, opts Options[S]) (*booking.Engine, []ast.Directive, diag.List)
 }
 
 var (
 	mu      sync.RWMutex
 	modules []Module
 	byID    = map[string]int{}
-	webOnce sync.Once
 )
 
 // RegisterTyped adds a typed module and registers its journal plugin name.
-func RegisterTyped[T any](m TypedModule[T]) {
+func RegisterTyped[S any](m TypedModule[S]) {
 	if m.ID == "" {
 		panic("plugin: RegisterTyped with empty ID")
 	}
 	var book BookFunc
 	if m.Book != nil {
 		book = func(ctx BookContext, dirs []ast.Directive, opts any) (*booking.Engine, []ast.Directive, diag.List) {
-			var t T
+			var o Options[S]
 			if opts != nil {
-				if typed, ok := opts.(T); ok {
-					t = typed
+				if typed, ok := opts.(Options[S]); ok {
+					o = typed
 				}
 			}
-			return m.Book(ctx, dirs, t)
+			return m.Book(ctx, dirs, o)
 		}
 	}
 	Register(Module{
 		ID: m.ID,
 		DecodeOptions: func(v cue.Value) (any, error) {
-			var out T
+			var out Options[S]
 			if !v.Exists() {
 				return out, nil
 			}
-			// Decode uses json tags / CUE–Go field mapping (same as config decode elsewhere).
 			if err := v.Decode(&out); err != nil {
 				return out, fmt.Errorf("plugin %s options: %w", m.ID, err)
 			}
 			return out, nil
 		},
-		Book:      book,
-		AttachWeb: m.AttachWeb,
+		Book: book,
 	})
 }
 
@@ -111,17 +114,6 @@ func All() []Module {
 	return out
 }
 
-// AttachAllWeb runs each module's AttachWeb once (web host).
-func AttachAllWeb() {
-	webOnce.Do(func() {
-		for _, m := range All() {
-			if m.AttachWeb != nil {
-				m.AttachWeb()
-			}
-		}
-	})
-}
-
 // PluginValue returns plugins.<id> from unified config.
 func PluginValue(cfg cue.Value, id string) cue.Value {
 	if !cfg.Exists() || id == "" {
@@ -146,7 +138,7 @@ func EnabledBookModules(cfg cue.Value) []Module {
 	return out
 }
 
-// DecodeOptions decodes plugins.<id> into the module's options type.
+// DecodeOptions decodes plugins.<id> into Options[S] (as any).
 func DecodeOptions(cfg cue.Value, m Module) (any, error) {
 	if m.DecodeOptions == nil {
 		return nil, nil
@@ -154,8 +146,7 @@ func DecodeOptions(cfg cue.Value, m Module) (any, error) {
 	return m.DecodeOptions(PluginValue(cfg, m.ID))
 }
 
-// ValidateOptions decodes every present plugins.<id> entry for registered modules.
-// Call after config load to surface bad option types early.
+// ValidateOptions decodes every present plugins.<id> for registered modules.
 func ValidateOptions(cfg cue.Value) error {
 	for _, m := range All() {
 		v := PluginValue(cfg, m.ID)
@@ -186,5 +177,4 @@ func resetForTest() {
 	defer mu.Unlock()
 	modules = nil
 	byID = map[string]int{}
-	webOnce = sync.Once{}
 }

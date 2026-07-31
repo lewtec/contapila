@@ -2,15 +2,14 @@ package web
 
 import (
 	"sync"
-
-	"github.com/lucasew/contapila-go/internal/config"
-	"github.com/lucasew/contapila-go/internal/plugin"
 )
 
 // ContributePage registers a first-party ledger report for composition into
 // Server registries (sidebar + route + build). Safe from init().
+// Modules call this from their own init (alongside plugin.RegisterTyped).
 // Does not mutate DefaultPages(); extras are applied via ComposePages.
-// Also registers plugins."web/{ID}" as a known module for journal plugin checks.
+// Plugin enable keys use PagePluginKey (web/{ID}); register that name via
+// plugin.RegisterTyped, not here.
 func ContributePage(p Page) {
 	if p.ID == "" {
 		panic("web: ContributePage with empty ID")
@@ -26,14 +25,10 @@ func ContributePage(p Page) {
 		}
 	}
 	contribPages = append(contribPages, p)
-	config.RegisterKnownPlugin(PagePluginKey(p.ID))
 }
 
-// ContributedPages returns a copy of pages registered via ContributePage
-// (after first-party modules AttachWeb).
+// ContributedPages returns a copy of pages registered via ContributePage.
 func ContributedPages() []Page {
-	// Modules register pages through AttachWeb → ContributePage.
-	plugin.AttachAllWeb()
 	contribMu.Lock()
 	defer contribMu.Unlock()
 	if len(contribPages) == 0 {

@@ -11,9 +11,8 @@ import (
 	"github.com/lucasew/contapila-go/internal/diag"
 )
 
-type sampleOpts struct {
-	Enabled bool `json:"enabled"`
-	MaxDays int  `json:"max_days"`
+type sampleSettings struct {
+	MaxDays int `json:"max_days"`
 }
 
 func TestRegisterTypedDecode(t *testing.T) {
@@ -21,10 +20,10 @@ func TestRegisterTypedDecode(t *testing.T) {
 	t.Cleanup(resetForTest)
 
 	var gotDays int
-	RegisterTyped(TypedModule[sampleOpts]{
+	RegisterTyped(TypedModule[sampleSettings]{
 		ID: "sample",
-		Book: func(ctx BookContext, dirs []ast.Directive, opts sampleOpts) (*booking.Engine, []ast.Directive, diag.List) {
-			gotDays = opts.MaxDays
+		Book: func(ctx BookContext, dirs []ast.Directive, opts Options[sampleSettings]) (*booking.Engine, []ast.Directive, diag.List) {
+			gotDays = opts.Settings.MaxDays
 			e := booking.New()
 			e.Book(dirs)
 			return e, dirs, e.Diags
@@ -35,7 +34,7 @@ func TestRegisterTypedDecode(t *testing.T) {
 	}
 
 	ctx := cuecontext.New()
-	cfg := ctx.CompileString(`plugins: { sample: { enabled: true, max_days: 7 } }`)
+	cfg := ctx.CompileString(`plugins: { sample: { enabled: true, settings: { max_days: 7 } } }`)
 	if err := cfg.Err(); err != nil {
 		t.Fatal(err)
 	}
@@ -47,8 +46,8 @@ func TestRegisterTypedDecode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, ok := opts.(sampleOpts)
-	if !ok || o.MaxDays != 7 || !o.Enabled {
+	o, ok := opts.(Options[sampleSettings])
+	if !ok || !o.Enabled || o.Settings.MaxDays != 7 {
 		t.Fatalf("opts=%+v", opts)
 	}
 	_, _, _ = mods[0].Book(BookContext{}, nil, opts)
@@ -57,12 +56,12 @@ func TestRegisterTypedDecode(t *testing.T) {
 	}
 }
 
-func TestDecodeBadType(t *testing.T) {
+func TestDecodeBadSettingsType(t *testing.T) {
 	resetForTest()
 	t.Cleanup(resetForTest)
-	RegisterTyped(TypedModule[sampleOpts]{ID: "sample"})
+	RegisterTyped(TypedModule[sampleSettings]{ID: "sample"})
 	ctx := cuecontext.New()
-	cfg := ctx.CompileString(`plugins: { sample: { enabled: true, max_days: "nope" } }`)
+	cfg := ctx.CompileString(`plugins: { sample: { enabled: true, settings: { max_days: "nope" } } }`)
 	if err := cfg.Err(); err != nil {
 		t.Fatal(err)
 	}

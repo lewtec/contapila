@@ -94,13 +94,12 @@ ledgers: [Name=string]: #Ledger & {
 	missing: "warn" | "ignore" | *"ignore"
 }
 
-// First-party modules (web pages, later stream/dump). Keys like "web/accounts".
-// Opt-in schema: enabled defaults false. Set enabled: true to turn a module on.
-// Core ledger reports (check, balances, …) are not plugins — always on.
-// Product defaults for specific modules (e.g. accounts on) live in Go Page.DefaultEnabled
-// so users can set enabled: false without CUE unification conflicts.
+// First-party modules (web pages, stream/book, …). Keys like "web/accounts".
+// Shape matches plugin.Options[S]: enabled + optional settings (module-specific).
+// Opt-in: enabled defaults false. Core ledger reports are not plugins.
 #Plugin: {
-	enabled: bool | *false
+	enabled:   bool | *false
+	settings?: _
 	...
 }
 

@@ -16,25 +16,22 @@ const PluginKey = "web/accounts"
 // PageID is the URL slug under /l/{ledger}/{PageID}.
 const PageID = "accounts"
 
-// Options is plugins."web/accounts".
-type Options struct {
-	Enabled bool `json:"enabled"`
-}
+// Settings is plugins."web/accounts".settings (none yet).
+type Settings struct{}
 
 func init() {
-	plugin.RegisterTyped(plugin.TypedModule[Options]{
+	plugin.RegisterTyped(plugin.TypedModule[Settings]{
 		ID: PluginKey,
-		AttachWeb: func() {
-			web.ContributePage(web.Page{
-				ID:      PageID,
-				Label:   "Accounts",
-				Order:   25,
-				Sidebar: true,
-				Build:   true,
-				Fill:    fill,
-				Body:    func(d web.PageData) templ.Component { return accountsBody(d) },
-			})
-		},
+	})
+	// Web pages: register from this package's init (not a host AttachWeb hook).
+	web.ContributePage(web.Page{
+		ID:      PageID,
+		Label:   "Accounts",
+		Order:   25,
+		Sidebar: true,
+		Build:   true,
+		Fill:    fill,
+		Body:    func(d web.PageData) templ.Component { return accountsBody(d) },
 	})
 }
 

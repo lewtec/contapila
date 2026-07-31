@@ -11,19 +11,16 @@ import (
 // PluginKey is the journal plugin / CUE plugins map key.
 const PluginKey = "check_closing"
 
-// Options is plugins.check_closing (json tags ← cue.Value.Decode).
-// enabled is read via config.PluginEnabled; kept here for Decode completeness.
-type Options struct {
-	Enabled bool `json:"enabled"`
-}
+// Settings is plugins.check_closing.settings (none yet).
+type Settings struct{}
 
 func init() {
-	plugin.RegisterTyped(plugin.TypedModule[Options]{
+	plugin.RegisterTyped(plugin.TypedModule[Settings]{
 		ID:   PluginKey,
 		Book: book,
 	})
 }
 
-func book(ctx plugin.BookContext, dirs []ast.Directive, _ Options) (*booking.Engine, []ast.Directive, diag.List) {
+func book(ctx plugin.BookContext, dirs []ast.Directive, _ plugin.Options[Settings]) (*booking.Engine, []ast.Directive, diag.List) {
 	return booking.BookWithClosing(dirs, ctx.Setup)
 }
