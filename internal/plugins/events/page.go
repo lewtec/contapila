@@ -50,9 +50,10 @@ func fill(pc web.PageContext, data *web.PageData) {
 			Desc: e.Desc,
 		})
 	}
+	// Newest first (same convention as journal listings).
 	sort.SliceStable(rows, func(i, j int) bool {
 		if rows[i].Date != rows[j].Date {
-			return rows[i].Date < rows[j].Date
+			return rows[i].Date > rows[j].Date
 		}
 		return rows[i].Type < rows[j].Type
 	})

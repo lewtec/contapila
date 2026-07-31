@@ -83,11 +83,11 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, error) {
 	return out, nil
 }
 
-// sortDocuments orders by date, then account, then path (stable).
+// sortDocuments orders newest first, then account, then path (stable).
 func sortDocuments(docs []ast.Document) {
 	sort.SliceStable(docs, func(i, j int) bool {
 		if !docs[i].Date.Equal(docs[j].Date) {
-			return docs[i].Date.Before(docs[j].Date)
+			return docs[i].Date.After(docs[j].Date)
 		}
 		if docs[i].Account != docs[j].Account {
 			return docs[i].Account < docs[j].Account

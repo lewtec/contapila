@@ -652,9 +652,10 @@ func documentTreeRows(docs []ast.Document) []docRow {
 		byAcct[d.Account] = append(byAcct[d.Account], fi)
 	}
 	for a := range byAcct {
+		// Newest first within each account.
 		sort.SliceStable(byAcct[a], func(i, j int) bool {
 			if byAcct[a][i].date != byAcct[a][j].date {
-				return byAcct[a][i].date < byAcct[a][j].date
+				return byAcct[a][i].date > byAcct[a][j].date
 			}
 			return byAcct[a][i].path < byAcct[a][j].path
 		})
