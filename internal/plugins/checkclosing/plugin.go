@@ -2,9 +2,11 @@
 package checkclosing
 
 import (
+	"iter"
+	"slices"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/booking"
-	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/plugin"
 )
 
@@ -15,12 +17,13 @@ const PluginKey = "check_closing"
 type Settings struct{}
 
 func init() {
-	plugin.RegisterTyped(plugin.TypedModule[Settings]{
-		ID:   PluginKey,
-		Book: book,
+	plugin.RegisterTyped(PluginKey, func(reg *plugin.Reg[Settings]) {
+		reg.OnProcess(func(_ Settings, h *plugin.Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
+			dirs := slices.Collect(in)
+			e, out, diags := booking.BookWithClosing(dirs, h.Setup)
+			h.Engine = e
+			h.Diags = diags
+			return slices.Values(out)
+		})
 	})
-}
-
-func book(ctx plugin.BookContext, dirs []ast.Directive, _ Settings) (*booking.Engine, []ast.Directive, diag.List) {
-	return booking.BookWithClosing(dirs, ctx.Setup)
 }

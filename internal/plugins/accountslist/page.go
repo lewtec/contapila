@@ -20,20 +20,17 @@ const PageID = "accounts"
 type Settings struct{}
 
 func init() {
-	plugin.RegisterTyped(plugin.TypedModule[Settings]{
-		ID: PluginKey,
-		AttachWeb: func(w plugin.Web) {
-			// Middleman is scoped to this module; registry is package-local in web.
-			web.ScopeOf(w).Page(web.Page{
-				ID:      PageID,
-				Label:   "Accounts",
-				Order:   25,
-				Sidebar: true,
-				Build:   true,
-				Fill:    fill,
-				Body:    func(d web.PageData) templ.Component { return accountsBody(d) },
-			})
-		},
+	plugin.RegisterTyped(PluginKey, func(reg *plugin.Reg[Settings]) {
+		// Scoped middleman → package-local web registry.
+		web.ScopeOf(reg.Web).Page(web.Page{
+			ID:      PageID,
+			Label:   "Accounts",
+			Order:   25,
+			Sidebar: true,
+			Build:   true,
+			Fill:    fill,
+			Body:    func(d web.PageData) templ.Component { return accountsBody(d) },
+		})
 	})
 }
 

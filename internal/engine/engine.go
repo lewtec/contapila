@@ -25,6 +25,7 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
+
 // AsOfLatest is an as-of far in the future meaning "latest known state".
 var AsOfLatest = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 
@@ -230,7 +231,8 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	}, nil
 }
 
-// bookLedgerStream runs an enabled Book module, or default booking.
+// bookLedgerStream runs enabled stream plugins (iter in → iter out), then books
+// unless a plugin already produced an Engine (e.g. check_closing).
 func bookLedgerStream(p *project.Project, ledger string, stream []ast.Directive, setup func(*booking.Engine)) (*booking.Engine, []ast.Directive, diag.List) {
 	var diags diag.List
 	root := ""
@@ -241,25 +243,13 @@ func bookLedgerStream(p *project.Project, ledger string, stream []ast.Directive,
 			cfg = p.Config.Value
 		}
 	}
+	h := &plugin.Host{Ledger: ledger, Root: root, Setup: setup}
 	if cfg.Exists() {
-		if books := plugin.EnabledBookModules(cfg); len(books) > 0 {
-			m := books[0]
-			if len(books) > 1 {
-				var ids []string
-				for _, b := range books {
-					ids = append(ids, b.ID)
-				}
-				diags.Warn("", 0, fmt.Sprintf("multiple book plugins enabled %v; using %s", ids, m.ID))
-			}
-			opts, err := plugin.DecodeOptions(cfg, m)
-			if err != nil {
-				diags.Error("", 0, err.Error())
-				// fall through to default book
-			} else {
-				e, out, bd := m.Book(plugin.BookContext{Ledger: ledger, Root: root, Setup: setup}, stream, opts)
-				diags.Merge(bd)
-				return e, out, diags
-			}
+		e, out, pd := plugin.RunStream(cfg, h, stream)
+		diags.Merge(pd)
+		stream = out
+		if e != nil {
+			return e, stream, diags
 		}
 	}
 	if booking.HasClosingMeta(stream) {

@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"iter"
+	"slices"
 	"testing"
 
 	"cuelang.org/go/cue/cuecontext"
@@ -8,7 +10,6 @@ import (
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/booking"
 	"github.com/lucasew/contapila-go/internal/config"
-	"github.com/lucasew/contapila-go/internal/diag"
 )
 
 type sampleSettings struct {
@@ -19,25 +20,28 @@ type fakeWeb struct{ id string }
 
 func (f fakeWeb) ModuleID() string { return f.id }
 
-func TestRegisterTypedDecode(t *testing.T) {
+func TestRegisterTypedSetupAndProcess(t *testing.T) {
 	resetForTest()
 	t.Cleanup(resetForTest)
 
 	var gotDays int
 	var attachedID string
-	RegisterTyped(TypedModule[sampleSettings]{
-		ID: "sample",
-		Book: func(ctx BookContext, dirs []ast.Directive, settings sampleSettings) (*booking.Engine, []ast.Directive, diag.List) {
-			gotDays = settings.MaxDays
+	RegisterTyped("sample", func(reg *Reg[sampleSettings]) {
+		if reg.Web != nil {
+			attachedID = reg.Web.ModuleID()
+		}
+		reg.OnProcess(func(s sampleSettings, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
+			gotDays = s.MaxDays
+			dirs := slices.Collect(in)
 			e := booking.New()
 			e.Book(dirs)
-			return e, dirs, e.Diags
-		},
-		AttachWeb: func(w Web) { attachedID = w.ModuleID() },
+			h.Engine = e
+			return slices.Values(dirs)
+		})
 	})
 	BindWeb(func(moduleID string) Web { return fakeWeb{id: moduleID} })
 	if attachedID != "sample" {
-		t.Fatalf("AttachWeb middleman id=%q", attachedID)
+		t.Fatalf("setup Web id after BindWeb=%q", attachedID)
 	}
 	if !config.IsKnownPlugin("sample") {
 		t.Fatal("expected known plugin")
@@ -48,19 +52,14 @@ func TestRegisterTypedDecode(t *testing.T) {
 	if err := cfg.Err(); err != nil {
 		t.Fatal(err)
 	}
-	mods := EnabledBookModules(cfg)
-	if len(mods) != 1 {
-		t.Fatalf("book mods: %d", len(mods))
+	h := &Host{}
+	e, _, diags := RunStream(cfg, h, nil)
+	if diags.HasErrors() {
+		t.Fatal(diags)
 	}
-	opts, err := DecodeOptions(cfg, mods[0])
-	if err != nil {
-		t.Fatal(err)
+	if e == nil {
+		t.Fatal("expected engine from process")
 	}
-	o, ok := opts.(Options[sampleSettings])
-	if !ok || !o.Enabled || o.Settings.MaxDays != 7 {
-		t.Fatalf("opts=%+v", opts)
-	}
-	_, _, _ = mods[0].Book(BookContext{}, nil, opts)
 	if gotDays != 7 {
 		t.Fatalf("gotDays=%d", gotDays)
 	}
@@ -69,7 +68,7 @@ func TestRegisterTypedDecode(t *testing.T) {
 func TestDecodeBadSettingsType(t *testing.T) {
 	resetForTest()
 	t.Cleanup(resetForTest)
-	RegisterTyped(TypedModule[sampleSettings]{ID: "sample"})
+	RegisterTyped("sample", func(reg *Reg[sampleSettings]) {})
 	ctx := cuecontext.New()
 	cfg := ctx.CompileString(`plugins: { sample: { enabled: true, settings: { max_days: "nope" } } }`)
 	if err := cfg.Err(); err != nil {
