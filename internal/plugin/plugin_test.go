@@ -31,7 +31,7 @@ func TestRegisterTypedSetupAndProcess(t *testing.T) {
 	var gotDays int
 	RegisterTyped("sample", func(reg *Reg[sampleSettings]) {
 		reg.Page("ignored-until-bound") // no-op when Web nil
-		reg.OnProcess(func(s sampleSettings, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
+		reg.OnProcess(PhaseBook, func(s sampleSettings, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
 			gotDays = s.MaxDays
 			dirs := slices.Collect(in)
 			e := booking.New()
@@ -67,6 +67,55 @@ func TestRegisterTypedSetupAndProcess(t *testing.T) {
 	}
 	if gotDays != 7 {
 		t.Fatalf("gotDays=%d", gotDays)
+	}
+}
+
+func TestDefaultOnWhenKeyOmitted(t *testing.T) {
+	resetForTest()
+	t.Cleanup(resetForTest)
+
+	ran := false
+	RegisterTyped("core_expand", func(reg *Reg[struct{}]) {
+		reg.DefaultOn()
+		reg.OnProcess(PhaseEarly, func(_ struct{}, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
+			ran = true
+			return in
+		})
+	})
+	ctx := cuecontext.New()
+	cfg := ctx.CompileString(`plugins: {}`)
+	if err := cfg.Err(); err != nil {
+		t.Fatal(err)
+	}
+	_, _, _ = RunPhase(cfg, &Host{}, nil, PhaseEarly)
+	if !ran {
+		t.Fatal("DefaultOn module should run when key omitted")
+	}
+	if !IsEnabled(cfg, "core_expand") {
+		t.Fatal("IsEnabled should be true for DefaultOn omitted key")
+	}
+}
+
+func TestDefaultOnExplicitFalse(t *testing.T) {
+	resetForTest()
+	t.Cleanup(resetForTest)
+
+	ran := false
+	RegisterTyped("core_expand", func(reg *Reg[struct{}]) {
+		reg.DefaultOn()
+		reg.OnProcess(PhaseEarly, func(_ struct{}, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
+			ran = true
+			return in
+		})
+	})
+	ctx := cuecontext.New()
+	cfg := ctx.CompileString(`plugins: { core_expand: { enabled: false } }`)
+	if err := cfg.Err(); err != nil {
+		t.Fatal(err)
+	}
+	_, _, _ = RunPhase(cfg, &Host{}, nil, PhaseEarly)
+	if ran {
+		t.Fatal("explicit enabled:false must disable DefaultOn module")
 	}
 }
 
