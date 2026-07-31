@@ -464,7 +464,8 @@ func (l *Ledger) journalFiltered(from, to time.Time, account string) []JournalEn
 		}
 		out = append(out, JournalEntry{Date: e.Date, Kind: "event", Narration: e.Type, Comment: e.Desc})
 	}
-	sort.SliceStable(out, func(i, j int) bool { return out[i].Date.Before(out[j].Date) })
+	// Newest first for human browsing (CLI + web journal).
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Date.After(out[j].Date) })
 	return out
 }
 
@@ -564,7 +565,8 @@ func (l *Ledger) JournalForCommodity(commodity string, from, to time.Time) []Jou
 			Metadata: bt.Txn.Metadata,
 		})
 	}
-	sort.SliceStable(out, func(i, j int) bool { return out[i].Date.Before(out[j].Date) })
+	// Newest first for human browsing.
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Date.After(out[j].Date) })
 	return out
 }
 

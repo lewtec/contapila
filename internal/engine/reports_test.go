@@ -89,10 +89,10 @@ func TestJournal(t *testing.T) {
 	if len(all) == 0 {
 		t.Fatal("expected journal entries in personal")
 	}
-	// Dates monotonic non-decreasing
+	// Dates monotonic non-increasing (newest first)
 	for i := 1; i < len(all); i++ {
-		if all[i].Date.Before(all[i-1].Date) {
-			t.Fatalf("journal not ordered: %s before %s", all[i].Date, all[i-1].Date)
+		if all[i].Date.After(all[i-1].Date) {
+			t.Fatalf("journal not newest-first: %s after %s", all[i].Date, all[i-1].Date)
 		}
 	}
 	// At least some booked txns with postings
@@ -209,10 +209,10 @@ func TestJournalForCommodity(t *testing.T) {
 		}
 	}
 
-	// Dates ordered
+	// Dates newest first
 	for i := 1; i < len(brl); i++ {
-		if brl[i].Date.Before(brl[i-1].Date) {
-			t.Fatal("commodity journal not ordered")
+		if brl[i].Date.After(brl[i-1].Date) {
+			t.Fatal("commodity journal not newest-first")
 		}
 	}
 
