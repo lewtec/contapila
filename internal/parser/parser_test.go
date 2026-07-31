@@ -47,8 +47,8 @@ func TestParseBasic(t *testing.T) {
 
 func TestParsePlugin(t *testing.T) {
 	src := []byte(`
-plugin "web/accounts"
-plugin "web/accounts" "ignored-for-now"
+plugin "web_accounts"
+plugin "web_accounts" "ignored-for-now"
 option "operating_currency" "BRL"
 `)
 	dirs, diags, err := Parse("t.beancount", src)
@@ -67,10 +67,10 @@ option "operating_currency" "BRL"
 	if len(plugins) != 2 {
 		t.Fatalf("plugins=%d dirs=%d diags=%v", len(plugins), len(dirs), diags)
 	}
-	if plugins[0].Name != "web/accounts" || plugins[0].Config != "" {
+	if plugins[0].Name != "web_accounts" || plugins[0].Config != "" {
 		t.Fatalf("first: %+v", plugins[0])
 	}
-	if plugins[1].Name != "web/accounts" || plugins[1].Config != "ignored-for-now" {
+	if plugins[1].Name != "web_accounts" || plugins[1].Config != "ignored-for-now" {
 		t.Fatalf("second: %+v", plugins[1])
 	}
 }

@@ -96,6 +96,9 @@ func LoadWithPlugins(userCue []byte, userFilename string, discovered []Ledger, p
 	if err := unified.Validate(); err != nil {
 		return nil, fmt.Errorf("config unification failed: %w", err)
 	}
+	if err := ValidatePluginMapKeys(unified); err != nil {
+		return nil, err
+	}
 
 	return &Config{Value: unified}, nil
 }
@@ -103,14 +106,19 @@ func LoadWithPlugins(userCue []byte, userFilename string, discovered []Ledger, p
 // encodeJournalPluginsCUE builds plugins map entries from journal plugin directives.
 //
 //	plugins: {
-//		"web/accounts": {enabled: true}
+//		web_accounts: {enabled: true}
 //	}
+//
+// Names that fail ValidatePluginID are skipped (caller should have filtered them).
 func encodeJournalPluginsCUE(names []string) string {
 	seen := map[string]bool{}
 	var keys []string
 	for _, n := range names {
 		n = strings.TrimSpace(n)
 		if n == "" || seen[n] {
+			continue
+		}
+		if err := ValidatePluginID(n); err != nil {
 			continue
 		}
 		seen[n] = true

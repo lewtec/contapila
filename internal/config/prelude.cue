@@ -94,8 +94,8 @@ ledgers: [Name=string]: #Ledger & {
 	missing: "warn" | "ignore" | *"ignore"
 }
 
-// First-party modules (web pages, stream/book, …). Keys like "web/accounts".
-// Closed: only enabled + settings (no enable/plugin typos as free fields).
+// First-party modules (web pages, stream/book, …). Keys like web_accounts.
+// No '/' in keys (enforced in Go). Closed: only enabled + settings.
 // Opt-in: enabled defaults false. Core ledger reports are not plugins.
 #Plugin: {
 	enabled:   bool | *false

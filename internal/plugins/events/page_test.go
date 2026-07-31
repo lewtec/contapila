@@ -18,7 +18,7 @@ func TestEventsPluginRegistered(t *testing.T) {
 	if !found {
 		t.Fatal("events page not in ReportPages after BindPluginPages")
 	}
-	if events.PluginKey != "web/events" {
+	if events.PluginKey != "web_events" {
 		t.Fatalf("PluginKey=%q", events.PluginKey)
 	}
 }

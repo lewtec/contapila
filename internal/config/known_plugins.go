@@ -5,9 +5,9 @@ import (
 	"sync"
 )
 
-// Known first-party module IDs (e.g. "web/accounts"). Registered from init()
-// via ContributePage / dump dialects / future modules. Used to warn on
-// journal plugin "…" directives that name nothing in this binary.
+// Known first-party module IDs (e.g. "web_accounts"). Registered from init()
+// via RegisterTyped / pages. Used to warn on journal plugin "…" that name
+// nothing in this binary. IDs must not contain '/'.
 
 var (
 	knownPluginMu sync.RWMutex
@@ -15,10 +15,13 @@ var (
 )
 
 // RegisterKnownPlugin records a module id shipped in this binary. Safe for init().
-// Empty id is ignored. Duplicate registration is a no-op.
+// Empty id is ignored. IDs with '/' panic. Duplicate registration is a no-op.
 func RegisterKnownPlugin(id string) {
 	if id == "" {
 		return
+	}
+	if err := ValidatePluginID(id); err != nil {
+		panic("plugin: " + err.Error())
 	}
 	knownPluginMu.Lock()
 	defer knownPluginMu.Unlock()

@@ -24,9 +24,10 @@ func ComposePages(base *PageRegistry, extra ...Page) *PageRegistry {
 }
 
 // PagePluginKey is the default CUE plugins map key for a report slug.
-// Example: page "accounts" → "web/accounts". Prefer Page.PluginKey from middleman.
+// Example: page "accounts" → "web_accounts". Prefer Page.PluginKey from middleman.
+// Plugin ids must not contain '/' (see config.ValidatePluginID).
 func PagePluginKey(pageID string) string {
-	return "web/" + pageID
+	return "web_" + pageID
 }
 
 // FilterPagesByPlugins returns a new registry keeping only pages whose

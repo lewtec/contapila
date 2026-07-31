@@ -36,8 +36,8 @@ func TestDebugPageSmoke(t *testing.T) {
 	if !strings.Contains(body, "Plugins") {
 		t.Fatal("missing Plugins section")
 	}
-	if !strings.Contains(body, "web/accounts") {
-		t.Fatalf("expected web/accounts in body: %s", truncateBody(body, 500))
+	if !strings.Contains(body, "web_accounts") {
+		t.Fatalf("expected web_accounts in body: %s", truncateBody(body, 500))
 	}
 	if !strings.Contains(body, "check_closing") {
 		t.Fatalf("expected check_closing in body: %s", truncateBody(body, 500))

@@ -35,7 +35,7 @@ type Page struct {
 	// Only applies to plugin pages; core builtins ignore this.
 	DefaultEnabled bool
 	// PluginKey is the plugins map key that enables this page (set by plugin Web middleman).
-	// Empty means PagePluginKey(ID) (web/{ID}).
+	// Empty means PagePluginKey(ID) (web_{ID}).
 	PluginKey string
 	// Fill loads report data into PageData after base shell fields and diags are set.
 	// Nil means no extra data (e.g. check uses only diags).
