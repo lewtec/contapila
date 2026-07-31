@@ -71,22 +71,32 @@ func TestContributePageAndReportPages(t *testing.T) {
 	}
 }
 
-func TestFilterPagesByPlugins(t *testing.T) {
-	reg := ComposePages(DefaultPages())
-	filtered := FilterPagesByPlugins(reg, func(key string) bool {
-		return key != "web/prices"
+func TestFilterContribPages(t *testing.T) {
+	pages := []Page{
+		{ID: "on-default", DefaultEnabled: true},
+		{ID: "off-default", DefaultEnabled: false},
+		{ID: "forced-off", DefaultEnabled: true},
+		{ID: "forced-on", DefaultEnabled: false},
+	}
+	got := filterContribPages(pages, map[string]bool{
+		"web/forced-off": false,
+		"web/forced-on":  true,
 	})
-	if _, ok := filtered.Lookup("prices"); ok {
-		t.Fatal("prices should be filtered out")
+	ids := map[string]bool{}
+	for _, p := range got {
+		ids[p.ID] = true
 	}
-	if _, ok := filtered.Lookup("check"); !ok {
-		t.Fatal("check should remain")
+	if !ids["on-default"] || ids["off-default"] || ids["forced-off"] || !ids["forced-on"] {
+		t.Fatalf("got %v", ids)
 	}
-	side := filtered.Sidebar()
-	for _, p := range side {
-		if p.ID == "prices" {
-			t.Fatal("prices still in sidebar")
-		}
+	// Nil flags → only DefaultEnabled.
+	got = filterContribPages(pages, nil)
+	ids = map[string]bool{}
+	for _, p := range got {
+		ids[p.ID] = true
+	}
+	if !ids["on-default"] || !ids["forced-off"] || ids["off-default"] || ids["forced-on"] {
+		t.Fatalf("nil flags: %v", ids)
 	}
 }
 
@@ -101,7 +111,8 @@ func TestResolvedPagesRespectsCUEPlugins(t *testing.T) {
 	t.Cleanup(resetContributedPagesForTest)
 	ContributePage(Page{
 		ID: "accounts", Label: "Accounts", Order: 25, Sidebar: true, Build: true,
-		Body: func(d PageData) templ.Component { return templ.NopComponent },
+		DefaultEnabled: true,
+		Body:           func(d PageData) templ.Component { return templ.NopComponent },
 	})
 
 	dir := t.TempDir()

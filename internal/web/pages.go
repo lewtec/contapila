@@ -30,6 +30,10 @@ type Page struct {
 	Sidebar bool
 	// Build materializes /l/{ledger}/{ID} during contapila build.
 	Build bool
+	// DefaultEnabled: when true, the page is on if contapila.cue omits plugins."web/{ID}".
+	// When false, omit means off (opt-in). Explicit plugins."web/{ID}".enabled always wins.
+	// Only applies to ContributePage modules; core builtins ignore this.
+	DefaultEnabled bool
 	// Fill loads report data into PageData after base shell fields and diags are set.
 	// Nil means no extra data (e.g. check uses only diags).
 	Fill func(pc PageContext, data *PageData)
@@ -145,26 +149,55 @@ var defaultPages = sync.OnceValue(func() *PageRegistry {
 	return r
 })
 
-// resolvedPages is the live registry: explicit s.Pages, else builtins + contrib
-// filtered by contapila.cue plugins (when sess can open the project).
+// resolvedPages is the live registry: explicit s.Pages, else core builtins plus
+// ContributePage modules enabled in contapila.cue (opt-in; core reports always on).
 func (s *Server) resolvedPages(sess *Session) *PageRegistry {
 	if s != nil && s.Pages != nil {
 		return s.Pages
 	}
-	reg := ComposePages(DefaultPages(), ContributedPages()...)
+	builtins := DefaultPages().Clone()
+	contrib := ContributedPages()
+	if len(contrib) == 0 {
+		return builtins
+	}
 	if sess == nil {
-		return reg
+		// No project yet: include all contributed (CLI/tests without session).
+		return ComposePages(builtins, contrib...)
 	}
 	p, _, err := sess.Project()
 	if err != nil || p == nil || p.Config == nil {
-		return reg
+		return ComposePages(builtins, contrib...)
 	}
-	fn, err := config.PluginsEnabledFunc(p.Config.Value)
+	flags, err := config.PluginFlags(p.Config.Value)
 	if err != nil {
-		// Keep defaults; config decode issues should not blank the UI.
-		return reg
+		// Opt-in: on decode failure, ship core only (no blanking builtins).
+		return builtins
 	}
-	return FilterPagesByPlugins(reg, fn)
+	return ComposePages(builtins, filterContribPages(contrib, flags)...)
+}
+
+// filterContribPages keeps ContributePage entries enabled by CUE or DefaultEnabled.
+// Explicit plugins."web/{id}".enabled wins; missing key uses Page.DefaultEnabled.
+func filterContribPages(pages []Page, flags map[string]bool) []Page {
+	if len(pages) == 0 {
+		return nil
+	}
+	var out []Page
+	for _, p := range pages {
+		key := PagePluginKey(p.ID)
+		if flags != nil {
+			if b, ok := flags[key]; ok {
+				if b {
+					out = append(out, p)
+				}
+				continue
+			}
+		}
+		if p.DefaultEnabled {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // pageRegistry is resolvedPages without a session (no CUE filter).

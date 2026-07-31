@@ -94,10 +94,13 @@ ledgers: [Name=string]: #Ledger & {
 	missing: "warn" | "ignore" | *"ignore"
 }
 
-// First-party module switch (web pages, later stream/dump). Keys like "web/accounts".
-// Absent key → enabled (Helix defaults). Set enabled: false to hide a module.
+// First-party modules (web pages, later stream/dump). Keys like "web/accounts".
+// Opt-in schema: enabled defaults false. Set enabled: true to turn a module on.
+// Core ledger reports (check, balances, …) are not plugins — always on.
+// Product defaults for specific modules (e.g. accounts on) live in Go Page.DefaultEnabled
+// so users can set enabled: false without CUE unification conflicts.
 #Plugin: {
-	enabled: bool | *true
+	enabled: bool | *false
 	...
 }
 
