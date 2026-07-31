@@ -15,12 +15,16 @@ type sampleSettings struct {
 	MaxDays int `json:"max_days"`
 }
 
+type fakeWeb struct{ id string }
+
+func (f fakeWeb) ModuleID() string { return f.id }
+
 func TestRegisterTypedDecode(t *testing.T) {
 	resetForTest()
 	t.Cleanup(resetForTest)
 
 	var gotDays int
-	var webAttached bool
+	var attachedID string
 	RegisterTyped(TypedModule[sampleSettings]{
 		ID: "sample",
 		Book: func(ctx BookContext, dirs []ast.Directive, settings sampleSettings) (*booking.Engine, []ast.Directive, diag.List) {
@@ -29,10 +33,11 @@ func TestRegisterTypedDecode(t *testing.T) {
 			e.Book(dirs)
 			return e, dirs, e.Diags
 		},
-		AttachWeb: func() { webAttached = true },
+		AttachWeb: func(w Web) { attachedID = w.ModuleID() },
 	})
-	if !webAttached {
-		t.Fatal("AttachWeb should run at RegisterTyped")
+	BindWeb(func(moduleID string) Web { return fakeWeb{id: moduleID} })
+	if attachedID != "sample" {
+		t.Fatalf("AttachWeb middleman id=%q", attachedID)
 	}
 	if !config.IsKnownPlugin("sample") {
 		t.Fatal("expected known plugin")

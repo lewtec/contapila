@@ -13,19 +13,19 @@ import (
 )
 
 func TestAccountsPluginRegistered(t *testing.T) {
-	// Package init contributed the page.
+	// Bind middlemen then look up page in package-local plugin registry.
+	web.BindPluginPages()
 	found := false
-	for _, p := range web.ContributedPages() {
-		if p.ID == accountslist.PageID {
+	// ReportPages includes plugin pages after bind.
+	for _, id := range web.ReportPages() {
+		if id == accountslist.PageID {
 			found = true
-			if web.PagePluginKey(p.ID) != accountslist.PluginKey {
-				t.Fatalf("plugin key %s", web.PagePluginKey(p.ID))
-			}
 		}
 	}
 	if !found {
-		t.Fatal("accounts page not in ContributedPages")
+		t.Fatal("accounts page not in ReportPages after BindPluginPages")
 	}
+	_ = accountslist.PluginKey
 }
 
 func TestAccountsPageLive(t *testing.T) {

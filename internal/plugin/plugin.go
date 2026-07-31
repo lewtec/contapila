@@ -1,10 +1,10 @@
 // Package plugin hosts first-party modules.
 //
 // Options[S] is the CUE plugins.<id> shape: enabled + settings.
-// The type parameter S is only settings; Book handlers receive S, not Options.
+// The type parameter S is only settings; Book receives S (enabled is host-gated).
 //
-// AttachWeb is a field on the module definition; RegisterTyped runs it once
-// when the plugin package registers (plugin-scoped init), not a host registry.
+// AttachWeb receives a Web middleman from the host (package-local registry behind
+// it). Plugins never call a global ContributePage.
 package plugin
 
 import (
@@ -26,6 +26,12 @@ type Options[S any] struct {
 	Settings S    `json:"settings"`
 }
 
+// Web is the middleman the host passes into AttachWeb. The host implements it
+// with a package-local page registry; ModuleID is this module's plugins key.
+type Web interface {
+	ModuleID() string
+}
+
 // BookContext is the ledger-open context for stream/book modules.
 type BookContext struct {
 	Ledger string
@@ -33,7 +39,7 @@ type BookContext struct {
 	Setup  func(*booking.Engine)
 }
 
-// BookFunc is type-erased; opts is Options[S] as any (Book unwraps to S).
+// BookFunc is type-erased; opts is Options[S] as any (unwraps to S for TypedModule.Book).
 type BookFunc func(ctx BookContext, dirs []ast.Directive, opts any) (*booking.Engine, []ast.Directive, diag.List)
 
 // Module is one capability bundle (type-erased). Prefer RegisterTyped.
@@ -41,16 +47,17 @@ type Module struct {
 	ID            string
 	DecodeOptions func(v cue.Value) (any, error) // returns Options[S]
 	Book          BookFunc
+	attachWeb     func(Web) // set by RegisterTyped; run by BindWeb
 }
 
 // TypedModule registers a module with settings type S.
 type TypedModule[S any] struct {
 	ID string
-	// Book is optional. Receives settings only (enabled is host-gated).
+	// Book is optional. Receives settings only.
 	Book func(ctx BookContext, dirs []ast.Directive, settings S) (*booking.Engine, []ast.Directive, diag.List)
-	// AttachWeb is optional. Run once at RegisterTyped (from the plugin package's
-	// init path) so web setup stays scoped to this module definition.
-	AttachWeb func()
+	// AttachWeb is optional. Invoked by the host via BindWeb with a middleman
+	// scoped to this module (package-local registry on the host side).
+	AttachWeb func(w Web)
 }
 
 var (
@@ -59,8 +66,8 @@ var (
 	byID    = map[string]int{}
 )
 
-// RegisterTyped adds a typed module, registers the journal plugin name, and
-// runs AttachWeb if set (still during the plugin package's init).
+// RegisterTyped adds a typed module and registers the journal plugin name.
+// AttachWeb is stored and run later by BindWeb (not against a global page list).
 func RegisterTyped[S any](m TypedModule[S]) {
 	if m.ID == "" {
 		panic("plugin: RegisterTyped with empty ID")
@@ -89,11 +96,9 @@ func RegisterTyped[S any](m TypedModule[S]) {
 			}
 			return out, nil
 		},
-		Book: book,
+		Book:      book,
+		attachWeb: m.AttachWeb,
 	})
-	if m.AttachWeb != nil {
-		m.AttachWeb()
-	}
 }
 
 // Register adds a type-erased module. Prefer RegisterTyped.
@@ -110,6 +115,25 @@ func Register(m Module) {
 	modules = append(modules, m)
 	config.RegisterKnownPlugin(m.ID)
 }
+
+// BindWeb runs each module's AttachWeb with a middleman from newWeb(moduleID).
+// The host (web package) owns the registry; newWeb returns a scoped middleman.
+// Safe to call multiple times; AttachWeb runs once per module per process.
+func BindWeb(newWeb func(moduleID string) Web) {
+	bindWebOnce.Do(func() {
+		if newWeb == nil {
+			return
+		}
+		for _, m := range All() {
+			if m.attachWeb == nil {
+				continue
+			}
+			m.attachWeb(newWeb(m.ID))
+		}
+	})
+}
+
+var bindWebOnce sync.Once
 
 // All returns modules in registration order.
 func All() []Module {
@@ -183,4 +207,10 @@ func resetForTest() {
 	defer mu.Unlock()
 	modules = nil
 	byID = map[string]int{}
+	bindWebOnce = sync.Once{}
+}
+
+// ResetBindWebForTest allows BindWeb to run again after clearing host registries.
+func ResetBindWebForTest() {
+	bindWebOnce = sync.Once{}
 }

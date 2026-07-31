@@ -11,8 +11,8 @@ import (
 )
 
 func TestDefaultPagesSidebarAndBuild(t *testing.T) {
-	resetContributedPagesForTest()
-	t.Cleanup(resetContributedPagesForTest)
+	resetPluginPagesForTest()
+	t.Cleanup(resetPluginPagesForTest)
 
 	r := DefaultPages()
 	side := r.Sidebar()

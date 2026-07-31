@@ -30,10 +30,13 @@ type Page struct {
 	Sidebar bool
 	// Build materializes /l/{ledger}/{ID} during contapila build.
 	Build bool
-	// DefaultEnabled: when true, the page is on if contapila.cue omits plugins."web/{ID}".
-	// When false, omit means off (opt-in). Explicit plugins."web/{ID}".enabled always wins.
-	// Only applies to ContributePage modules; core builtins ignore this.
+	// DefaultEnabled: when true, the page is on if contapila.cue omits the plugin key.
+	// When false, omit means off (opt-in). Explicit plugins.<key>.enabled always wins.
+	// Only applies to plugin pages; core builtins ignore this.
 	DefaultEnabled bool
+	// PluginKey is the plugins map key that enables this page (set by plugin Web middleman).
+	// Empty means PagePluginKey(ID) (web/{ID}).
+	PluginKey string
 	// Fill loads report data into PageData after base shell fields and diags are set.
 	// Nil means no extra data (e.g. check uses only diags).
 	Fill func(pc PageContext, data *PageData)
@@ -131,10 +134,10 @@ func (r *PageRegistry) BuildIDs() []string {
 	return out
 }
 
-// ReportPages is the composed ledger report slug list (builtins + ContributePage),
+// ReportPages is the composed ledger report slug list (builtins + plugin pages),
 // without CUE plugin filtering. Used by tests and as the pre-filter expand set.
 func ReportPages() []string {
-	return ComposePages(DefaultPages(), ContributedPages()...).BuildIDs()
+	return ComposePages(DefaultPages(), pluginContributedPages()...).BuildIDs()
 }
 
 // DefaultPages returns the built-in ledger report registry (singleton).
@@ -150,13 +153,13 @@ var defaultPages = sync.OnceValue(func() *PageRegistry {
 })
 
 // resolvedPages is the live registry: explicit s.Pages, else core builtins plus
-// ContributePage modules enabled in contapila.cue (opt-in; core reports always on).
+// plugin pages enabled in contapila.cue (opt-in; core reports always on).
 func (s *Server) resolvedPages(sess *Session) *PageRegistry {
 	if s != nil && s.Pages != nil {
 		return s.Pages
 	}
 	builtins := DefaultPages().Clone()
-	contrib := ContributedPages()
+	contrib := pluginContributedPages()
 	if len(contrib) == 0 {
 		return builtins
 	}
@@ -176,15 +179,18 @@ func (s *Server) resolvedPages(sess *Session) *PageRegistry {
 	return ComposePages(builtins, filterContribPages(contrib, flags)...)
 }
 
-// filterContribPages keeps ContributePage entries enabled by CUE or DefaultEnabled.
-// Explicit plugins."web/{id}".enabled wins; missing key uses Page.DefaultEnabled.
+// filterContribPages keeps plugin pages enabled by CUE or DefaultEnabled.
+// Explicit plugins.<PluginKey>.enabled wins; missing key uses Page.DefaultEnabled.
 func filterContribPages(pages []Page, flags map[string]bool) []Page {
 	if len(pages) == 0 {
 		return nil
 	}
 	var out []Page
 	for _, p := range pages {
-		key := PagePluginKey(p.ID)
+		key := p.PluginKey
+		if key == "" {
+			key = PagePluginKey(p.ID)
+		}
 		if flags != nil {
 			if b, ok := flags[key]; ok {
 				if b {

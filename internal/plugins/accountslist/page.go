@@ -22,8 +22,9 @@ type Settings struct{}
 func init() {
 	plugin.RegisterTyped(plugin.TypedModule[Settings]{
 		ID: PluginKey,
-		AttachWeb: func() {
-			web.ContributePage(web.Page{
+		AttachWeb: func(w plugin.Web) {
+			// Middleman is scoped to this module; registry is package-local in web.
+			web.ScopeOf(w).Page(web.Page{
 				ID:      PageID,
 				Label:   "Accounts",
 				Order:   25,

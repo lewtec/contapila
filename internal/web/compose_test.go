@@ -47,11 +47,13 @@ func TestComposePages(t *testing.T) {
 	}
 }
 
-func TestContributePageAndReportPages(t *testing.T) {
-	resetContributedPagesForTest()
-	t.Cleanup(resetContributedPagesForTest)
+func TestPluginScopePageAndReportPages(t *testing.T) {
+	resetPluginPagesForTest()
+	t.Cleanup(resetPluginPagesForTest)
 
-	ContributePage(Page{
+	// Simulate middleman for a module (same path as AttachWeb).
+	s := &scope{moduleID: "web/contrib-a"}
+	s.Page(Page{
 		ID: "contrib-a", Label: "A", Order: 1, Sidebar: true, Build: true,
 		Body: func(d PageData) templ.Component { return templ.NopComponent },
 	})
@@ -65,9 +67,12 @@ func TestContributePageAndReportPages(t *testing.T) {
 	if !found {
 		t.Fatalf("ReportPages missing contrib: %v", ids)
 	}
-	// DefaultPages still builtins only.
 	if _, ok := DefaultPages().Lookup("contrib-a"); ok {
 		t.Fatal("contrib should not be on DefaultPages singleton")
+	}
+	pages := pluginContributedPages()
+	if len(pages) != 1 || pages[0].PluginKey != "web/contrib-a" {
+		t.Fatalf("plugin key tag: %+v", pages)
 	}
 }
 
@@ -107,9 +112,9 @@ func TestPagePluginKey(t *testing.T) {
 }
 
 func TestResolvedPagesRespectsCUEPlugins(t *testing.T) {
-	resetContributedPagesForTest()
-	t.Cleanup(resetContributedPagesForTest)
-	ContributePage(Page{
+	resetPluginPagesForTest()
+	t.Cleanup(resetPluginPagesForTest)
+	(&scope{moduleID: "web/accounts"}).Page(Page{
 		ID: "accounts", Label: "Accounts", Order: 25, Sidebar: true, Build: true,
 		Body: func(d PageData) templ.Component { return templ.NopComponent },
 	})
