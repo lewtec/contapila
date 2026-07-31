@@ -82,6 +82,8 @@ func convert(f *source.File, n *grammar.Node, diags *diag.List) (ast.Directive, 
 	switch n.Type() {
 	case "option":
 		return ast.Option{Meta: meta(f, n), Key: unquote(textField(f, n, "key")), Value: unquote(textField(f, n, "value"))}, true
+	case "plugin":
+		return convertPlugin(f, n, diags)
 	case "include":
 		// include has a string child, not always a field
 		path := ""
@@ -225,6 +227,29 @@ func convert(f *source.File, n *grammar.Node, diags *diag.List) (ast.Directive, 
 		diags.Warn(f.Path, f.Lines.LineAtU32(n.StartByte()), fmt.Sprintf("unsupported directive %q skipped", n.Type()))
 		return nil, false
 	}
+}
+
+// convertPlugin parses: plugin "name" ["config"].
+func convertPlugin(f *source.File, n *grammar.Node, diags *diag.List) (ast.Directive, bool) {
+	var args []string
+	for i := uint32(0); i < n.NamedChildCount(); i++ {
+		c := n.NamedChild(i)
+		if c.Type() == "string" {
+			args = append(args, unquote(nodeText(f, c)))
+		}
+	}
+	if len(args) == 0 || args[0] == "" {
+		diags.Warn(f.Path, f.Lines.LineAtU32(n.StartByte()), `plugin directive missing name string; skipped`)
+		return nil, false
+	}
+	p := ast.Plugin{
+		Meta: meta(f, n),
+		Name: args[0],
+	}
+	if len(args) > 1 {
+		p.Config = args[1]
+	}
+	return p, true
 }
 
 // convertCustom parses: DATE custom "type" value…

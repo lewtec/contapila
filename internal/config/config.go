@@ -51,9 +51,16 @@ type ProjectJournal struct {
 
 var ledgerIDRe = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]*$`)
 
-// Load unifies embedded prelude ⊔ generated ledgers ⊔ generated price pairs ⊔ user contapila.cue.
+// Load unifies embedded prelude ⊔ generated ledgers ⊔ price pairs ⊔ user contapila.cue.
 // discovered comes from scanning <root>/*/main.beancount; pricePairs from prices.beancount.
 func Load(userCue []byte, userFilename string, discovered []Ledger, pricePairs []PricePair) (*Config, error) {
+	return LoadWithPlugins(userCue, userFilename, discovered, pricePairs, nil)
+}
+
+// LoadWithPlugins is Load plus journal plugin directives (plugin "name") injected as
+// plugins.<name>.enabled: true before the user contapila.cue overlay.
+// journalPlugins are module keys (e.g. "web/accounts"); empty names are skipped.
+func LoadWithPlugins(userCue []byte, userFilename string, discovered []Ledger, pricePairs []PricePair, journalPlugins []string) (*Config, error) {
 	ctx := cuecontext.New()
 
 	preludeBytes, err := fs.ReadFile(PreludeFilename)
@@ -76,17 +83,58 @@ func Load(userCue []byte, userFilename string, discovered []Ledger, pricePairs [
 		return nil, fmt.Errorf("compile price pairs: %w", err)
 	}
 
+	jplugins := ctx.CompileString(encodeJournalPluginsCUE(journalPlugins), cue.Filename("plugins.gen.cue"))
+	if err := jplugins.Err(); err != nil {
+		return nil, fmt.Errorf("compile journal plugins: %w", err)
+	}
+
 	user := ctx.CompileBytes(userCue, cue.Filename(userFilename))
 	if err := user.Err(); err != nil {
 		return nil, fmt.Errorf("compile user config: %w", err)
 	}
 
-	unified := prelude.Unify(gen).Unify(pairs).Unify(user)
+	// Journal enables first; user contapila.cue may set options or conflict on enabled.
+	unified := prelude.Unify(gen).Unify(pairs).Unify(jplugins).Unify(user)
 	if err := unified.Validate(); err != nil {
 		return nil, fmt.Errorf("config unification failed: %w", err)
 	}
 
 	return &Config{Value: unified}, nil
+}
+
+// encodeJournalPluginsCUE builds plugins map entries from journal plugin directives.
+//
+//	plugins: {
+//		"web/accounts": {enabled: true}
+//	}
+func encodeJournalPluginsCUE(names []string) string {
+	seen := map[string]bool{}
+	var keys []string
+	for _, n := range names {
+		n = strings.TrimSpace(n)
+		if n == "" || seen[n] {
+			continue
+		}
+		seen[n] = true
+		keys = append(keys, n)
+	}
+	sort.Strings(keys)
+
+	var b strings.Builder
+	b.WriteString("// Generated from journal plugin directives — do not edit.\n")
+	if len(keys) == 0 {
+		// Empty fragment still unifies cleanly.
+		b.WriteString("plugins: {}\n")
+		return b.String()
+	}
+	b.WriteString("plugins: {\n")
+	for _, k := range keys {
+		b.WriteString("\t")
+		b.WriteString(strconv.Quote(k))
+		b.WriteString(": {enabled: true}\n")
+	}
+	b.WriteString("}\n")
+	return b.String()
 }
 
 // ProjectJournals reads project_journals from a unified config value (prelude defaults apply).

@@ -62,6 +62,16 @@ type Option struct {
 	Key, Value string
 }
 
+// Plugin is a Beancount-style plugin directive: plugin "name" ["config"].
+// Contapila uses the name as a first-party module key (e.g. "web/accounts")
+// and injects plugins.<name>.enabled: true into the CUE config plane.
+// Config is stored for future module options; empty means no second string.
+type Plugin struct {
+	Meta
+	Name   string
+	Config string
+}
+
 type Include struct {
 	Meta
 	Path string

@@ -1,6 +1,9 @@
 ; personal — deep household dogfood (compact journal).
 option "operating_currency" "BRL"
 
+; First-party Contapila modules (same keys as contapila.cue plugins).
+plugin "web/accounts"
+
 ; Root shared declarations (real-repo style explicit includes).
 include "../commodities.beancount"
 include "../prices.beancount"

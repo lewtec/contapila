@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/filesys"
+	"github.com/lucasew/contapila-go/internal/loader"
 	"github.com/lucasew/contapila-go/internal/prices"
 )
 
@@ -149,7 +151,7 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 		return nil, fmt.Errorf("read %s: %w", ProjectMarker, err)
 	}
 
-	// First unify without price_pairs so we can read project_journals defaults.
+	// First unify without price_pairs / journal plugins so we can read project_journals.
 	cfg, err := config.Load(cueBytes, cuePath, discovered, nil)
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
@@ -216,11 +218,14 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 		}
 	}
 
-	// Re-unify with price_pairs when we discovered any (closed inventory for CUE overlays).
-	if len(pricePairs) > 0 {
-		cfg2, err := config.Load(cueBytes, cuePath, discovered, pricePairs)
+	// Journal plugin "name" directives → plugins.<name>.enabled: true (config plane).
+	journalPlugins := collectJournalPluginNames(fsys, ledgers, streamJournals)
+
+	// Re-unify with price_pairs and/or journal plugins when present.
+	if len(pricePairs) > 0 || len(journalPlugins) > 0 {
+		cfg2, err := config.LoadWithPlugins(cueBytes, cuePath, discovered, pricePairs, journalPlugins)
 		if err != nil {
-			return nil, fmt.Errorf("load config with price pairs: %w", err)
+			return nil, fmt.Errorf("load config with injects: %w", err)
 		}
 		cfg = cfg2
 	}
@@ -234,4 +239,39 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 		PricesEmpty:    pricesEmpty,
 		StreamJournals: streamJournals,
 	}, nil
+}
+
+// collectJournalPluginNames loads each ledger main (+ stream journals) and
+// returns unique plugin directive names (e.g. "web/accounts").
+func collectJournalPluginNames(fsys filesys.FS, ledgers []Ledger, streams []StreamJournal) []string {
+	if fsys == nil {
+		fsys = filesys.OS{}
+	}
+	seen := map[string]bool{}
+	var out []string
+	add := func(path string) {
+		if path == "" {
+			return
+		}
+		dirs, _, err := loader.LoadFileFS(fsys, path)
+		if err != nil {
+			slog.Warn("scan plugins: load failed", "path", path, "err", err)
+			return
+		}
+		for _, d := range dirs {
+			p, ok := d.(ast.Plugin)
+			if !ok || p.Name == "" || seen[p.Name] {
+				continue
+			}
+			seen[p.Name] = true
+			out = append(out, p.Name)
+		}
+	}
+	for _, l := range ledgers {
+		add(l.MainPath)
+	}
+	for _, s := range streams {
+		add(s.Path)
+	}
+	return out
 }

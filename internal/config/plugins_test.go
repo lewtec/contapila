@@ -105,3 +105,19 @@ func TestPluginsEnabledFunc(t *testing.T) {
 		t.Fatal("want missing keys off")
 	}
 }
+
+func TestLoadWithPluginsFromJournal(t *testing.T) {
+	cfg, err := LoadWithPlugins([]byte("{}"), "t.cue", nil, nil, []string{"web/accounts", "web/accounts", ""})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok, err := PluginEnabled(cfg.Value, "web/accounts")
+	if err != nil || !ok {
+		t.Fatalf("journal plugin should enable: ok=%v err=%v", ok, err)
+	}
+	// User can still force off (unifies to false — conflict with true).
+	_, err = LoadWithPlugins([]byte(`plugins: { "web/accounts": { enabled: false } }`), "t.cue", nil, nil, []string{"web/accounts"})
+	if err == nil {
+		t.Fatal("want unify conflict journal true vs cue false")
+	}
+}

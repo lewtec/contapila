@@ -45,6 +45,36 @@ func TestParseBasic(t *testing.T) {
 	}
 }
 
+func TestParsePlugin(t *testing.T) {
+	src := []byte(`
+plugin "web/accounts"
+plugin "web/accounts" "ignored-for-now"
+option "operating_currency" "BRL"
+`)
+	dirs, diags, err := Parse("t.beancount", src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diags.HasErrors() {
+		t.Fatalf("diags: %v", diags)
+	}
+	var plugins []ast.Plugin
+	for _, d := range dirs {
+		if p, ok := d.(ast.Plugin); ok {
+			plugins = append(plugins, p)
+		}
+	}
+	if len(plugins) != 2 {
+		t.Fatalf("plugins=%d dirs=%d diags=%v", len(plugins), len(dirs), diags)
+	}
+	if plugins[0].Name != "web/accounts" || plugins[0].Config != "" {
+		t.Fatalf("first: %+v", plugins[0])
+	}
+	if plugins[1].Name != "web/accounts" || plugins[1].Config != "ignored-for-now" {
+		t.Fatalf("second: %+v", plugins[1])
+	}
+}
+
 func TestParseOpenCurrencyAndMetaWarn(t *testing.T) {
 	src := []byte(`
 2020-01-01 open Assets:Cash BRL
