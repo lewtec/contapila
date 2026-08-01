@@ -15,6 +15,9 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
+// DefaultSidebarSection is the sidebar group for pages with empty Section.
+const DefaultSidebarSection = "Reports"
+
 // Page is one ledger report under GET /l/{ledger}/{ID}.
 // Registering a page wires sidebar (optional), static build expansion (optional),
 // request fill, and the templ body — one table for routes + nav + build.
@@ -23,10 +26,14 @@ type Page struct {
 	ID string
 	// Label is the sidebar text and breadcrumb title.
 	Label string
-	// Order sorts sidebar entries (lower first). Build expansion follows registration order
-	// of pages with Build set, not Order.
+	// Order sorts sidebar entries within a section (lower first). Build expansion
+	// follows registration order of pages with Build set, not Order.
 	Order int
-	// Sidebar includes this page in the ledger reports rail.
+	// Section is the sidebar group title. Empty means DefaultSidebarSection ("Reports").
+	// Non-default sections appear after Reports in first-registration order.
+	// Multiple pages/plugins may share the same Section string.
+	Section string
+	// Sidebar includes this page as a link under its Section.
 	Sidebar bool
 	// Build materializes /l/{ledger}/{ID} during contapila build.
 	Build bool
@@ -40,8 +47,26 @@ type Page struct {
 	// Fill loads report data into PageData after base shell fields and diags are set.
 	// Nil means no extra data (e.g. check uses only diags).
 	Fill func(pc PageContext, data *PageData)
-	// Body returns the main content inside reportLayout. Required for a usable page.
+	// Body returns the main content inside reportLayout (min-h-full body column).
+	// The page scrolls as one document in main. To fill the viewport when content
+	// is short, use flex-1 min-h-0 on a column root (see configBody).
+	// Required for a usable page.
 	Body func(d PageData) templ.Component
+}
+
+// pageSection returns p.Section or DefaultSidebarSection.
+func pageSection(p Page) string {
+	if p.Section == "" {
+		return DefaultSidebarSection
+	}
+	return p.Section
+}
+
+// SidebarSection is one sidebar group: title + registered page links (and optional extras).
+type SidebarSection struct {
+	Title   string
+	Pages   []Page  // Sidebar pages in this section, Order then ID
+	Queries []string // named journal queries (web_queries); empty for other sections
 }
 
 // PageContext is the live request + ledger snapshot passed to Page.Fill.
@@ -58,8 +83,9 @@ type PageContext struct {
 
 // PageRegistry is the table of ledger report pages (sidebar + routes + build).
 type PageRegistry struct {
-	pages []Page
-	byID  map[string]int // id → index in pages
+	pages        []Page
+	byID         map[string]int // id → index in pages
+	sectionOrder []string       // non-Reports sections, first registration first
 }
 
 // NewPageRegistry returns an empty registry.
@@ -68,6 +94,7 @@ func NewPageRegistry() *PageRegistry {
 }
 
 // Register adds a ledger page. Panics on empty ID, missing Body, or duplicate ID.
+// Non-default Section values are recorded in first-seen order for the sidebar.
 func (r *PageRegistry) Register(p Page) {
 	if r == nil {
 		panic("web: Register on nil PageRegistry")
@@ -84,8 +111,22 @@ func (r *PageRegistry) Register(p Page) {
 	if _, dup := r.byID[p.ID]; dup {
 		panic("web: duplicate page ID " + p.ID)
 	}
+	r.noteSection(pageSection(p))
 	r.byID[p.ID] = len(r.pages)
 	r.pages = append(r.pages, p)
+}
+
+// noteSection records a non-Reports section title on first registration.
+func (r *PageRegistry) noteSection(sec string) {
+	if sec == "" || sec == DefaultSidebarSection {
+		return
+	}
+	for _, s := range r.sectionOrder {
+		if s == sec {
+			return
+		}
+	}
+	r.sectionOrder = append(r.sectionOrder, sec)
 }
 
 // Lookup returns the page for id.
@@ -100,7 +141,7 @@ func (r *PageRegistry) Lookup(id string) (Page, bool) {
 	return r.pages[i], true
 }
 
-// Sidebar returns pages with Sidebar set, sorted by Order then ID.
+// Sidebar returns pages with Sidebar set, sorted by Order then ID (flat; all sections).
 func (r *PageRegistry) Sidebar() []Page {
 	if r == nil {
 		return nil
@@ -117,6 +158,46 @@ func (r *PageRegistry) Sidebar() []Page {
 		}
 		return out[i].ID < out[j].ID
 	})
+	return out
+}
+
+// SidebarSections groups Sidebar pages: Reports first, then other sections in
+// first-registration order. Empty sections are omitted. Callers may still attach
+// dynamic items (e.g. named queries) via sidebarNavSections.
+func (r *PageRegistry) SidebarSections() []SidebarSection {
+	if r == nil {
+		return nil
+	}
+	bySec := map[string][]Page{}
+	for _, p := range r.pages {
+		if !p.Sidebar {
+			continue
+		}
+		sec := pageSection(p)
+		bySec[sec] = append(bySec[sec], p)
+	}
+	for sec := range bySec {
+		pages := bySec[sec]
+		sort.SliceStable(pages, func(i, j int) bool {
+			if pages[i].Order != pages[j].Order {
+				return pages[i].Order < pages[j].Order
+			}
+			return pages[i].ID < pages[j].ID
+		})
+		bySec[sec] = pages
+	}
+	var out []SidebarSection
+	if pages := bySec[DefaultSidebarSection]; len(pages) > 0 {
+		out = append(out, SidebarSection{Title: DefaultSidebarSection, Pages: pages})
+	}
+	for _, sec := range r.sectionOrder {
+		if sec == DefaultSidebarSection {
+			continue
+		}
+		if pages := bySec[sec]; len(pages) > 0 {
+			out = append(out, SidebarSection{Title: sec, Pages: pages})
+		}
+	}
 	return out
 }
 
@@ -219,9 +300,66 @@ func pagesFor(d PageData) *PageRegistry {
 	return DefaultPages()
 }
 
-// sidebarReportPages is used by layout.templ for the Reports rail.
-func sidebarReportPages(d PageData) []Page {
-	return pagesFor(d).Sidebar()
+// sidebarNavSections builds the full sidebar: registry sections plus named
+// journal queries under the web_queries page's Section (when that plugin is on).
+func sidebarNavSections(d PageData) []SidebarSection {
+	reg := pagesFor(d)
+	base := reg.SidebarSections()
+
+	// Dynamic query names attach to the section declared on the queries page.
+	var querySec string
+	if p, ok := reg.Lookup("queries"); ok {
+		querySec = pageSection(p)
+	}
+	if querySec == "" || !queriesUIEnabled(d) || len(d.QueryNav) == 0 {
+		return base
+	}
+	names := make([]string, 0, len(d.QueryNav))
+	for _, q := range d.QueryNav {
+		if q.Name != "" {
+			names = append(names, q.Name)
+		}
+	}
+	if len(names) == 0 {
+		return base
+	}
+
+	// Merge into existing section or insert at sectionOrder position.
+	for i := range base {
+		if base[i].Title == querySec {
+			base[i].Queries = names
+			return base
+		}
+	}
+	// Section has no Sidebar pages yet (queries page uses Sidebar: false).
+	// Place after Reports using registry first-seen order.
+	sec := SidebarSection{Title: querySec, Queries: names}
+	if querySec == DefaultSidebarSection {
+		// Unlikely; put first.
+		return append([]SidebarSection{sec}, base...)
+	}
+	// Rebuild: Reports first, then sectionOrder including empty-of-pages sections that have queries.
+	byTitle := map[string]SidebarSection{}
+	for _, s := range base {
+		byTitle[s.Title] = s
+	}
+	byTitle[querySec] = sec
+	var out []SidebarSection
+	if s, ok := byTitle[DefaultSidebarSection]; ok {
+		out = append(out, s)
+		delete(byTitle, DefaultSidebarSection)
+	}
+	for _, title := range reg.sectionOrder {
+		if s, ok := byTitle[title]; ok {
+			out = append(out, s)
+			delete(byTitle, title)
+		}
+	}
+	// Any leftover (should not happen)
+	for _, s := range byTitle {
+		out = append(out, s)
+	}
+	return out
 }
 
 // pageBody resolves the registered Body for d.Page (empty component if unknown).
@@ -291,9 +429,14 @@ func registerBuiltinPages(r *PageRegistry) {
 		Body: func(d PageData) templ.Component { return pricesBody(d) },
 	})
 	r.Register(Page{
-		ID: "debug", Label: "Debug", Order: 100, Sidebar: true, Build: true,
-		Fill: fillDebug,
-		Body: func(d PageData) templ.Component { return debugBody(d) },
+		ID: "plugins", Label: "Plugins", Order: 100, Section: "Debug", Sidebar: true, Build: true,
+		Fill: fillPlugins,
+		Body: func(d PageData) templ.Component { return pluginsBody(d) },
+	})
+	r.Register(Page{
+		ID: "config", Label: "Config", Order: 110, Section: "Debug", Sidebar: true, Build: true,
+		Fill: fillConfig,
+		Body: func(d PageData) templ.Component { return configBody(d) },
 	})
 }
 

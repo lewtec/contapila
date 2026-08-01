@@ -6,12 +6,20 @@ import (
 )
 
 // reportLayout is the shared shell for every ledger-scoped page:
-// app chrome + period meta + error banner, then page body.
+// app chrome + period meta + error banner, then the body.
+//
+// min-h-full: at least the main viewport (so flex children like config can fill).
+// Content taller than the viewport grows and main scrolls as one document —
+// no nested body scroller, so charts and tables move together.
 templ reportLayout(d pageData) {
 	@appLayout(d) {
-		@periodMeta(d)
-		@pageError(d.Error)
-		{ children... }
+		<div class="flex min-h-full flex-1 flex-col">
+			@periodMeta(d)
+			@pageError(d.Error)
+			<div class="flex min-h-0 flex-1 flex-col">
+				{ children... }
+			</div>
+		</div>
 	}
 }
 

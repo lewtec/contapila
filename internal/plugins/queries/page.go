@@ -23,7 +23,8 @@ func init() {
 			ID:             PageID,
 			Label:          "Queries",
 			Order:          65,
-			Sidebar:        false, // each named query is listed under sidebar Queries
+			Section:        "Queries", // sidebar group; named queries attach here
+			Sidebar:        false,    // list page is /queries; names are dynamic nav
 			Build:          true,
 			DefaultEnabled: true,
 			Fill:           fill,

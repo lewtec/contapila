@@ -10,7 +10,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/plugin"
 )
 
-func fillDebug(pc PageContext, data *PageData) {
+func fillPlugins(pc PageContext, data *PageData) {
 	if pc.Project == nil || pc.Project.Config == nil {
 		data.Error = "no project config"
 		return
@@ -56,7 +56,14 @@ func fillDebug(pc PageContext, data *PageData) {
 
 	pluginsNode := cfg.LookupPath(cue.ParsePath("plugins"))
 	data.PluginsCUE = formatCUE(pluginsNode)
-	data.ConfigCUE = formatCUE(cfg)
+}
+
+func fillConfig(pc PageContext, data *PageData) {
+	if pc.Project == nil || pc.Project.Config == nil {
+		data.Error = "no project config"
+		return
+	}
+	data.ConfigCUE = formatCUE(pc.Project.Config.Value)
 }
 
 func containsPluginFlag(flags map[string]bool, id string) bool {

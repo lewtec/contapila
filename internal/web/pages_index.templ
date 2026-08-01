@@ -2,30 +2,32 @@ package web
 
 templ IndexPage(d pageData) {
 	@appLayout(d) {
-		if d.ProjectRoot != "" {
-			<p class="mb-3 text-xs font-mono text-base-content/50 break-all">{ d.ProjectRoot }</p>
-		}
-		if len(d.Ledgers) == 0 {
-			<div role="alert" class="alert alert-soft py-2 text-xs">
-				<span>No ledgers. Add <code class="font-mono">&lt;name&gt;/main.beancount</code>.</span>
-			</div>
-		} else {
-			@borderTable() {
-				<table class="table table-xs">
-					<thead>
-						<tr><th>Ledger</th><th></th></tr>
-					</thead>
-					<tbody>
-						for _, name := range d.Ledgers {
-							<tr>
-								<td class="font-medium"><a class="link link-hover link-primary" href={ templ.SafeURL(ledgerURL(d.Sess, name, "check", "")) }>{ name }</a></td>
-								<td class="text-right text-xs opacity-50">check →</td>
-							</tr>
-						}
-					</tbody>
-				</table>
+		<div class="min-h-full">
+			if d.ProjectRoot != "" {
+				<p class="mb-3 text-xs font-mono text-base-content/50 break-all">{ d.ProjectRoot }</p>
 			}
-			<p class="mt-3 text-xs text-base-content/50">Read-only. Edit <span class="font-mono">.beancount</span> in your editor.</p>
-		}
+			if len(d.Ledgers) == 0 {
+				<div role="alert" class="alert alert-soft py-2 text-xs">
+					<span>No ledgers. Add <code class="font-mono">&lt;name&gt;/main.beancount</code>.</span>
+				</div>
+			} else {
+				@borderTable() {
+					<table class="table table-xs">
+						<thead>
+							<tr><th>Ledger</th><th></th></tr>
+						</thead>
+						<tbody>
+							for _, name := range d.Ledgers {
+								<tr>
+									<td class="font-medium"><a class="link link-hover link-primary" href={ templ.SafeURL(ledgerURL(d.Sess, name, "check", "")) }>{ name }</a></td>
+									<td class="text-right text-xs opacity-50">check →</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+				<p class="mt-3 text-xs text-base-content/50">Read-only. Edit <span class="font-mono">.beancount</span> in your editor.</p>
+			}
+		</div>
 	}
 }

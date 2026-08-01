@@ -14,9 +14,9 @@ templ CommodityPage(d pageData) {
 				@sectionTitleExtra("Prices") {
 					<a class="ml-2 font-normal normal-case tracking-normal link link-hover link-primary text-xs" href={ templ.SafeURL(ledgerURL(d.Sess, d.LedgerName, "prices", d.Time)) }>all pairs</a>
 				}
-				<div class="overflow-x-auto border border-base-300 max-h-64 overflow-y-auto">
+				@borderTable() {
 					<table class="table table-xs table-zebra">
-						<thead class="sticky top-0 bg-base-100">
+						<thead>
 							<tr>
 								<th>Date</th>
 								<th class="text-right">Price</th>
@@ -37,7 +37,7 @@ templ CommodityPage(d pageData) {
 							}
 						</tbody>
 					</table>
-				</div>
+				}
 			</section>
 		}
 		<div class="grid gap-4 md:grid-cols-2 mb-4">

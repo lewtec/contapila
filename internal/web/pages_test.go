@@ -16,14 +16,14 @@ func TestDefaultPagesSidebarAndBuild(t *testing.T) {
 
 	r := DefaultPages()
 	side := r.Sidebar()
-	if len(side) != 8 {
-		t.Fatalf("sidebar len %d want 8: %v", len(side), ids(side))
+	if len(side) != 9 {
+		t.Fatalf("sidebar len %d want 9: %v", len(side), ids(side))
 	}
-	if side[0].ID != "check" || side[len(side)-1].ID != "debug" {
+	if side[0].ID != "check" || side[len(side)-1].ID != "config" {
 		t.Fatalf("sidebar order: %v", ids(side))
 	}
 	build := r.BuildIDs()
-	if len(build) != 8 || build[0] != "check" || build[len(build)-1] != "debug" {
+	if len(build) != 9 || build[0] != "check" || build[len(build)-1] != "config" {
 		t.Fatalf("build ids: %v", build)
 	}
 	// ReportPages is builtins then any bound plugin pages.
@@ -54,6 +54,61 @@ func TestPageRegistryRegisterAndLookup(t *testing.T) {
 	side := r.Sidebar()
 	if len(side) != 1 || side[0].ID != "extra" {
 		t.Fatalf("sidebar: %v", ids(side))
+	}
+}
+
+func TestSidebarSectionsOrderAndMerge(t *testing.T) {
+	r := NewPageRegistry()
+	body := func(d PageData) templ.Component { return templ.NopComponent }
+	r.Register(Page{ID: "check", Label: "Check", Order: 10, Sidebar: true, Body: body})
+	r.Register(Page{ID: "qlist", Label: "All", Order: 1, Section: "Queries", Sidebar: false, Body: body})
+	r.Register(Page{ID: "events", Label: "Events", Order: 20, Section: "Activity", Sidebar: true, Body: body})
+	// Second plugin-style page into same section as qlist (first-seen keeps Queries order).
+	r.Register(Page{ID: "qextra", Label: "Extra Q", Order: 2, Section: "Queries", Sidebar: true, Body: body})
+	r.Register(Page{ID: "balances", Label: "Balances", Order: 20, Sidebar: true, Body: body})
+
+	secs := r.SidebarSections()
+	// Reports first (check, balances by Order), then Queries (qextra only — Sidebar pages),
+	// then Activity — registration order of first non-Reports section was Queries then Activity.
+	if len(secs) != 3 {
+		t.Fatalf("sections %d: %+v", len(secs), secs)
+	}
+	if secs[0].Title != DefaultSidebarSection {
+		t.Fatalf("first section %q want %q", secs[0].Title, DefaultSidebarSection)
+	}
+	if ids(secs[0].Pages)[0] != "check" || ids(secs[0].Pages)[1] != "balances" {
+		t.Fatalf("Reports pages: %v", ids(secs[0].Pages))
+	}
+	if secs[1].Title != "Queries" || ids(secs[1].Pages)[0] != "qextra" {
+		t.Fatalf("Queries section: %+v", secs[1])
+	}
+	if secs[2].Title != "Activity" || ids(secs[2].Pages)[0] != "events" {
+		t.Fatalf("Activity section: %+v", secs[2])
+	}
+}
+
+func TestSidebarNavSectionsQueryAttach(t *testing.T) {
+	r := NewPageRegistry()
+	body := func(d PageData) templ.Component { return templ.NopComponent }
+	r.Register(Page{ID: "check", Label: "Check", Order: 10, Sidebar: true, Body: body})
+	r.Register(Page{ID: "queries", Label: "Queries", Order: 65, Section: "Queries", Sidebar: false, Body: body})
+
+	d := PageData{
+		Pages:    r,
+		QueryNav: []QueryNavItem{{Name: "cash"}, {Name: "ar"}},
+	}
+	secs := sidebarNavSections(d)
+	if len(secs) != 2 {
+		t.Fatalf("want Reports+Queries, got %d %+v", len(secs), secs)
+	}
+	if secs[0].Title != DefaultSidebarSection || secs[1].Title != "Queries" {
+		t.Fatalf("titles: %q %q", secs[0].Title, secs[1].Title)
+	}
+	if len(secs[1].Pages) != 0 {
+		t.Fatalf("queries page not in sidebar links: %v", ids(secs[1].Pages))
+	}
+	if len(secs[1].Queries) != 2 || secs[1].Queries[0] != "cash" {
+		t.Fatalf("Queries: %v", secs[1].Queries)
 	}
 }
 

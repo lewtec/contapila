@@ -7,9 +7,8 @@ templ LedgerPage(d pageData) {
 	}
 }
 
-templ debugBody(d pageData) {
+templ pluginsBody(d pageData) {
 	<section class="mb-6">
-		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">Plugins</h2>
 		<p class="text-xs text-base-content/60 mb-3">
 			Registered first-party modules and whether they are enabled after CUE unify
 			(journal <code class="font-mono">plugin "…"</code> and <code class="font-mono">plugins</code> in contapila.cue).
@@ -63,21 +62,23 @@ templ debugBody(d pageData) {
 			}
 		}
 	</section>
-	<section class="mb-6">
+	<section>
 		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">plugins (unified)</h2>
 		<div class="p-3 bg-base-200 border border-base-300 overflow-x-auto">
 			@codeHighlight(d.PluginsCUE, "cue")
 		</div>
 	</section>
-	<section>
-		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">Full config (unified)</h2>
-		<p class="text-xs text-base-content/60 mb-2">
+}
+
+templ configBody(d pageData) {
+	<div class="flex min-h-0 flex-1 flex-col gap-2">
+		<p class="shrink-0 text-xs text-base-content/60">
 			Prelude ⊔ discovered ledgers ⊔ price pairs ⊔ journal plugins ⊔ contapila.cue
 		</p>
-		<div class="p-3 bg-base-200 border border-base-300 overflow-x-auto max-h-[32rem] overflow-y-auto">
+		<div class="min-h-0 flex-1 overflow-auto border border-base-300 bg-base-200 p-3">
 			@codeHighlight(d.ConfigCUE, "cue")
 		</div>
-	</section>
+	</div>
 }
 
 templ checkBody(d pageData) {

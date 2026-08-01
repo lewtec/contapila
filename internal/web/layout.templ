@@ -164,18 +164,25 @@ templ sidebarQueryNav(d pageData, name string) {
 	</li>
 }
 
+templ sidebarSectionBlock(d pageData, sec SidebarSection, first bool) {
+	if first {
+		<li class="menu-title px-3 py-2 text-[0.65rem]"><span>{ sec.Title }</span></li>
+	} else {
+		<li class="menu-title px-3 py-2 mt-1 text-[0.65rem]"><span>{ sec.Title }</span></li>
+	}
+	for _, p := range sec.Pages {
+		@navItem(d, p.ID, p.Label)
+	}
+	for _, name := range sec.Queries {
+		@sidebarQueryNav(d, name)
+	}
+}
+
 templ sidebarNav(d pageData) {
 	if d.LedgerName != "" {
 		<ul class="menu menu-sm w-full p-0 gap-0 rounded-none">
-			<li class="menu-title px-3 py-2 text-[0.65rem]"><span>Reports</span></li>
-			for _, p := range sidebarReportPages(d) {
-				@navItem(d, p.ID, p.Label)
-			}
-			if len(d.QueryNav) > 0 && queriesUIEnabled(d) {
-				<li class="menu-title px-3 py-2 mt-1 text-[0.65rem]"><span>Queries</span></li>
-				for _, q := range d.QueryNav {
-					@sidebarQueryNav(d, q.Name)
-				}
+			for i, sec := range sidebarNavSections(d) {
+				@sidebarSectionBlock(d, sec, i == 0)
 			}
 			if d.Page == "account" {
 				@sidebarCurrentEntity("Account", d.AccountName)
@@ -218,7 +225,7 @@ templ appLayout(d pageData) {
 					<aside class="app-sidebar shrink-0 w-52 bg-base-200 border-r border-base-300 flex flex-col min-h-0 overflow-y-auto z-40 fixed lg:static inset-y-0 left-0 top-10 lg:top-auto lg:inset-auto -translate-x-full peer-checked/nav:translate-x-0 lg:translate-x-0 transition-transform duration-150 ease-out">
 						@sidebarNav(d)
 					</aside>
-					<main class="flex-1 min-w-0 min-h-0 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
+					<main class="flex flex-1 min-w-0 min-h-0 flex-col overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
 						{ children... }
 					</main>
 				</div>
