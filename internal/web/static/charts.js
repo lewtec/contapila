@@ -157,7 +157,8 @@
         width: 2,
         fill: "transparent",
         points: { show: xs.length < 80 },
-        paths: uPlot.paths.stepped({ align: 1 }),
+        // Smooth cubic between event samples (vs stepped holds). Data points unchanged.
+        paths: uPlot.paths.spline(),
         value: function (_u, v) {
           return fmtMoney(null, v) + (payload.currency ? " " + payload.currency : "");
         },
