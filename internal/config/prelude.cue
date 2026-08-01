@@ -43,6 +43,10 @@
 	main: string // absolute path to main.beancount
 	// Optional: account opens for this ledger (host inject and/or user overlays).
 	accounts?: [Name=string]: #Account & {name: Name}
+	// Floor for the net worth *chart* only (YYYY-MM-DD). Hides placeholder-era
+	// flat lines (e.g. 1970 opens) on all-time views. Does not change the table.
+	// Explicit time filters wholly before this date are not floored.
+	plot_from?: string
 }
 
 // Map of discovered ledgers. The host injects a *closed* concrete struct:

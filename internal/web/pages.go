@@ -474,7 +474,15 @@ func fillNetWorth(pc PageContext, data *PageData) {
 	}
 	data.NetWorthTot = total.FloatString(2)
 	data.NetWorthRows = buildNetWorthRows(tree)
-	if pts, serr := l.NetWorthSeries(pc.Period.Start, pc.Period.End); serr == nil {
+	// Chart window: time filter, floored by ledgers.<name>.plot_from so
+	// placeholder-era opens (e.g. 1970) do not dominate all-time plots.
+	from, to := pc.Period.Start, pc.Period.End
+	if pc.Project != nil && pc.Project.Config != nil && l != nil {
+		if floor, ok := config.NetWorthPlotFrom(pc.Project.Config.Value, l.Name); ok {
+			from = config.ApplyNetWorthPlotFrom(from, to, floor)
+		}
+	}
+	if pts, serr := l.NetWorthSeries(from, to); serr == nil {
 		if js, jerr := chartLineJSON(pts, l.OpCurrency, "Net worth"); jerr == nil {
 			setChart(data, "chart-networth", "Net worth over time", js)
 		}

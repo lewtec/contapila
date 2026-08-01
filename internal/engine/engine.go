@@ -133,6 +133,16 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	if p != nil {
 		diags.Merge(p.Diags)
 	}
+	// Invalid ledgers.<name>.plot_from: check error; chart still ignores the floor.
+	if p != nil && p.Config != nil {
+		if _, _, perr := config.LedgerPlotFrom(p.Config.Value, name); perr != nil {
+			cuePath := "contapila.cue"
+			if p.Root != "" {
+				cuePath = filepath.Join(p.Root, "contapila.cue")
+			}
+			diags.Error(cuePath, 0, perr.Error())
+		}
+	}
 	// filter stream: drop includes
 	var stream []ast.Directive
 	for _, d := range dirs {

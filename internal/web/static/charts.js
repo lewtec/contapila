@@ -156,7 +156,14 @@
         stroke: theme.primary,
         width: 2,
         fill: "transparent",
-        points: { show: xs.length < 80 },
+        // Dots on samples; hide only on very dense series so the spline stays readable.
+        points: {
+          show: xs.length < 200,
+          size: 7,
+          width: 1.5,
+          stroke: theme.primary,
+          fill: theme.primary,
+        },
         // Smooth cubic between event samples (vs stepped holds). Data points unchanged.
         paths: uPlot.paths.spline(),
         value: function (_u, v) {
