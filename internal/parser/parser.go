@@ -214,8 +214,12 @@ func convert(f *source.File, n *grammar.Node, diags *diag.List) (ast.Directive, 
 			Metadata: parseKeyValues(f, n),
 		}, true
 	case "query":
-		diags.Warn(f.Path, f.Lines.LineAtU32(n.StartByte()), fmt.Sprintf("%s not supported; skipped", n.Type()))
-		return nil, false
+		return ast.Query{
+			Meta:     meta(f, n),
+			Name:     unquote(textField(f, n, "name")),
+			Query:    unquote(textField(f, n, "query")),
+			Metadata: parseKeyValues(f, n),
+		}, true
 	case "custom":
 		return convertCustom(f, n, diags)
 	case "comment":

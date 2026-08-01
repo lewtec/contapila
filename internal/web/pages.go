@@ -243,6 +243,11 @@ func pageLabel(d PageData) string {
 		return d.AccountName
 	case "commodity":
 		return d.CommodityName
+	case "query":
+		if d.QueryName != "" {
+			return d.QueryName
+		}
+		return "Query"
 	case "":
 		return "Ledgers"
 	default:

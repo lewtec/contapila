@@ -41,6 +41,24 @@ templ sectionTitle(title string) {
 	<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">{ title }</h2>
 }
 
+// codeHighlight is server-side chroma highlighting for source text.
+// lang is a chroma language name, or "bql" (SQL lexer). Theme colors via .code-hl.
+templ codeHighlight(src string, lang string) {
+	<style>
+		.code-hl { font-size: 0.7rem; line-height: 1.35; }
+		.code-hl pre { margin: 0; background: transparent; white-space: pre-wrap; word-break: break-word; }
+		.code-hl .hl-k, .code-hl .hl-kd, .code-hl .hl-kn, .code-hl .hl-kc { color: var(--color-primary); font-weight: 600; }
+		.code-hl .hl-s, .code-hl .hl-s1, .code-hl .hl-s2, .code-hl .hl-sa { color: var(--color-secondary); }
+		.code-hl .hl-c, .code-hl .hl-ch, .code-hl .hl-cm, .code-hl .hl-c1 { color: color-mix(in oklch, var(--color-base-content) 45%, transparent); font-style: italic; }
+		.code-hl .hl-m, .code-hl .hl-mi, .code-hl .hl-mf, .code-hl .hl-mh { color: var(--color-info); }
+		.code-hl .hl-n, .code-hl .hl-nx, .code-hl .hl-nv, .code-hl .hl-na { color: var(--color-base-content); }
+		.code-hl .hl-o, .code-hl .hl-ow, .code-hl .hl-p { color: color-mix(in oklch, var(--color-base-content) 70%, transparent); }
+		.code-hl .hl-nf, .code-hl .hl-nb, .code-hl .hl-bp { color: var(--color-accent); }
+		.code-hl .hl-err { color: var(--color-error); }
+	</style>
+	@templ.Raw(highlightSource(src, lang))
+}
+
 // sectionTitleExtra is a section heading that can host an inline action (e.g. "all pairs").
 templ sectionTitleExtra(title string) {
 	<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">

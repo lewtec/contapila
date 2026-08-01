@@ -1,16 +1,10 @@
 package web
 
 import (
-	"bytes"
 	"fmt"
-	"html"
 	"strings"
 
 	"cuelang.org/go/cue"
-	"github.com/alecthomas/chroma/v2"
-	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
-	"github.com/alecthomas/chroma/v2/lexers"
-	"github.com/alecthomas/chroma/v2/styles"
 
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/plugin"
@@ -44,7 +38,7 @@ func fillDebug(pc PageContext, data *PageData) {
 			Enabled:   on,
 			InConfig:  inCfg,
 			HasStream: info.HasStream,
-			EntryCUE:  highlightCUE(entryStr),
+			EntryCUE:  entryStr, // plain; highlighted in templ via codeHighlight
 		})
 	}
 	for id, on := range flags {
@@ -56,13 +50,13 @@ func fillDebug(pc PageContext, data *PageData) {
 			ID:       id,
 			Enabled:  on,
 			InConfig: true,
-			EntryCUE: highlightCUE(formatCUE(entry)),
+			EntryCUE: formatCUE(entry),
 		})
 	}
 
 	pluginsNode := cfg.LookupPath(cue.ParsePath("plugins"))
-	data.PluginsCUE = highlightCUE(formatCUE(pluginsNode))
-	data.ConfigCUE = highlightCUE(formatCUE(cfg))
+	data.PluginsCUE = formatCUE(pluginsNode)
+	data.ConfigCUE = formatCUE(cfg)
 }
 
 func containsPluginFlag(flags map[string]bool, id string) bool {
@@ -81,47 +75,4 @@ func formatCUE(v cue.Value) string {
 		return "(empty)"
 	}
 	return s
-}
-
-// highlightCUE returns HTML (chroma) for CUE source. Safe for templ.Raw:
-// chroma escapes content; non-code placeholders are html-escaped.
-func highlightCUE(src string) string {
-	src = strings.TrimSpace(src)
-	if src == "" {
-		return plainPre("(empty)")
-	}
-	if strings.HasPrefix(src, "(") && strings.HasSuffix(src, ")") {
-		// Placeholders like (absent) / (not in unified …)
-		return plainPre(src)
-	}
-	lexer := lexers.Get("cue")
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-	lexer = chroma.Coalesce(lexer)
-	it, err := lexer.Tokenise(nil, src)
-	if err != nil {
-		return plainPre(src)
-	}
-	// Classes only — colors from .cue-hl CSS (theme-aware).
-	formatter := chromahtml.New(
-		chromahtml.WithClasses(true),
-		chromahtml.ClassPrefix("cue-"),
-		chromahtml.TabWidth(2),
-		chromahtml.PreventSurroundingPre(false),
-	)
-	// style required by API even with classes; "github" is unused for colors.
-	style := styles.Get("github")
-	if style == nil {
-		style = styles.Fallback
-	}
-	var buf bytes.Buffer
-	if err := formatter.Format(&buf, style, it); err != nil {
-		return plainPre(src)
-	}
-	return `<div class="cue-hl">` + buf.String() + `</div>`
-}
-
-func plainPre(s string) string {
-	return `<pre class="text-[0.65rem] font-mono whitespace-pre-wrap m-0">` + html.EscapeString(s) + `</pre>`
 }

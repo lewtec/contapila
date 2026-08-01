@@ -8,19 +8,6 @@ templ LedgerPage(d pageData) {
 }
 
 templ debugBody(d pageData) {
-	// Theme-aware chroma classes (server-highlighted CUE).
-	<style>
-		.cue-hl { font-size: 0.7rem; line-height: 1.35; }
-		.cue-hl pre { margin: 0; background: transparent; white-space: pre-wrap; word-break: break-word; }
-		.cue-hl .cue-k, .cue-hl .cue-kd, .cue-hl .cue-kn, .cue-hl .cue-kc { color: var(--color-primary); font-weight: 600; }
-		.cue-hl .cue-s, .cue-hl .cue-s1, .cue-hl .cue-s2, .cue-hl .cue-sa { color: var(--color-secondary); }
-		.cue-hl .cue-c, .cue-hl .cue-ch, .cue-hl .cue-cm, .cue-hl .cue-c1 { color: color-mix(in oklch, var(--color-base-content) 45%, transparent); font-style: italic; }
-		.cue-hl .cue-m, .cue-hl .cue-mi, .cue-hl .cue-mf, .cue-hl .cue-mh { color: var(--color-info); }
-		.cue-hl .cue-nb, .cue-hl .cue-bp { color: var(--color-accent); }
-		.cue-hl .cue-o, .cue-hl .cue-p { color: color-mix(in oklch, var(--color-base-content) 70%, transparent); }
-		.cue-hl .cue-na, .cue-hl .cue-nx { color: var(--color-base-content); }
-		.cue-hl .cue-err { color: var(--color-error); }
-	</style>
 	<section class="mb-6">
 		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">Plugins</h2>
 		<p class="text-xs text-base-content/60 mb-3">
@@ -67,7 +54,7 @@ templ debugBody(d pageData) {
 									}
 								</td>
 								<td class="max-w-xl overflow-x-auto">
-									@templ.Raw(row.EntryCUE)
+									@codeHighlight(row.EntryCUE, "cue")
 								</td>
 							</tr>
 						}
@@ -79,7 +66,7 @@ templ debugBody(d pageData) {
 	<section class="mb-6">
 		<h2 class="text-[0.65rem] uppercase tracking-wide text-base-content/50 mb-2">plugins (unified)</h2>
 		<div class="p-3 bg-base-200 border border-base-300 overflow-x-auto">
-			@templ.Raw(d.PluginsCUE)
+			@codeHighlight(d.PluginsCUE, "cue")
 		</div>
 	</section>
 	<section>
@@ -88,7 +75,7 @@ templ debugBody(d pageData) {
 			Prelude ⊔ discovered ledgers ⊔ price pairs ⊔ journal plugins ⊔ contapila.cue
 		</p>
 		<div class="p-3 bg-base-200 border border-base-300 overflow-x-auto max-h-[32rem] overflow-y-auto">
-			@templ.Raw(d.ConfigCUE)
+			@codeHighlight(d.ConfigCUE, "cue")
 		</div>
 	</section>
 }

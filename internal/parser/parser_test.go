@@ -119,15 +119,20 @@ func TestParseOpenCurrencyAndMetaWarn(t *testing.T) {
 	if doc.Account != "Assets:Cash" || doc.Path != "personal/docs/by-account/Assets/Cash/20200105_x.txt" {
 		t.Fatalf("document=%+v", doc)
 	}
-	// open + txn metadata stored; query still warn; custom parses; document parses
+	// open + txn metadata stored; query parses; custom parses; document parses
 	if txn.Metadata["role"] != "meal" {
 		t.Fatalf("txn metadata=%v", txn.Metadata)
 	}
+	var query ast.Query
 	var hasQuery bool
 	var custom ast.Custom
 	var hasCustomDir bool
 	for _, d := range dirs {
-		if v, ok := d.(ast.Custom); ok {
+		switch v := d.(type) {
+		case ast.Query:
+			query = v
+			hasQuery = true
+		case ast.Custom:
 			custom = v
 			hasCustomDir = true
 		}
@@ -137,14 +142,14 @@ func TestParseOpenCurrencyAndMetaWarn(t *testing.T) {
 			t.Fatalf("metadata should be stored, not warned: %v", d.Message)
 		}
 		if strings.Contains(d.Message, "query") {
-			hasQuery = true
+			t.Fatalf("query should not warn-skip: %v", d.Message)
 		}
 		if strings.Contains(d.Message, "document") {
 			t.Fatalf("document should not warn-skip: %v", d.Message)
 		}
 	}
-	if !hasQuery {
-		t.Fatalf("expected query warn, diags=%v", diags)
+	if !hasQuery || query.Name != "q" || query.Query != "select *" {
+		t.Fatalf("expected query directive, got has=%v query=%+v", hasQuery, query)
 	}
 	if !hasCustomDir || custom.Type != "fava-option" {
 		t.Fatalf("expected custom directive, got has=%v custom=%+v", hasCustomDir, custom)

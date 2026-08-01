@@ -1,4 +1,4 @@
-; note/event + skipped query/custom/document
+; note/event + query/custom/document
 
 2023-08-01 note Assets:Receivable:Client:Orion "Net-30 terms"
 2024-01-01 event "fiscal-year" "Acme FY starts"

@@ -595,7 +595,7 @@ Inventory cost basis (average cost, model A) remains for booking/gains; it is **
 | `document` | yes (store/display; also synthesized from `<ledger>/docs/by-account`) | Go |
 | `custom "index"` | yes — daily index return series for autointerest projection | Go |
 | `custom` (other types) | yes (stored; unused types ignored by booking) | Go |
-| `query` | no | — |
+| `query` | yes — stored; web sidebar + detail (no BQL execution yet) | Go |
 | `pushtag` / `poptag` / `pushmeta` / `popmeta` | no | — |
 | `plugin` | no | — |
 | unknown | warn + skip | — |

@@ -9,7 +9,7 @@
 ## `example/` (deep)
 
 ```bash
-contapila -C testdata/example check   # expects OK + many metadata/query warns
+contapila -C testdata/example check   # expects OK + surface warnings where still unsupported
 contapila -C testdata/example web
 ```
 
@@ -20,7 +20,7 @@ contapila -C testdata/example web
 | ong | Grants deferred |
 | smuggle | `CIGPK` inventory |
 
-Also: `<ledger>/docs/by-account/…` (SPEC §4.4), CUE `links` (SPEC §4.5, not enforced), `query` (warn+skip). Prelude `project_journals` auto-loads root `prices.beancount` + `indexes.beancount` (regenerate indexes with `scripts/fetch-cdi` + `contapila ingest`).
+Also: `<ledger>/docs/by-account/…` (SPEC §4.4), CUE `links` (SPEC §4.5, not enforced), `query` (parsed; web_queries UI; no BQL yet). Prelude `project_journals` auto-loads root `prices.beancount` + `indexes.beancount` (regenerate indexes with `scripts/fetch-cdi` + `contapila ingest`).
 
 ## `kitchensink/`
 

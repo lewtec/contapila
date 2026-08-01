@@ -24,6 +24,11 @@ func PathCommodity(ledger, commodity string) string {
 	return "/l/" + url.PathEscape(ledger) + "/commodity/" + url.PathEscape(commodity)
 }
 
+// PathQuery is GET /l/{ledger}/query/{name}.
+func PathQuery(ledger, name string) string {
+	return "/l/" + url.PathEscape(ledger) + "/query/" + url.PathEscape(name)
+}
+
 // PathLedgerRoot is GET /l/{ledger}/ (live redirect to check).
 func PathLedgerRoot(ledger string) string {
 	return "/l/" + url.PathEscape(ledger) + "/"
@@ -77,6 +82,18 @@ func (s *Session) CommodityURL(ledger, commodity, timeFilter string) string {
 	return u
 }
 
+// QueryURL is a named query page link.
+func (s *Session) QueryURL(ledger, name, timeFilter string) string {
+	u := PathQuery(ledger, name)
+	if s.staticMode() {
+		return u + ".html"
+	}
+	if timeFilter != "" {
+		u += "?time=" + url.QueryEscape(timeFilter)
+	}
+	return u
+}
+
 // LedgerRootURL is the ledger landing path (/l/x/ live, /l/x/index.html static).
 func (s *Session) LedgerRootURL(ledger string) string {
 	if s.staticMode() {
@@ -120,6 +137,13 @@ func commodityURL(s *Session, ledger, commodity, timeFilter string) string {
 	return s.CommodityURL(ledger, commodity, timeFilter)
 }
 
+func queryURL(s *Session, ledger, name, timeFilter string) string {
+	if s == nil {
+		return (&Session{}).QueryURL(ledger, name, timeFilter)
+	}
+	return s.QueryURL(ledger, name, timeFilter)
+}
+
 func pageTitle(d PageData) string {
 	// Report labels come from PageRegistry; account/commodity/home handled in pageLabel.
 	return pageLabel(d)
@@ -132,6 +156,8 @@ func timeFilterAction(d PageData) string {
 		return accountURL(s, d.LedgerName, d.AccountName, "")
 	case "commodity":
 		return commodityURL(s, d.LedgerName, d.CommodityName, "")
+	case "query":
+		return queryURL(s, d.LedgerName, d.QueryName, "")
 	default:
 		return ledgerURL(s, d.LedgerName, d.Page, "")
 	}

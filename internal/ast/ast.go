@@ -184,6 +184,15 @@ type Document struct {
 	Metadata  Metadata
 }
 
+// Query is a Beancount query directive (named BQL / bean-query expression).
+// Contapila stores and surfaces these in the web UI; execution is separate.
+type Query struct {
+	Meta
+	Name     string // first string after `query`
+	Query    string // BQL expression (second string)
+	Metadata Metadata
+}
+
 // IngestIDMetaKey is the journal metadata key used by `contapila ingest` for upserts.
 const IngestIDMetaKey = "ingest_id"
 
@@ -211,6 +220,8 @@ func DirectiveMetadata(d Directive) Metadata {
 	case Custom:
 		return v.Metadata
 	case Document:
+		return v.Metadata
+	case Query:
 		return v.Metadata
 	default:
 		return nil
@@ -254,6 +265,9 @@ func WithIngestID(d Directive, id string) Directive {
 		v.Metadata = metaWith(v.Metadata, IngestIDMetaKey, id)
 		return v
 	case Document:
+		v.Metadata = metaWith(v.Metadata, IngestIDMetaKey, id)
+		return v
+	case Query:
 		v.Metadata = metaWith(v.Metadata, IngestIDMetaKey, id)
 		return v
 	default:

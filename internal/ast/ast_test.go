@@ -84,6 +84,11 @@ func TestDirectiveMetadata(t *testing.T) {
 			want: md,
 		},
 		{
+			name: "query",
+			d:    Query{Name: "cash", Query: "SELECT *", Metadata: md},
+			want: md,
+		},
+		{
 			name: "option has no metadata field",
 			d:    Option{Key: "title", Value: "Books"},
 			want: nil,

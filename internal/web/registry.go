@@ -120,6 +120,7 @@ func DefaultRegistry(s *Server) *Registry {
 	registerIndex(r, s)
 	registerAccount(r, s)
 	registerCommodity(r, s)
+	registerQuery(r, s)
 	registerLedgerPage(r, s)
 	registerLedgerRoot(r, s)
 	return r
@@ -256,6 +257,48 @@ func registerCommodity(r *Registry, s *Server) {
 				sort.Strings(comms)
 				for _, c := range comms {
 					out = append(out, Instance{Path: PathCommodity(name, c), Kind: KindPage})
+				}
+			}
+			return out, nil
+		},
+	})
+}
+
+func registerQuery(r *Registry, s *Server) {
+	r.Register(Route{
+		Pattern: "GET /l/{ledger}/query/{name...}",
+		Handle:  http.HandlerFunc(s.handleQuery),
+		Expand: func(sess *Session) ([]Instance, error) {
+			if sess == nil {
+				return nil, ErrSessionNil
+			}
+			// Only materialize when web_queries is enabled for this project.
+			if _, ok := s.resolvedPages(sess).Lookup("queries"); !ok {
+				return nil, nil
+			}
+			names, err := sess.LedgerNames()
+			if err != nil {
+				return nil, err
+			}
+			var out []Instance
+			for _, name := range names {
+				l, err := sess.Ledger(name)
+				if err != nil {
+					return nil, err
+				}
+				if l.Book == nil {
+					continue
+				}
+				seen := map[string]struct{}{}
+				for _, q := range l.Book.Queries {
+					if q.Name == "" {
+						continue
+					}
+					if _, ok := seen[q.Name]; ok {
+						continue
+					}
+					seen[q.Name] = struct{}{}
+					out = append(out, Instance{Path: PathQuery(name, q.Name), Kind: KindPage})
 				}
 			}
 			return out, nil

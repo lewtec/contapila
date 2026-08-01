@@ -45,9 +45,9 @@ func TestDebugPageSmoke(t *testing.T) {
 	if !strings.Contains(body, "Full config") {
 		t.Fatal("missing Full config section")
 	}
-	// Server-side chroma CUE highlighting.
-	if !strings.Contains(body, "cue-hl") && !strings.Contains(body, "class=\"cue-") {
-		t.Fatalf("expected chroma CUE highlight classes: %s", truncateBody(body, 400))
+	// Server-side chroma via shared codeHighlight.
+	if !strings.Contains(body, "code-hl") && !strings.Contains(body, "class=\"hl-") {
+		t.Fatalf("expected chroma code highlight classes: %s", truncateBody(body, 400))
 	}
 }
 

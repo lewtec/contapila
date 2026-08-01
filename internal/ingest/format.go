@@ -104,6 +104,9 @@ func FormatDirective(d ast.Directive) (string, error) {
 	case ast.Document:
 		fmt.Fprintf(&b, "%s document %s %s\n", fmtDate(v.Date), v.Account, quoteStr(v.Path))
 		writeMeta(&b, v.Metadata)
+	case ast.Query:
+		fmt.Fprintf(&b, "%s query %s %s\n", fmtDate(v.Date), quoteStr(v.Name), quoteStr(v.Query))
+		writeMeta(&b, v.Metadata)
 	case ast.Unknown:
 		return "", fmt.Errorf("%w: %q", ErrUnknownDirective, v.Kind)
 	default:

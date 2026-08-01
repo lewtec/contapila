@@ -61,7 +61,36 @@ func basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledger
 	if tq.PeriodErr != nil {
 		data.Error = tq.PeriodErr.Error()
 	}
+	data.QueryNav = queryNavItems(l)
 	return data
+}
+
+// queryNavItems builds the sidebar query list from booked journal queries (name order).
+func queryNavItems(l *engine.Ledger) []QueryNavItem {
+	if l == nil || l.Book == nil || len(l.Book.Queries) == 0 {
+		return nil
+	}
+	// Preserve journal order; drop empty names; de-dupe by first occurrence.
+	seen := map[string]struct{}{}
+	out := make([]QueryNavItem, 0, len(l.Book.Queries))
+	for _, q := range l.Book.Queries {
+		name := q.Name
+		if name == "" {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		out = append(out, QueryNavItem{Name: name})
+	}
+	return out
+}
+
+// queriesUIEnabled is true when the web_queries page is in the resolved registry.
+func queriesUIEnabled(d PageData) bool {
+	_, ok := pagesFor(d).Lookup("queries")
+	return ok
 }
 
 // basePageData attaches this server's resolved PageRegistry (sidebar / body lookup).

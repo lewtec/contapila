@@ -30,3 +30,8 @@ func AccountHref(s *Session, ledger, account, timeFilter string) string {
 func CommodityHref(s *Session, ledger, commodity, timeFilter string) string {
 	return commodityURL(s, ledger, commodity, timeFilter)
 }
+
+// QueryHref is a named journal query page link.
+func QueryHref(s *Session, ledger, name, timeFilter string) string {
+	return queryURL(s, ledger, name, timeFilter)
+}

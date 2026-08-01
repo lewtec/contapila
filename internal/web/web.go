@@ -183,6 +183,13 @@ type pageData struct {
 	AccountList []AccountListRow
 	// EventList is the /events report (plugin web_events).
 	EventList []EventListRow
+	// QueryNav is named journal queries for the sidebar (any page).
+	QueryNav []QueryNavItem
+	// QueryList is the /queries report (plugin web_queries).
+	QueryList []QueryListRow
+	// Query detail page (/l/{ledger}/query/{name}).
+	QueryName string
+	QueryText string // plain BQL; highlighted in templ via codeHighlight
 	// Documents is the ledger documents report (/documents) list.
 	Documents []docRow
 	// Prices is the shared price-pairs report (/prices).
@@ -200,8 +207,8 @@ type pageData struct {
 	NeedCharts bool
 	// Debug page (core): plugin enablement + CUE dump.
 	PluginRows []PluginStatusRow
-	PluginsCUE string // plugins subtree after unify
-	ConfigCUE  string // full project config after unify
+	PluginsCUE string // plain plugins subtree (codeHighlight at render)
+	ConfigCUE  string // plain full config (codeHighlight at render)
 }
 
 // PluginStatusRow is one registered module on the debug page.
@@ -210,7 +217,7 @@ type PluginStatusRow struct {
 	Enabled   bool
 	InConfig  bool // concrete entry under plugins after unify
 	HasStream bool
-	EntryCUE  string // plugins.<id> fragment
+	EntryCUE  string // plain plugins.<id> fragment (codeHighlight at render)
 }
 
 // AccountListRow is one open account on the accounts report.
@@ -225,6 +232,18 @@ type EventListRow struct {
 	Date string
 	Type string
 	Desc string
+}
+
+// QueryNavItem is one named query in the sidebar.
+type QueryNavItem struct {
+	Name string
+}
+
+// QueryListRow is one journal query on the queries report.
+type QueryListRow struct {
+	Date string
+	Name string
+	Text string
 }
 
 // priceSeriesRow is one base/quote pair summary on the prices report.
@@ -447,6 +466,49 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, r, AccountPage(data))
+}
+
+func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
+	ledger := r.PathValue("ledger")
+	qname, err := url.PathUnescape(r.PathValue("name"))
+	if err != nil {
+		http.Error(w, "invalid query path encoding", http.StatusBadRequest)
+		return
+	}
+	if qname == "" {
+		http.NotFound(w, r)
+		return
+	}
+	proj, _, l, tq, sess, ok := s.openLedgerRequest(w, r, ledger)
+	if !ok {
+		return
+	}
+	// Opt-in UI: only when web_queries is in the resolved page table.
+	reg := s.resolvedPages(sess)
+	if _, enabled := reg.Lookup("queries"); !enabled {
+		http.NotFound(w, r)
+		return
+	}
+	var found bool
+	var text string
+	if l.Book != nil {
+		for _, q := range l.Book.Queries {
+			if q.Name == qname {
+				found = true
+				text = q.Query
+				break
+			}
+		}
+	}
+	title := qname
+	data := s.basePageData(sess, proj, l, ledger, title, "query", tq)
+	data.Pages = reg
+	data.QueryName = qname
+	data.QueryText = text
+	if !found {
+		data.Error = "query not found: " + qname
+	}
+	s.render(w, r, QueryPage(data))
 }
 
 // chartLineJSON builds uPlot line payload (event series, op currency).

@@ -1,4 +1,4 @@
-; Parser surface: note/event (supported), query/custom/document (warn+skip).
+; Parser surface: note/event/query/custom/document (supported).
 ; Tags and comments.
 
 ; TODO: review FX lots

@@ -93,6 +93,8 @@ templ breadcrumbs(d pageData) {
 											<a href={ templ.SafeURL(accountURL(d.Sess, name, d.AccountName, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
 										} else if d.Page == "commodity" && d.CommodityName != "" {
 											<a href={ templ.SafeURL(commodityURL(d.Sess, name, d.CommodityName, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
+										} else if d.Page == "query" && d.QueryName != "" {
+											<a href={ templ.SafeURL(queryURL(d.Sess, name, d.QueryName, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
 										} else if d.Page != "" {
 											<a href={ templ.SafeURL(ledgerURL(d.Sess, name, d.Page, d.Time)) } class={ templ.KV("menu-active", d.LedgerName == name) }>{ name }</a>
 										} else {
@@ -104,7 +106,7 @@ templ breadcrumbs(d pageData) {
 						</details>
 					</li>
 				}
-				if d.LedgerName != "" && d.Page != "" && d.Page != "account" && d.Page != "commodity" {
+				if d.LedgerName != "" && d.Page != "" && d.Page != "account" && d.Page != "commodity" && d.Page != "query" {
 					<li class="whitespace-nowrap">{ pageTitle(d) }</li>
 				}
 			</ul>
@@ -113,6 +115,8 @@ templ breadcrumbs(d pageData) {
 			@breadcrumbTail(d.AccountName)
 		} else if d.LedgerName != "" && d.Page == "commodity" && d.CommodityName != "" {
 			@breadcrumbTail(d.CommodityName)
+		} else if d.LedgerName != "" && d.Page == "query" && d.QueryName != "" {
+			@breadcrumbTail(d.QueryName)
 		}
 	</div>
 }
@@ -154,12 +158,24 @@ templ breadcrumbTail(name string) {
 	<span class="min-w-0 flex-1 overflow-x-auto font-mono text-xs whitespace-nowrap py-0" title={ name }>{ name }</span>
 }
 
+templ sidebarQueryNav(d pageData, name string) {
+	<li class="w-full">
+		<a href={ templ.SafeURL(queryURL(d.Sess, d.LedgerName, name, d.Time)) } class={ "rounded-none w-full font-mono text-[0.7rem]", templ.KV("menu-active", d.Page == "query" && d.QueryName == name) }>{ name }</a>
+	</li>
+}
+
 templ sidebarNav(d pageData) {
 	if d.LedgerName != "" {
 		<ul class="menu menu-sm w-full p-0 gap-0 rounded-none">
 			<li class="menu-title px-3 py-2 text-[0.65rem]"><span>Reports</span></li>
 			for _, p := range sidebarReportPages(d) {
 				@navItem(d, p.ID, p.Label)
+			}
+			if len(d.QueryNav) > 0 && queriesUIEnabled(d) {
+				<li class="menu-title px-3 py-2 mt-1 text-[0.65rem]"><span>Queries</span></li>
+				for _, q := range d.QueryNav {
+					@sidebarQueryNav(d, q.Name)
+				}
 			}
 			if d.Page == "account" {
 				@sidebarCurrentEntity("Account", d.AccountName)

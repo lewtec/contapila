@@ -45,16 +45,14 @@ contapila -C testdata/example web
 
 `-C` / `--directory` is like `git -C`: run as if the process started in that directory. Project root is the directory that contains `contapila.cue`.
 
-`check` validates every ledger. Unsupported constructs (for example `query`) warn and skip when safe:
+`check` validates every ledger. Unsupported constructs warn and skip when safe:
 
 ```text
 == acme ==
-…/acme/surface.beancount:5: warn: query not supported; skipped
 OK
 == ong ==
 OK
 == personal ==
-…/personal/surface.beancount:9: warn: query not supported; skipped
 OK
 == smuggle ==
 OK
@@ -116,7 +114,7 @@ Contapila took poetic license on tooling so the stack stays small: one binary, f
 | UI | Read-only localhost web (or desktop shell) | Fava (browse + more) |
 | Language | Plugin-free Beancount-class subset | Full Beancount + plugins |
 | Booking default | Merged average-cost | Lot-centric unless configured |
-| Query language | No BQL parity (MVP) | bean-query / BQL |
+| Query language | Named queries stored + sidebar (no BQL yet) | bean-query / BQL |
 | Config | CUE project (`contapila.cue`) | options / Fava config |
 | Editor | Optional `contapila lsp` | Various community options |
 

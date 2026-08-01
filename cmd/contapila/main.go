@@ -31,6 +31,7 @@ import (
 	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
 	_ "github.com/lucasew/contapila-go/internal/plugins/checkclosing"
 	_ "github.com/lucasew/contapila-go/internal/plugins/events"
+	_ "github.com/lucasew/contapila-go/internal/plugins/queries"
 )
 
 // workDir is the optional start directory for project discovery (global -C).

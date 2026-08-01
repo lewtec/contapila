@@ -51,9 +51,10 @@ type Engine struct {
 	// pad pending: account -> pad directive (last pad wins until used)
 	Pad map[string]ast.Pad
 
-	Txns   []BookedTxn
-	Notes  []ast.Note
-	Events []ast.Event
+	Txns    []BookedTxn
+	Notes   []ast.Note
+	Events  []ast.Event
+	Queries []ast.Query
 
 	Diags diag.List
 
@@ -130,6 +131,8 @@ func (e *Engine) Book(dirs []ast.Directive) {
 			e.Notes = append(e.Notes, v)
 		case ast.Event:
 			e.Events = append(e.Events, v)
+		case ast.Query:
+			e.Queries = append(e.Queries, v)
 		case ast.Option, ast.Commodity, ast.Price, ast.Include, ast.Document, ast.Unknown, ast.Custom:
 			// handled elsewhere (Custom index series used by autointerest projection)
 		}
