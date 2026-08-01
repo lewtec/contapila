@@ -63,27 +63,33 @@ func TestScanByAccount_badFilenames(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "20240301_ok.txt"), []byte("y"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// Invalid / non-date names (partial yyyy/yyyymm are OK — see TestParseFilenameDate).
 	cases := []struct {
 		name string
 		want string // substring of diag message
 	}{
-		{"20241301_statement.txt", "20241301"},           // 8 digits, invalid calendar
-		{"202403_statement.txt", "must start with yyyymmdd"}, // yyyymm only
-		{"2024-03-01_x.txt", "must start with yyyymmdd"},
-		{"readme.txt", "must start with yyyymmdd"},
+		{"20241301_statement.txt", "not a valid calendar date"},
+		{"readme.txt", "must start with yyyy"},
 	}
 	for _, tc := range cases {
 		if err := os.WriteFile(filepath.Join(dir, tc.name), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
+	// Omitted day/month should synthesize, not error.
+	if err := os.WriteFile(filepath.Join(dir, "202403_month.txt"), []byte("m"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "2024_year.txt"), []byte("y"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	got, diags, err := ScanByAccount(root, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].Path != "personal/docs/by-account/Assets/Cash/20240301_ok.txt" {
-		t.Fatalf("got %+v", got)
+	if len(got) != 3 {
+		t.Fatalf("got %d docs: %+v", len(got), got)
 	}
 	if len(diags) != len(cases) {
 		t.Fatalf("diags count=%d want %d: %v", len(diags), len(cases), diags)
