@@ -59,9 +59,9 @@ func TestApplyNetWorthPlotFrom(t *testing.T) {
 		return time.Date(y, m, day, 0, 0, 0, 0, time.UTC)
 	}
 	tests := []struct {
-		name       string
-		from, to   time.Time
-		want       time.Time
+		name     string
+		from, to time.Time
+		want     time.Time
 	}{
 		{"all time floors", time.Time{}, time.Time{}, floor},
 		{"open start floors", time.Time{}, d(2025, 1, 1), floor},

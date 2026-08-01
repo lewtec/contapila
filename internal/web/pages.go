@@ -65,7 +65,7 @@ func pageSection(p Page) string {
 // SidebarSection is one sidebar group: title + registered page links (and optional extras).
 type SidebarSection struct {
 	Title   string
-	Pages   []Page  // Sidebar pages in this section, Order then ID
+	Pages   []Page   // Sidebar pages in this section, Order then ID
 	Queries []string // named journal queries (web_queries); empty for other sections
 }
 
