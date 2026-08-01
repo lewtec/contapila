@@ -48,7 +48,7 @@ option "operating_currency" "BRL"
 	if !strings.Contains(body, "Check failed") {
 		t.Fatalf("want Check failed:\n%s", body)
 	}
-	if !strings.Contains(body, "20241301") || !strings.Contains(body, "yyyymmdd") {
+	if !strings.Contains(body, "20241301") || !strings.Contains(body, "not a valid calendar date") {
 		t.Fatalf("want docs date error on check page:\n%s", body)
 	}
 }

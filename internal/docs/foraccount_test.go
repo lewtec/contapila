@@ -179,7 +179,7 @@ func TestScanByAccount_edges(t *testing.T) {
 			t.Fatalf("got %+v", got)
 		}
 		if !diags.HasErrors() {
-			t.Fatal("want error for missing yyyymmdd")
+			t.Fatal("want error for missing date prefix")
 		}
 	})
 }

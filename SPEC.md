@@ -309,12 +309,18 @@ Account components become **subdirectories** (`:` → `/`):
 Example: ledger `personal`, account `Assets:BR:Alfa:ContaCorrente` →  
 `personal/docs/by-account/Assets/BR/Alfa/ContaCorrente/`.
 
-**Filenames** start with a calendar date in **`yyyymmdd`**, then an optional
-separator and rest of the name:
+**Filenames** start with a calendar date prefix, then an optional separator and
+rest of the name. The prefix is **`yyyy`**, **`yyyymm`**, or **`yyyymmdd`**
+(contiguous digits only; must be followed by a non-digit or end of name).
+Omitted month or day defaults to **01**. Invalid calendars (e.g. month 13) and
+other digit lengths (5 or 7 digits, etc.) are rejected with an error diagnostic;
+those files are skipped.
 
 ```text
-20240301_statement.txt
-20230810-INV-001.pdf
+20240301_statement.txt   # 2024-03-01
+20230810-INV-001.pdf     # 2023-08-10
+202403_month.txt         # 2024-03-01 (day defaults to 01)
+2024_annual.pdf          # 2024-01-01 (month and day default to 01)
 ```
 
 On ledger open the host walks **`<that-ledger>/docs/by-account/**`** and synthesizes
