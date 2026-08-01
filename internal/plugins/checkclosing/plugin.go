@@ -22,7 +22,8 @@ func init() {
 			dirs := slices.Collect(in)
 			e, out, diags := booking.BookWithClosing(dirs, h.Setup)
 			h.Engine = e
-			h.Diags = diags
+			// Merge booking diags; do not replace h.Diags (would drop prior host errors).
+			h.Diags.Merge(diags)
 			return slices.Values(out)
 		})
 	})
