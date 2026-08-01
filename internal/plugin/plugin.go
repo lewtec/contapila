@@ -242,6 +242,8 @@ func RunPhase(cfg cue.Value, h *Host, dirs []ast.Directive, phase Phase) (e *boo
 			diags.Error("", 0, err.Error())
 			continue
 		}
+		// Isolate this module's contribution; plugins must Merge into h.Diags
+		// (never assign), then we harvest into the phase list.
 		h.Diags = nil
 		seq := fn(settings, h, slices.Values(out))
 		out = slices.Collect(seq)

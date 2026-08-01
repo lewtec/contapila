@@ -85,9 +85,12 @@ func TestForAccount(t *testing.T) {
 func TestScanByAccount_edges(t *testing.T) {
 	t.Run("missing by-account dir", func(t *testing.T) {
 		root := t.TempDir()
-		got, err := ScanByAccount(root, "personal")
+		got, diags, err := ScanByAccount(root, "personal")
 		if err != nil {
 			t.Fatal(err)
+		}
+		if diags != nil {
+			t.Fatalf("diags=%v", diags)
 		}
 		if got != nil {
 			t.Fatalf("got %+v", got)
@@ -95,9 +98,12 @@ func TestScanByAccount_edges(t *testing.T) {
 	})
 
 	t.Run("empty ledger name", func(t *testing.T) {
-		got, err := ScanByAccount(t.TempDir(), "")
+		got, diags, err := ScanByAccount(t.TempDir(), "")
 		if err != nil {
 			t.Fatal(err)
+		}
+		if diags != nil {
+			t.Fatalf("diags=%v", diags)
 		}
 		if got != nil {
 			t.Fatalf("got %+v", got)
@@ -113,9 +119,12 @@ func TestScanByAccount_edges(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "20240101_loose.txt"), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		got, err := ScanByAccount(root, "personal")
+		got, diags, err := ScanByAccount(root, "personal")
 		if err != nil {
 			t.Fatal(err)
+		}
+		if diags.HasErrors() {
+			t.Fatalf("unexpected diags: %v", diags)
 		}
 		if len(got) != 0 {
 			t.Fatalf("root-level file should be skipped: %+v", got)
@@ -131,13 +140,12 @@ func TestScanByAccount_edges(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "20240515_note.pdf"), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		// No date prefix — ignored.
-		if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("x"), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		got, err := ScanByAccount(root, "personal")
+		got, diags, err := ScanByAccount(root, "personal")
 		if err != nil {
 			t.Fatal(err)
+		}
+		if diags.HasErrors() {
+			t.Fatalf("unexpected diags: %v", diags)
 		}
 		if len(got) != 1 {
 			t.Fatalf("got %d: %+v", len(got), got)
@@ -151,6 +159,27 @@ func TestScanByAccount_edges(t *testing.T) {
 		}
 		if !got[0].Date.Equal(time.Date(2024, 5, 15, 0, 0, 0, 0, time.UTC)) {
 			t.Fatalf("date=%v", got[0].Date)
+		}
+	})
+
+	t.Run("no date prefix under account is error", func(t *testing.T) {
+		root := t.TempDir()
+		dir := filepath.Join(root, "personal", "docs", "by-account", "Assets", "Cash")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		got, diags, err := ScanByAccount(root, "personal")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 0 {
+			t.Fatalf("got %+v", got)
+		}
+		if !diags.HasErrors() {
+			t.Fatal("want error for missing yyyymmdd")
 		}
 	})
 }

@@ -2,6 +2,7 @@
 package docsfolder
 
 import (
+	"fmt"
 	"iter"
 	"log/slog"
 
@@ -20,10 +21,14 @@ func init() {
 	plugin.RegisterTyped(PluginKey, func(reg *plugin.Reg[Settings]) {
 		reg.DefaultOn()
 		reg.OnProcess(plugin.PhaseLate, func(_ Settings, h *plugin.Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
-			synth, err := docs.ScanByAccount(h.Root, h.Ledger)
+			synth, sdiags, err := docs.ScanByAccount(h.Root, h.Ledger)
+			// Merge — never assign — so a later host step cannot drop these diags.
+			h.Diags.Merge(sdiags)
 			if err != nil {
 				slog.Warn("docs scan failed", "ledger", h.Ledger, "err", err)
-			} else if len(synth) > 0 {
+				h.Diags.Error("", 0, fmt.Sprintf("docs_folder scan: %v", err))
+			}
+			if len(synth) > 0 {
 				h.Documents = append(h.Documents, synth...)
 			}
 			return in

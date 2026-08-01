@@ -3,6 +3,7 @@ package docs
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,9 +19,6 @@ func TestScanByAccount(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "20240301_statement.txt"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "readme.txt"), []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
 	other := filepath.Join(root, "acme", "docs", "by-account", "Assets", "Cash")
 	if err := os.MkdirAll(other, 0o755); err != nil {
 		t.Fatal(err)
@@ -29,9 +27,12 @@ func TestScanByAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := ScanByAccount(root, "personal")
+	got, diags, err := ScanByAccount(root, "personal")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diags: %v", diags)
 	}
 	if len(got) != 1 {
 		t.Fatalf("got %d docs: %+v", len(got), got)
@@ -49,6 +50,61 @@ func TestScanByAccount(t *testing.T) {
 	}
 	if !d.Date.Equal(time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)) {
 		t.Fatalf("date=%v", d.Date)
+	}
+}
+
+func TestScanByAccount_badFilenames(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "personal", "docs", "by-account", "Assets", "Cash")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Valid companion kept.
+	if err := os.WriteFile(filepath.Join(dir, "20240301_ok.txt"), []byte("y"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name string
+		want string // substring of diag message
+	}{
+		{"20241301_statement.txt", "20241301"},           // 8 digits, invalid calendar
+		{"202403_statement.txt", "must start with yyyymmdd"}, // yyyymm only
+		{"2024-03-01_x.txt", "must start with yyyymmdd"},
+		{"readme.txt", "must start with yyyymmdd"},
+	}
+	for _, tc := range cases {
+		if err := os.WriteFile(filepath.Join(dir, tc.name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, diags, err := ScanByAccount(root, "personal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Path != "personal/docs/by-account/Assets/Cash/20240301_ok.txt" {
+		t.Fatalf("got %+v", got)
+	}
+	if len(diags) != len(cases) {
+		t.Fatalf("diags count=%d want %d: %v", len(diags), len(cases), diags)
+	}
+	for _, tc := range cases {
+		found := false
+		wantFile := "personal/docs/by-account/Assets/Cash/" + tc.name
+		for _, d := range diags {
+			if d.File == wantFile {
+				found = true
+				if !strings.Contains(d.Message, tc.want) {
+					t.Errorf("%s: message=%q want substring %q", tc.name, d.Message, tc.want)
+				}
+				if !d.IsError() {
+					t.Errorf("%s: want error severity", tc.name)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("missing diag for %s in %v", tc.name, diags)
+		}
 	}
 }
 

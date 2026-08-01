@@ -2,6 +2,8 @@
 package docs
 
 import (
+	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -11,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"errors"
 	"github.com/lucasew/contapila-go/internal/ast"
+	"github.com/lucasew/contapila-go/internal/diag"
 )
 
 // ByAccountDir is the account document folder under each ledger's docs/.
@@ -23,38 +25,34 @@ var datePrefix = regexp.MustCompile(`^(\d{8})`)
 
 // ScanByAccount walks <root>/<ledger>/docs/by-account and synthesizes document directives.
 // Account path is directory segments joined with ':' under by-account;
-// file names must start with yyyymmdd.
-func ScanByAccount(projectRoot, ledger string) ([]ast.Document, error) {
+// file names must start with a valid calendar yyyymmdd (SPEC §4.4).
+// Under an account directory, any file that does not parse (short prefix like
+// yyyymm, invalid day/month, no date at all) is skipped and reported as an
+// error diagnostic (project-relative path). Files directly under by-account/
+// (no account segment) are ignored.
+func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error) {
 	if ledger == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	root := filepath.Join(projectRoot, ledger, "docs", ByAccountDir)
 	info, err := os.Stat(root)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return nil, nil
+			return nil, nil, nil
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	if !info.IsDir() {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	var out []ast.Document
+	var diags diag.List
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
-			return nil
-		}
-		base := d.Name()
-		m := datePrefix.FindStringSubmatch(base)
-		if m == nil {
-			return nil
-		}
-		dt, err := time.ParseInLocation("20060102", m[1], time.UTC)
-		if err != nil {
 			return nil
 		}
 		rel, err := filepath.Rel(root, path)
@@ -64,10 +62,17 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, error) {
 		rel = filepath.ToSlash(rel)
 		dir := filepath.ToSlash(filepath.Dir(rel))
 		if dir == "." {
+			// Loose file under by-account/ — no account path.
+			return nil
+		}
+		projRel := filepath.ToSlash(filepath.Join(ledger, "docs", ByAccountDir, rel))
+		base := d.Name()
+		dt, perr := parseFilenameDate(base)
+		if perr != "" {
+			diags.Error(projRel, 0, perr)
 			return nil
 		}
 		account := strings.ReplaceAll(dir, "/", ":")
-		projRel := filepath.ToSlash(filepath.Join(ledger, "docs", ByAccountDir, rel))
 		out = append(out, ast.Document{
 			Meta:      ast.Meta{Date: dt, File: "docs.gen"},
 			Account:   account,
@@ -77,10 +82,24 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, diags, err
 	}
 	sortDocuments(out)
-	return out, nil
+	return out, diags, nil
+}
+
+// parseFilenameDate requires a leading yyyymmdd calendar date (SPEC §4.4).
+// On failure returns a non-empty diagnostic message.
+func parseFilenameDate(base string) (time.Time, string) {
+	m := datePrefix.FindStringSubmatch(base)
+	if m == nil {
+		return time.Time{}, fmt.Sprintf("filename %q must start with yyyymmdd", base)
+	}
+	dt, err := time.ParseInLocation("20060102", m[1], time.UTC)
+	if err != nil {
+		return time.Time{}, fmt.Sprintf("filename date prefix %q is not a valid yyyymmdd", m[1])
+	}
+	return dt, ""
 }
 
 // sortDocuments orders newest first, then account, then path (stable).
