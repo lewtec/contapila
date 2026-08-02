@@ -9,7 +9,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // Command palette: SSR items via commandItems; open/filter/nav in /static/command.js.
-// Native <dialog> + daisyUI modal chrome. Open with ⌘K / Ctrl+K or the topbar button.
+// Native <dialog> with our own styles (not daisyUI .modal — that fights [open] visibility).
+// Open with ⌘K / Ctrl+K or the topbar Jump button.
 func commandPaletteTrigger() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -31,7 +32,7 @@ func commandPaletteTrigger() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button type=\"button\" id=\"cmd-palette-open\" class=\"btn btn-ghost btn-xs gap-1 font-normal text-base-content/70 hover:text-base-content\" aria-haspopup=\"dialog\" aria-controls=\"cmd-palette\" title=\"Jump (Ctrl+K or ⌘K)\"><span class=\"hidden sm:inline text-[0.7rem]\">Jump</span> <kbd class=\"kbd kbd-xs opacity-70\">⌘K</kbd></button>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button type=\"button\" id=\"cmd-palette-open\" class=\"btn btn-ghost btn-xs h-6 min-h-0 gap-1 px-1.5 font-normal text-base-content/80 hover:text-base-content border border-base-300/80\" aria-haspopup=\"dialog\" aria-controls=\"cmd-palette\" title=\"Jump (Ctrl+K or ⌘K)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3 w-3 shrink-0 opacity-70\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <span class=\"text-[0.7rem] leading-none\">Jump</span> <kbd id=\"cmd-palette-hotkey\" class=\"kbd kbd-xs h-4 min-h-0 px-1 text-[0.65rem] opacity-70 leading-none\">Ctrl+K</kbd></button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -67,7 +68,7 @@ func commandPaletteItem(it CommandItem) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(it.Keywords)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 25, Col: 29}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 27, Col: 29}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -80,7 +81,7 @@ func commandPaletteItem(it CommandItem) templ.Component {
 		var templ_7745c5c3_Var4 templ.SafeURL
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(it.Href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 29, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 31, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -93,7 +94,7 @@ func commandPaletteItem(it CommandItem) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(it.Group)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 33, Col: 110}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 35, Col: 110}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -106,7 +107,7 @@ func commandPaletteItem(it CommandItem) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 34, Col: 94}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 36, Col: 94}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -141,7 +142,7 @@ func commandPalette(d pageData) templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<dialog id=\"cmd-palette\" class=\"modal modal-middle p-0\" aria-label=\"Jump to\"><div class=\"modal-box flex max-h-[min(28rem,80vh)] w-[min(28rem,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden rounded-md border border-base-300 bg-base-100 p-0 shadow-lg\"><div class=\"flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3.5 w-3.5 shrink-0 opacity-40\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <input id=\"cmd-palette-input\" type=\"search\" class=\"input input-ghost input-sm h-7 min-h-0 flex-1 border-0 px-0 text-sm focus:outline-none focus:border-0 focus:ring-0\" placeholder=\"Jump to report, account, ledger…\" autocomplete=\"off\" spellcheck=\"false\" aria-autocomplete=\"list\" aria-controls=\"cmd-palette-list\" aria-activedescendant=\"\"> <kbd class=\"kbd kbd-xs shrink-0 opacity-50\">esc</kbd></div><ul id=\"cmd-palette-list\" role=\"listbox\" class=\"menu menu-sm max-h-none min-h-0 flex-1 overflow-y-auto rounded-none p-1 gap-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<dialog id=\"cmd-palette\" class=\"cmd-palette-dialog\" aria-label=\"Jump to\"><div class=\"cmd-palette-panel flex max-h-[min(28rem,80vh)] w-full flex-col gap-0 overflow-hidden border border-base-300 bg-base-100 shadow-lg\"><div class=\"flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3.5 w-3.5 shrink-0 opacity-40\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <input id=\"cmd-palette-input\" type=\"search\" class=\"input input-ghost input-sm h-7 min-h-0 flex-1 border-0 px-0 text-sm focus:outline-none focus:border-0 focus:ring-0\" placeholder=\"Jump to report, account, ledger…\" autocomplete=\"off\" spellcheck=\"false\" aria-autocomplete=\"list\" aria-controls=\"cmd-palette-list\" aria-activedescendant=\"\"> <kbd class=\"kbd kbd-xs shrink-0 opacity-50\">esc</kbd></div><ul id=\"cmd-palette-list\" role=\"listbox\" class=\"menu menu-sm max-h-none min-h-0 flex-1 overflow-y-auto rounded-none p-1 gap-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -151,7 +152,7 @@ func commandPalette(d pageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</ul><p id=\"cmd-palette-empty\" class=\"hidden px-3 py-4 text-center text-xs text-base-content/50\" hidden>No matches</p><div class=\"shrink-0 border-t border-base-300 px-2.5 py-1.5 text-[0.65rem] text-base-content/40 flex items-center gap-2\"><span><kbd class=\"kbd kbd-xs\">↑↓</kbd> move</span> <span><kbd class=\"kbd kbd-xs\">↵</kbd> open</span> <span><kbd class=\"kbd kbd-xs\">esc</kbd> close</span></div></div><form method=\"dialog\" class=\"modal-backdrop bg-black/40\"><button type=\"submit\" class=\"cursor-default\">close</button></form></dialog><script src=\"/static/command.js\" defer></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</ul><p id=\"cmd-palette-empty\" class=\"hidden px-3 py-4 text-center text-xs text-base-content/50\" hidden>No matches</p><div class=\"shrink-0 border-t border-base-300 px-2.5 py-1.5 text-[0.65rem] text-base-content/40 flex items-center gap-2\"><span><kbd class=\"kbd kbd-xs\">↑↓</kbd> move</span> <span><kbd class=\"kbd kbd-xs\">↵</kbd> open</span> <span><kbd class=\"kbd kbd-xs\">esc</kbd> close</span></div></div></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -195,12 +195,14 @@ func RegisterTyped[S any](id string, setup func(reg *Reg[S])) {
 	apply(nil)
 }
 
-// BindWeb runs each module's setup again with a scoped Web middleman (pages).
+// BindWeb runs each module's setup again with a scoped Web middleman (pages/palette).
+// newWeb must be non-nil; a nil factory is ignored without consuming the once
+// (so a later real BindWeb can still bind).
 func BindWeb(newWeb func(moduleID string) Web) {
+	if newWeb == nil {
+		return
+	}
 	bindOnce.Do(func() {
-		if newWeb == nil {
-			return
-		}
 		mu.RLock()
 		list := slices.Clone(modules)
 		mu.RUnlock()

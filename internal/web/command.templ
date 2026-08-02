@@ -1,19 +1,21 @@
 package web
 
 // Command palette: SSR items via commandItems; open/filter/nav in /static/command.js.
-// Native <dialog> + daisyUI modal chrome. Open with ⌘K / Ctrl+K or the topbar button.
+// Native <dialog> with our own styles (not daisyUI .modal — that fights [open] visibility).
+// Open with ⌘K / Ctrl+K or the topbar Jump button.
 
 templ commandPaletteTrigger() {
 	<button
 		type="button"
 		id="cmd-palette-open"
-		class="btn btn-ghost btn-xs gap-1 font-normal text-base-content/70 hover:text-base-content"
+		class="btn btn-ghost btn-xs h-6 min-h-0 gap-1 px-1.5 font-normal text-base-content/80 hover:text-base-content border border-base-300/80"
 		aria-haspopup="dialog"
 		aria-controls="cmd-palette"
 		title="Jump (Ctrl+K or ⌘K)"
 	>
-		<span class="hidden sm:inline text-[0.7rem]">Jump</span>
-		<kbd class="kbd kbd-xs opacity-70">⌘K</kbd>
+		<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"></path></svg>
+		<span class="text-[0.7rem] leading-none">Jump</span>
+		<kbd id="cmd-palette-hotkey" class="kbd kbd-xs h-4 min-h-0 px-1 text-[0.65rem] opacity-70 leading-none">Ctrl+K</kbd>
 	</button>
 }
 
@@ -37,12 +39,8 @@ templ commandPaletteItem(it CommandItem) {
 }
 
 templ commandPalette(d pageData) {
-	<dialog
-		id="cmd-palette"
-		class="modal modal-middle p-0"
-		aria-label="Jump to"
-	>
-		<div class="modal-box flex max-h-[min(28rem,80vh)] w-[min(28rem,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden rounded-md border border-base-300 bg-base-100 p-0 shadow-lg">
+	<dialog id="cmd-palette" class="cmd-palette-dialog" aria-label="Jump to">
+		<div class="cmd-palette-panel flex max-h-[min(28rem,80vh)] w-full flex-col gap-0 overflow-hidden border border-base-300 bg-base-100 shadow-lg">
 			<div class="flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"></path></svg>
 				<input
@@ -74,9 +72,5 @@ templ commandPalette(d pageData) {
 				<span><kbd class="kbd kbd-xs">esc</kbd> close</span>
 			</div>
 		</div>
-		<form method="dialog" class="modal-backdrop bg-black/40">
-			<button type="submit" class="cursor-default">close</button>
-		</form>
 	</dialog>
-	<script src="/static/command.js" defer></script>
 }

@@ -134,7 +134,25 @@
     opacity: 1;
   }
 
-  /* Command palette selection (gold accent; DESIGN Cmd+K) */
+  /* Command palette: own dialog chrome (avoid daisyUI .modal + <dialog> fights) */
+  .cmd-palette-dialog {
+    margin: auto;
+    border: none;
+    padding: 0;
+    background: transparent;
+    max-width: min(28rem, calc(100vw - 1.5rem));
+    width: 100%;
+    color: inherit;
+  }
+  .cmd-palette-dialog::backdrop {
+    background-color: oklch(0% 0 0 / 0.4);
+  }
+  .cmd-palette-panel {
+    border-radius: var(--radius-box, 0.25rem);
+    width: 100%;
+  }
+
+  /* Selection (gold accent; DESIGN Cmd+K) */
   #cmd-palette .cmd-item.cmd-active > a,
   #cmd-palette .cmd-item[aria-selected="true"] > a {
     background-color: color-mix(in oklch, var(--color-accent) 22%, transparent);

@@ -35,11 +35,22 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 		if buf.Len() < 100 {
 			t.Fatalf("%s: short render %d", page, buf.Len())
 		}
-		if !bytes.Contains(buf.Bytes(), []byte(`id="cmd-palette"`)) {
+		html := buf.Bytes()
+		if !bytes.Contains(html, []byte(`id="cmd-palette"`)) {
 			t.Fatalf("%s: missing command palette", page)
 		}
-		if !bytes.Contains(buf.Bytes(), []byte(`/static/command.js`)) {
+		if !bytes.Contains(html, []byte(`id="cmd-palette-open"`)) {
+			t.Fatalf("%s: missing Jump button", page)
+		}
+		if !bytes.Contains(html, []byte(`>Jump<`)) {
+			t.Fatalf("%s: Jump label missing", page)
+		}
+		if !bytes.Contains(html, []byte(`/static/command.js`)) {
 			t.Fatalf("%s: missing command.js", page)
+		}
+		// daisyUI .modal fights native <dialog> open visibility — must not use it.
+		if bytes.Contains(html, []byte(`id="cmd-palette" class="modal`)) {
+			t.Fatalf("%s: palette must not use daisyUI modal class", page)
 		}
 	}
 	// account + commodity

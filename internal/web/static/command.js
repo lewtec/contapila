@@ -1,6 +1,6 @@
 /* Command palette: filter SSR list, keyboard nav, ⌘K / Ctrl+K open.
  * Expects #cmd-palette (dialog), #cmd-palette-input, #cmd-palette-list [data-cmd-item],
- * #cmd-palette-open, #cmd-palette-empty.
+ * #cmd-palette-open, #cmd-palette-empty. Optional #cmd-palette-hotkey for platform label.
  */
 (function () {
   "use strict";
@@ -21,6 +21,7 @@
   function setActive(idx) {
     if (visible.length === 0) {
       active = -1;
+      input && input.setAttribute("aria-activedescendant", "");
       return;
     }
     if (idx < 0) idx = visible.length - 1;
@@ -66,20 +67,32 @@
   }
 
   function open() {
-    if (!dialog || dialog.open) return;
+    if (!dialog || typeof dialog.showModal !== "function") return;
+    if (dialog.open) return;
+    collect();
     input.value = "";
     filter();
-    dialog.showModal();
-    // Focus after paint so dialog is interactive.
+    try {
+      dialog.showModal();
+    } catch (err) {
+      // Fallback if already open or not allowed.
+      if (!dialog.open) dialog.setAttribute("open", "");
+    }
     requestAnimationFrame(function () {
-      input.focus();
-      input.select();
+      try {
+        input.focus();
+        input.select();
+      } catch (e) {}
     });
   }
 
   function close() {
-    if (!dialog || !dialog.open) return;
-    dialog.close();
+    if (!dialog) return;
+    if (typeof dialog.close === "function" && dialog.open) {
+      dialog.close();
+      return;
+    }
+    dialog.removeAttribute("open");
   }
 
   function activate() {
@@ -90,11 +103,17 @@
     }
   }
 
+  function isOpenHotkey(e) {
+    if (!(e.metaKey || e.ctrlKey)) return false;
+    // code is layout-stable; key covers older engines
+    return e.code === "KeyK" || e.key === "k" || e.key === "K";
+  }
+
   function onKeydown(e) {
-    var mod = e.metaKey || e.ctrlKey;
-    if (mod && (e.key === "k" || e.key === "K")) {
+    if (isOpenHotkey(e)) {
       e.preventDefault();
-      if (dialog.open) close();
+      e.stopPropagation();
+      if (dialog && dialog.open) close();
       else open();
       return;
     }
@@ -121,6 +140,14 @@
     }
   }
 
+  function labelHotkey() {
+    var el = qs("#cmd-palette-hotkey");
+    if (!el) return;
+    var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || "") ||
+      (navigator.userAgentData && navigator.userAgentData.platform === "macOS");
+    el.textContent = isMac ? "⌘K" : "Ctrl+K";
+  }
+
   function init() {
     dialog = qs("#cmd-palette");
     input = qs("#cmd-palette-input");
@@ -129,21 +156,26 @@
     openBtn = qs("#cmd-palette-open");
     if (!dialog || !input || !list) return;
 
+    labelHotkey();
     collect();
     input.addEventListener("input", filter);
-    document.addEventListener("keydown", onKeydown);
+    // Capture so Ctrl+K wins over browser chrome / focused inputs where possible.
+    document.addEventListener("keydown", onKeydown, true);
     if (openBtn) {
       openBtn.addEventListener("click", function (e) {
         e.preventDefault();
         open();
       });
     }
-    // Click row: allow default navigation (href).
     list.addEventListener("mousemove", function (e) {
       var li = e.target.closest("[data-cmd-item]");
       if (!li || li.hidden) return;
       var idx = visible.indexOf(li);
       if (idx >= 0 && idx !== active) setActive(idx);
+    });
+    // Backdrop click (native dialog): click on dialog itself, not panel.
+    dialog.addEventListener("click", function (e) {
+      if (e.target === dialog) close();
     });
   }
 

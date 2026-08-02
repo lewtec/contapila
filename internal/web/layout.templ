@@ -8,6 +8,7 @@ templ head(d pageData) {
 	<meta name="color-scheme" content="light dark"/>
 	<title>{ d.Title } · contapila</title>
 	<link href="/static/app.css" rel="stylesheet" type="text/css"/>
+	<script src="/static/command.js" defer></script>
 	if d.NeedCharts {
 		@chartAssets()
 	}
