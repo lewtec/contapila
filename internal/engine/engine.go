@@ -292,7 +292,7 @@ func injectProjectStreamJournals(fsys filesys.FS, p *project.Project, stream []a
 		dirs, ldiags, err := loader.LoadFileFS(fsys, j.Path)
 		diags.Merge(ldiags)
 		if err != nil {
-			diags.Error(j.Path, 0, fmt.Sprintf("failed to load project journal %s: %v", j.RelPath, err))
+			diags.Error(j.Path, 0, fmt.Sprintf("load project journal %s: %v", j.RelPath, err))
 			continue
 		}
 		for _, d := range dirs {
