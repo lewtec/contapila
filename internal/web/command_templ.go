@@ -8,10 +8,9 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Command palette: SSR items via commandItems; open/filter/nav in /static/command.js.
-// Native <dialog> with our own styles (not daisyUI .modal — that fights [open] visibility).
-// Open with ⌘K / Ctrl+K or the topbar Jump button.
-func commandPaletteTrigger() templ.Component {
+// Contapila jump palette — thin wrapper over pkg/cmdpalette.
+// Catalog assembly stays in command.go; UI is reusable.
+func jumpPaletteButton(d pageData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -32,7 +31,7 @@ func commandPaletteTrigger() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button type=\"button\" id=\"cmd-palette-open\" class=\"btn btn-ghost btn-xs h-6 min-h-0 gap-1 px-1.5 font-normal text-base-content/80 hover:text-base-content border border-base-300/80\" aria-haspopup=\"dialog\" aria-controls=\"cmd-palette\" title=\"Jump (Ctrl+K or ⌘K)\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3 w-3 shrink-0 opacity-70\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <span class=\"text-[0.7rem] leading-none\">Jump</span> <kbd id=\"cmd-palette-hotkey\" class=\"kbd kbd-xs h-4 min-h-0 px-1 text-[0.65rem] opacity-70 leading-none\">Ctrl+K</kbd></button>")
+		templ_7745c5c3_Err = jumpPalette(d).Button().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -40,7 +39,7 @@ func commandPaletteTrigger() templ.Component {
 	})
 }
 
-func commandPaletteItem(it CommandItem) templ.Component {
+func jumpPaletteModal(d pageData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -61,69 +60,7 @@ func commandPaletteItem(it CommandItem) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<li role=\"option\" class=\"cmd-item block w-full\" data-cmd-item data-keywords=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(it.Keywords)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 28, Col: 29}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" aria-selected=\"false\"><a href=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var4 templ.SafeURL
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(it.Href))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 32, Col: 32}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"cmd-item-link block w-full min-w-0 px-2.5 py-1.5 text-xs no-underline hover:no-underline\" tabindex=\"-1\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if it.Group != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"block w-full text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate leading-tight\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(it.Group)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 37, Col: 124}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span> ")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"block w-full font-mono text-[0.75rem] truncate text-base-content leading-snug\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 39, Col: 105}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span></a></li>")
+		templ_7745c5c3_Err = jumpPalette(d).Modal().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -131,7 +68,7 @@ func commandPaletteItem(it CommandItem) templ.Component {
 	})
 }
 
-func commandPalette(d pageData) templ.Component {
+func jumpPaletteAssets() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -147,22 +84,12 @@ func commandPalette(d pageData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var7 == nil {
-			templ_7745c5c3_Var7 = templ.NopComponent
+		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var3 == nil {
+			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<dialog id=\"cmd-palette\" class=\"cmd-palette-dialog\" aria-label=\"Jump to\"><div class=\"cmd-palette-panel flex max-h-[min(28rem,80vh)] w-full flex-col gap-0 overflow-hidden border border-base-300 bg-base-100 shadow-lg\"><div class=\"flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3.5 w-3.5 shrink-0 opacity-40\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <input id=\"cmd-palette-input\" type=\"search\" class=\"input input-ghost input-sm h-7 min-h-0 flex-1 border-0 px-0 text-sm focus:outline-none focus:border-0 focus:ring-0\" placeholder=\"Jump to report, account, ledger…\" autocomplete=\"off\" spellcheck=\"false\" aria-autocomplete=\"list\" aria-controls=\"cmd-palette-list\" aria-activedescendant=\"\"> <kbd class=\"kbd kbd-xs shrink-0 opacity-50\">esc</kbd></div><ul id=\"cmd-palette-list\" role=\"listbox\" class=\"cmd-palette-list m-0 flex min-h-0 flex-1 list-none flex-col overflow-y-auto p-1\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, it := range commandItems(d) {
-			templ_7745c5c3_Err = commandPaletteItem(it).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</ul><p id=\"cmd-palette-empty\" class=\"hidden px-3 py-4 text-center text-xs text-base-content/50\" hidden>No matches</p><div class=\"shrink-0 border-t border-base-300 px-2.5 py-1.5 text-[0.65rem] text-base-content/40 flex items-center gap-2\"><span><kbd class=\"kbd kbd-xs\">↑↓</kbd> move</span> <span><kbd class=\"kbd kbd-xs\">↵</kbd> open</span> <span><kbd class=\"kbd kbd-xs\">esc</kbd> close</span></div></div></dialog>")
+		templ_7745c5c3_Err = jumpPalette(pageData{}).Assets().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

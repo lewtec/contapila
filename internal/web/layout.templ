@@ -8,7 +8,7 @@ templ head(d pageData) {
 	<meta name="color-scheme" content="light dark"/>
 	<title>{ d.Title } · contapila</title>
 	<link href="/static/app.css" rel="stylesheet" type="text/css"/>
-	<script src="/static/command.js" defer></script>
+	@jumpPaletteAssets()
 	if d.NeedCharts {
 		@chartAssets()
 	}
@@ -131,7 +131,7 @@ templ topbar(d pageData) {
 			@breadcrumbs(d)
 		</div>
 		<div class="navbar-end gap-1.5 shrink-0 h-full items-center">
-			@commandPaletteTrigger()
+			@jumpPaletteButton(d)
 			@timeFilter(d)
 			<label class="swap swap-rotate btn btn-ghost btn-xs btn-square" title="Toggle light / dark">
 				<input id="theme-toggle" type="checkbox" class="theme-controller" value="contapila-dark" aria-label="Toggle dark theme"/>
@@ -233,7 +233,7 @@ templ appLayout(d pageData) {
 				</div>
 			</div>
 			@themeScript()
-			@commandPalette(d)
+			@jumpPaletteModal(d)
 		</body>
 	</html>
 }

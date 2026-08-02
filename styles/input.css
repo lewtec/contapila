@@ -134,56 +134,14 @@
     opacity: 1;
   }
 
-  /* Command palette: own dialog chrome (avoid daisyUI .modal + <dialog> fights) */
-  .cmd-palette-dialog {
-    margin: auto;
-    border: none;
-    padding: 0;
-    background: transparent;
-    max-width: min(28rem, calc(100vw - 1.5rem));
-    width: 100%;
-    color: inherit;
-  }
-  .cmd-palette-dialog::backdrop {
-    background-color: oklch(0% 0 0 / 0.4);
-  }
-  .cmd-palette-panel {
-    border-radius: var(--radius-box, 0.25rem);
-    width: 100%;
-  }
-
-  /* Single-column list (never daisyUI .menu — it uses 3-col grid per row) */
-  .cmd-palette-list {
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    width: 100%;
-  }
-  .cmd-palette-list > .cmd-item {
-    display: block;
-    width: 100%;
-    flex: 0 0 auto;
-  }
-  .cmd-palette-list .cmd-item-link {
-    display: block;
-    width: 100%;
-    /* kill any inherited grid from elsewhere */
-    grid-auto-flow: row;
-    grid-template-columns: none;
-  }
-
-  /* Selection (gold accent; DESIGN Cmd+K) */
-  #cmd-palette .cmd-item.cmd-active > .cmd-item-link,
-  #cmd-palette .cmd-item[aria-selected="true"] > .cmd-item-link {
-    background-color: color-mix(in oklch, var(--color-accent) 22%, transparent);
-    color: var(--color-base-content);
-  }
-  #cmd-palette .cmd-item.cmd-active > .cmd-item-link .font-mono,
-  #cmd-palette .cmd-item[aria-selected="true"] > .cmd-item-link .font-mono {
-    color: color-mix(in oklch, var(--color-accent) 55%, var(--color-base-content));
-  }
-  #cmd-palette .cmd-item > .cmd-item-link:focus-visible {
-    outline: 1px solid var(--color-primary);
-    outline-offset: -1px;
+  /* Contapila accent for reusable pkg/cmdpalette selection */
+  :root,
+  [data-theme="contapila-light"],
+  [data-theme="contapila-dark"] {
+    --cmdpalette-accent: var(--color-accent);
+    --cmdpalette-border: var(--color-base-300);
+    --cmdpalette-bg: var(--color-base-100);
+    --cmdpalette-fg: var(--color-base-content);
+    --cmdpalette-radius: var(--radius-box, 0.25rem);
   }
 }
