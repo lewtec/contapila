@@ -1,11 +1,11 @@
 # Contapila web UI
 
-Status: density shell + uPlot charts on net worth / P&L / account (Cmd+K still later).
+Status: density shell + uPlot charts + Cmd+K jump palette (reports, ledgers, accounts, commodities, queries).
 
 ## Intent
 
 Fix **generic daisyUI** look and **too much air**. Keep working light/dark toggle.  
-Composition: **Fava-like data/reports/time** + **Linear/Raycast-class density** for chrome and keyboard (Cmd+K next).
+Composition: **Fava-like data/reports/time** + **Linear/Raycast-class density** for chrome and keyboard (Cmd+K).
 
 ## Personality (visual)
 
@@ -18,7 +18,7 @@ Quiet · Precise · Helix-ready · money-tool, not marketing.
 | Role | Use |
 |------|-----|
 | **Dark green** | Primary: active nav, links, focus, chart series base |
-| **Gold** | Rare accent (≤10%): key totals, selection highlight later (Cmd+K) |
+| **Gold** | Rare accent (≤10%): key totals, Cmd+K selection highlight |
 | **Base** | Near-pure neutral surfaces (not cream SaaS); dark = deep green-black tint |
 | **Semantic** | error / warning / success / info for check only |
 
@@ -66,8 +66,8 @@ Implementation (daisyUI way):
 
 ## Components
 
-navbar/topbar, drawer, menu, table, alert, badge, breadcrumbs, input, theme-controller  
-(Cmd+K modal later)
+navbar/topbar, drawer, menu, table, alert, badge, breadcrumbs, input, theme-controller,  
+Cmd+K dialog (`command.templ` + `static/command.js`)
 
 ## Charts (uPlot, vendored)
 
@@ -77,10 +77,12 @@ navbar/topbar, drawer, menu, table, alert, badge, breadcrumbs, input, theme-cont
 - **Income statement**: diverging bars (income up, expenses down); bin from time filter (year→month, month→day, multi-year→year)
 - Hierarchy/treemap: not yet (can add another lib later without rewriting series APIs)
 
-## Cmd+K (next phase)
+## Cmd+K
 
-- Fuzzy jump + slash-ish (`time`, `ledger`, `check`, reports, accounts)
-- Not required to type full strings
+- **Primitive:** `commandPalette` / `commandPaletteItem` / `commandPaletteTrigger` in `command.templ`
+- **Catalog:** `commandItems` (SSR) — ledgers, sidebar reports, named queries, accounts, commodities
+- **Client:** `/static/command.js` — open ⌘K/Ctrl+K, token filter on `data-keywords`, arrows/enter
+- **Not yet:** slash actions (`time …`), recents, fuzzy rank beyond substring tokens
 
 ## Motion
 

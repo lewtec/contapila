@@ -62,6 +62,8 @@ func basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledger
 		data.Error = tq.PeriodErr.Error()
 	}
 	data.QueryNav = queryNavItems(l)
+	data.JumpAccounts = jumpAccountNames(l)
+	data.JumpCommodities = jumpCommodityNames(l)
 	return data
 }
 

@@ -185,6 +185,9 @@ type pageData struct {
 	EventList []EventListRow
 	// QueryNav is named journal queries for the sidebar (any page).
 	QueryNav []QueryNavItem
+	// JumpAccounts / JumpCommodities feed the command palette (sorted keys).
+	JumpAccounts    []string
+	JumpCommodities []string
 	// QueryList is the /queries report (plugin web_queries).
 	QueryList []QueryListRow
 	// Query detail page (/l/{ledger}/query/{name}).

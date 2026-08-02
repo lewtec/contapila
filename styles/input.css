@@ -133,4 +133,19 @@
   .pnl-toggle:hover {
     opacity: 1;
   }
+
+  /* Command palette selection (gold accent; DESIGN Cmd+K) */
+  #cmd-palette .cmd-item.cmd-active > a,
+  #cmd-palette .cmd-item[aria-selected="true"] > a {
+    background-color: color-mix(in oklch, var(--color-accent) 22%, transparent);
+    color: var(--color-base-content);
+  }
+  #cmd-palette .cmd-item.cmd-active > a .font-mono,
+  #cmd-palette .cmd-item[aria-selected="true"] > a .font-mono {
+    color: color-mix(in oklch, var(--color-accent) 55%, var(--color-base-content));
+  }
+  #cmd-palette .cmd-item > a:focus-visible {
+    outline: 1px solid var(--color-primary);
+    outline-offset: -1px;
+  }
 }
