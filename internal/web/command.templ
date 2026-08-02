@@ -20,22 +20,23 @@ templ commandPaletteTrigger() {
 }
 
 templ commandPaletteItem(it CommandItem) {
+	// One column only — never daisyUI .menu (that forces a 3-col grid on each row).
 	<li
 		role="option"
-		class="cmd-item"
+		class="cmd-item block w-full"
 		data-cmd-item
 		data-keywords={ it.Keywords }
 		aria-selected="false"
 	>
 		<a
 			href={ templ.SafeURL(it.Href) }
-			class="flex flex-col gap-0 px-2.5 py-1.5 text-xs no-underline hover:no-underline rounded-none min-w-0"
+			class="cmd-item-link block w-full min-w-0 px-2.5 py-1.5 text-xs no-underline hover:no-underline"
 			tabindex="-1"
 		>
 			if it.Group != "" {
-				<span class="text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate leading-tight">{ it.Group }</span>
+				<span class="block w-full text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate leading-tight">{ it.Group }</span>
 			}
-			<span class="font-mono text-[0.75rem] truncate text-base-content leading-snug">{ it.Label }</span>
+			<span class="block w-full font-mono text-[0.75rem] truncate text-base-content leading-snug">{ it.Label }</span>
 		</a>
 	</li>
 }
@@ -61,7 +62,7 @@ templ commandPalette(d pageData) {
 			<ul
 				id="cmd-palette-list"
 				role="listbox"
-				class="menu menu-sm max-h-none min-h-0 flex-1 overflow-y-auto rounded-none p-1 gap-0"
+				class="cmd-palette-list m-0 flex min-h-0 flex-1 list-none flex-col overflow-y-auto p-1"
 			>
 				for _, it := range commandItems(d) {
 					@commandPaletteItem(it)

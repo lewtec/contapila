@@ -61,14 +61,14 @@ func commandPaletteItem(it CommandItem) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<li role=\"option\" class=\"cmd-item\" data-cmd-item data-keywords=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<li role=\"option\" class=\"cmd-item block w-full\" data-cmd-item data-keywords=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(it.Keywords)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 27, Col: 29}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 28, Col: 29}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -81,25 +81,25 @@ func commandPaletteItem(it CommandItem) templ.Component {
 		var templ_7745c5c3_Var4 templ.SafeURL
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(it.Href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 31, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 32, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"flex flex-col gap-0 px-2.5 py-1.5 text-xs no-underline hover:no-underline rounded-none min-w-0\" tabindex=\"-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"cmd-item-link block w-full min-w-0 px-2.5 py-1.5 text-xs no-underline hover:no-underline\" tabindex=\"-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if it.Group != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate leading-tight\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"block w-full text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate leading-tight\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(it.Group)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 36, Col: 111}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 37, Col: 124}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -110,14 +110,14 @@ func commandPaletteItem(it CommandItem) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"font-mono text-[0.75rem] truncate text-base-content leading-snug\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"block w-full font-mono text-[0.75rem] truncate text-base-content leading-snug\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 38, Col: 92}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 39, Col: 105}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -152,7 +152,7 @@ func commandPalette(d pageData) templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<dialog id=\"cmd-palette\" class=\"cmd-palette-dialog\" aria-label=\"Jump to\"><div class=\"cmd-palette-panel flex max-h-[min(28rem,80vh)] w-full flex-col gap-0 overflow-hidden border border-base-300 bg-base-100 shadow-lg\"><div class=\"flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3.5 w-3.5 shrink-0 opacity-40\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <input id=\"cmd-palette-input\" type=\"search\" class=\"input input-ghost input-sm h-7 min-h-0 flex-1 border-0 px-0 text-sm focus:outline-none focus:border-0 focus:ring-0\" placeholder=\"Jump to report, account, ledger…\" autocomplete=\"off\" spellcheck=\"false\" aria-autocomplete=\"list\" aria-controls=\"cmd-palette-list\" aria-activedescendant=\"\"> <kbd class=\"kbd kbd-xs shrink-0 opacity-50\">esc</kbd></div><ul id=\"cmd-palette-list\" role=\"listbox\" class=\"menu menu-sm max-h-none min-h-0 flex-1 overflow-y-auto rounded-none p-1 gap-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<dialog id=\"cmd-palette\" class=\"cmd-palette-dialog\" aria-label=\"Jump to\"><div class=\"cmd-palette-panel flex max-h-[min(28rem,80vh)] w-full flex-col gap-0 overflow-hidden border border-base-300 bg-base-100 shadow-lg\"><div class=\"flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3.5 w-3.5 shrink-0 opacity-40\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <input id=\"cmd-palette-input\" type=\"search\" class=\"input input-ghost input-sm h-7 min-h-0 flex-1 border-0 px-0 text-sm focus:outline-none focus:border-0 focus:ring-0\" placeholder=\"Jump to report, account, ledger…\" autocomplete=\"off\" spellcheck=\"false\" aria-autocomplete=\"list\" aria-controls=\"cmd-palette-list\" aria-activedescendant=\"\"> <kbd class=\"kbd kbd-xs shrink-0 opacity-50\">esc</kbd></div><ul id=\"cmd-palette-list\" role=\"listbox\" class=\"cmd-palette-list m-0 flex min-h-0 flex-1 list-none flex-col overflow-y-auto p-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
