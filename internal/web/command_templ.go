@@ -87,33 +87,43 @@ func commandPaletteItem(it CommandItem) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"flex items-baseline gap-2 px-2.5 py-1.5 text-xs no-underline hover:no-underline rounded-none\" tabindex=\"-1\"><span class=\"shrink-0 w-20 text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"flex flex-col gap-0 px-2.5 py-1.5 text-xs no-underline hover:no-underline rounded-none min-w-0\" tabindex=\"-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(it.Group)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 35, Col: 110}
+		if it.Group != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate leading-tight\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(it.Group)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 36, Col: 111}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span> ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span> <span class=\"min-w-0 flex-1 font-mono text-[0.75rem] truncate text-base-content\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"font-mono text-[0.75rem] truncate text-base-content leading-snug\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 36, Col: 94}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/command.templ`, Line: 38, Col: 92}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span></a></li>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span></a></li>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -142,7 +152,7 @@ func commandPalette(d pageData) templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<dialog id=\"cmd-palette\" class=\"cmd-palette-dialog\" aria-label=\"Jump to\"><div class=\"cmd-palette-panel flex max-h-[min(28rem,80vh)] w-full flex-col gap-0 overflow-hidden border border-base-300 bg-base-100 shadow-lg\"><div class=\"flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3.5 w-3.5 shrink-0 opacity-40\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <input id=\"cmd-palette-input\" type=\"search\" class=\"input input-ghost input-sm h-7 min-h-0 flex-1 border-0 px-0 text-sm focus:outline-none focus:border-0 focus:ring-0\" placeholder=\"Jump to report, account, ledger…\" autocomplete=\"off\" spellcheck=\"false\" aria-autocomplete=\"list\" aria-controls=\"cmd-palette-list\" aria-activedescendant=\"\"> <kbd class=\"kbd kbd-xs shrink-0 opacity-50\">esc</kbd></div><ul id=\"cmd-palette-list\" role=\"listbox\" class=\"menu menu-sm max-h-none min-h-0 flex-1 overflow-y-auto rounded-none p-1 gap-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<dialog id=\"cmd-palette\" class=\"cmd-palette-dialog\" aria-label=\"Jump to\"><div class=\"cmd-palette-panel flex max-h-[min(28rem,80vh)] w-full flex-col gap-0 overflow-hidden border border-base-300 bg-base-100 shadow-lg\"><div class=\"flex shrink-0 items-center gap-2 border-b border-base-300 px-2.5 py-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-3.5 w-3.5 shrink-0 opacity-40\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" aria-hidden=\"true\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z\"></path></svg> <input id=\"cmd-palette-input\" type=\"search\" class=\"input input-ghost input-sm h-7 min-h-0 flex-1 border-0 px-0 text-sm focus:outline-none focus:border-0 focus:ring-0\" placeholder=\"Jump to report, account, ledger…\" autocomplete=\"off\" spellcheck=\"false\" aria-autocomplete=\"list\" aria-controls=\"cmd-palette-list\" aria-activedescendant=\"\"> <kbd class=\"kbd kbd-xs shrink-0 opacity-50\">esc</kbd></div><ul id=\"cmd-palette-list\" role=\"listbox\" class=\"menu menu-sm max-h-none min-h-0 flex-1 overflow-y-auto rounded-none p-1 gap-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -152,7 +162,7 @@ func commandPalette(d pageData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</ul><p id=\"cmd-palette-empty\" class=\"hidden px-3 py-4 text-center text-xs text-base-content/50\" hidden>No matches</p><div class=\"shrink-0 border-t border-base-300 px-2.5 py-1.5 text-[0.65rem] text-base-content/40 flex items-center gap-2\"><span><kbd class=\"kbd kbd-xs\">↑↓</kbd> move</span> <span><kbd class=\"kbd kbd-xs\">↵</kbd> open</span> <span><kbd class=\"kbd kbd-xs\">esc</kbd> close</span></div></div></dialog>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</ul><p id=\"cmd-palette-empty\" class=\"hidden px-3 py-4 text-center text-xs text-base-content/50\" hidden>No matches</p><div class=\"shrink-0 border-t border-base-300 px-2.5 py-1.5 text-[0.65rem] text-base-content/40 flex items-center gap-2\"><span><kbd class=\"kbd kbd-xs\">↑↓</kbd> move</span> <span><kbd class=\"kbd kbd-xs\">↵</kbd> open</span> <span><kbd class=\"kbd kbd-xs\">esc</kbd> close</span></div></div></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

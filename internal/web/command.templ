@@ -29,11 +29,13 @@ templ commandPaletteItem(it CommandItem) {
 	>
 		<a
 			href={ templ.SafeURL(it.Href) }
-			class="flex items-baseline gap-2 px-2.5 py-1.5 text-xs no-underline hover:no-underline rounded-none"
+			class="flex flex-col gap-0 px-2.5 py-1.5 text-xs no-underline hover:no-underline rounded-none min-w-0"
 			tabindex="-1"
 		>
-			<span class="shrink-0 w-20 text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate">{ it.Group }</span>
-			<span class="min-w-0 flex-1 font-mono text-[0.75rem] truncate text-base-content">{ it.Label }</span>
+			if it.Group != "" {
+				<span class="text-[0.65rem] uppercase tracking-wide text-base-content/45 truncate leading-tight">{ it.Group }</span>
+			}
+			<span class="font-mono text-[0.75rem] truncate text-base-content leading-snug">{ it.Label }</span>
 		</a>
 	</li>
 }
