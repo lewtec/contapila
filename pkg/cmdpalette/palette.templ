@@ -1,0 +1,76 @@
+package cmdpalette
+
+// Button is the topbar / toolbar trigger that opens the palette.
+templ (p Palette) Button() {
+	<button
+		type="button"
+		id={ p.openID() }
+		class={ p.buttonClass() }
+		aria-haspopup="dialog"
+		aria-controls={ p.rootID() }
+		title={ p.titleText() + " (Ctrl+K or ⌘K)" }
+	>
+		<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;opacity:0.7"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+		<span>{ p.titleText() }</span>
+		if p.ShowHotkey {
+			<kbd id={ p.hotkeyID() } class="cmdpalette-kbd">Ctrl+K</kbd>
+		}
+	</button>
+}
+
+// Modal is the native <dialog> catalog (single-column list).
+templ (p Palette) Modal() {
+	<dialog
+		id={ p.rootID() }
+		class="cmdpalette-dialog"
+		data-cmdpalette
+		aria-label={ p.ariaLabelText() }
+	>
+		<div class="cmdpalette-panel">
+			<div class="cmdpalette-head">
+				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;opacity:0.4"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+				<input
+					id={ p.inputID() }
+					type="search"
+					class="cmdpalette-input"
+					placeholder={ p.placeholderText() }
+					autocomplete="off"
+					spellcheck="false"
+					aria-autocomplete="list"
+					aria-controls={ p.listID() }
+					aria-activedescendant=""
+				/>
+				<kbd class="cmdpalette-kbd">esc</kbd>
+			</div>
+			<ul id={ p.listID() } role="listbox" class="cmdpalette-list">
+				for _, it := range p.Items {
+					@p.item(it)
+				}
+			</ul>
+			<p id={ p.emptyID() } class="cmdpalette-empty cmdpalette-hidden" hidden>No matches</p>
+			<div class="cmdpalette-foot">
+				<span><kbd class="cmdpalette-kbd">↑↓</kbd> move</span>
+				<span><kbd class="cmdpalette-kbd">↵</kbd> open</span>
+				<span><kbd class="cmdpalette-kbd">esc</kbd> close</span>
+			</div>
+		</div>
+	</dialog>
+}
+
+templ (p Palette) item(it Item) {
+	<li
+		role="option"
+		class="cmdpalette-item"
+		data-cmd-item
+		data-keywords={ it.Keywords }
+		aria-selected="false"
+	>
+		<a href={ templ.SafeURL(it.Href) } class="cmdpalette-link" tabindex="-1">
+			if it.Group != "" {
+				<span class="cmdpalette-group">{ it.Group }</span>
+			}
+			<span class="cmdpalette-label">{ it.Label }</span>
+		</a>
+	</li>
+}
+

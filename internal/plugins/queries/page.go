@@ -30,7 +30,23 @@ func init() {
 			Fill:           fill,
 			Body:           func(d web.PageData) templ.Component { return queriesBody(d) },
 		})
+		// List page is not Sidebar; expose it (and named queries) in Cmd+K.
+		reg.Palette(web.Palette{
+			DefaultEnabled: true,
+			Fill:           palette,
+		})
 	})
+}
+
+func palette(pc web.PageContext) []web.CommandItem {
+	// Named queries already appear via QueryNav → sidebar sections.
+	// The list page is Sidebar:false, so expose it only here.
+	if pc.LedgerName == "" {
+		return nil
+	}
+	return []web.CommandItem{
+		web.Command("Queries", "All queries", web.LedgerHref(pc.Sess, pc.LedgerName, PageID, pc.Time), "queries", "list"),
+	}
 }
 
 func fill(pc web.PageContext, data *web.PageData) {

@@ -1,0 +1,16 @@
+package web
+
+// Contapila jump palette — thin wrapper over pkg/cmdpalette.
+// Catalog assembly stays in command.go; UI is reusable.
+
+templ jumpPaletteButton(d pageData) {
+	@jumpPalette(d).Button()
+}
+
+templ jumpPaletteModal(d pageData) {
+	@jumpPalette(d).Modal()
+}
+
+templ jumpPaletteAssets() {
+	@jumpPalette(pageData{}).Assets()
+}

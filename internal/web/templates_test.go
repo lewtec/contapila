@@ -35,6 +35,22 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 		if buf.Len() < 100 {
 			t.Fatalf("%s: short render %d", page, buf.Len())
 		}
+		html := buf.Bytes()
+		if !bytes.Contains(html, []byte(`id="cmdpalette"`)) {
+			t.Fatalf("%s: missing command palette", page)
+		}
+		if !bytes.Contains(html, []byte(`id="cmdpalette-open"`)) {
+			t.Fatalf("%s: missing Jump button", page)
+		}
+		if !bytes.Contains(html, []byte(`>Jump<`)) {
+			t.Fatalf("%s: Jump label missing", page)
+		}
+		if !bytes.Contains(html, []byte(`data-cmdpalette-js`)) {
+			t.Fatalf("%s: missing cmdpalette script assets", page)
+		}
+		if !bytes.Contains(html, []byte(`data-cmdpalette`)) {
+			t.Fatalf("%s: missing data-cmdpalette root", page)
+		}
 	}
 	// account + commodity
 	for _, page := range []templ.Component{
@@ -56,6 +72,9 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 		}
 		if buf.Len() < 100 {
 			t.Fatalf("short render %d", buf.Len())
+		}
+		if !bytes.Contains(buf.Bytes(), []byte(`id="cmdpalette"`)) {
+			t.Fatal("missing command palette")
 		}
 	}
 }

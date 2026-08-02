@@ -17,12 +17,14 @@ type sampleSettings struct {
 }
 
 type fakeWeb struct {
-	id    string
-	pages int
+	id       string
+	pages    int
+	palettes int
 }
 
-func (f *fakeWeb) ModuleID() string { return f.id }
-func (f *fakeWeb) Page(page any)    { f.pages++ }
+func (f *fakeWeb) ModuleID() string  { return f.id }
+func (f *fakeWeb) Page(page any)     { f.pages++ }
+func (f *fakeWeb) Palette(p any)     { f.palettes++ }
 
 func TestRegisterTypedSetupAndProcess(t *testing.T) {
 	resetForTest()
@@ -31,6 +33,7 @@ func TestRegisterTypedSetupAndProcess(t *testing.T) {
 	var gotDays int
 	RegisterTyped("sample", func(reg *Reg[sampleSettings]) {
 		reg.Page("ignored-until-bound") // no-op when Web nil
+		reg.Palette("ignored-until-bound")
 		reg.OnProcess(PhaseBook, func(s sampleSettings, h *Host, in iter.Seq[ast.Directive]) iter.Seq[ast.Directive] {
 			gotDays = s.MaxDays
 			dirs := slices.Collect(in)
@@ -45,8 +48,8 @@ func TestRegisterTypedSetupAndProcess(t *testing.T) {
 		fw.id = moduleID
 		return fw
 	})
-	if fw.id != "sample" || fw.pages != 1 {
-		t.Fatalf("BindWeb middleman id=%q pages=%d", fw.id, fw.pages)
+	if fw.id != "sample" || fw.pages != 1 || fw.palettes != 1 {
+		t.Fatalf("BindWeb middleman id=%q pages=%d palettes=%d", fw.id, fw.pages, fw.palettes)
 	}
 	if !config.IsKnownPlugin("sample") {
 		t.Fatal("expected known plugin")

@@ -133,4 +133,15 @@
   .pnl-toggle:hover {
     opacity: 1;
   }
+
+  /* Contapila accent for reusable pkg/cmdpalette selection */
+  :root,
+  [data-theme="contapila-light"],
+  [data-theme="contapila-dark"] {
+    --cmdpalette-accent: var(--color-accent);
+    --cmdpalette-border: var(--color-base-300);
+    --cmdpalette-bg: var(--color-base-100);
+    --cmdpalette-fg: var(--color-base-content);
+    --cmdpalette-radius: var(--radius-box, 0.25rem);
+  }
 }

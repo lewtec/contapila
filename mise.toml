@@ -10,7 +10,7 @@ run = "go mod tidy && go get -v ./... && bun install"
 
 [tasks.codegen]
 description = "Generate templ components and rebuild embedded web CSS"
-run = "go tool templ generate ./internal/web/ && bun run build:css"
+run = "go tool templ generate ./internal/web/ ./pkg/cmdpalette/ && bun run build:css"
 
 [tasks.format]
 description = "Format Go packages"

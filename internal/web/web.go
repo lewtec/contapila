@@ -185,6 +185,11 @@ type pageData struct {
 	EventList []EventListRow
 	// QueryNav is named journal queries for the sidebar (any page).
 	QueryNav []QueryNavItem
+	// JumpAccounts / JumpCommodities feed the command palette (sorted keys).
+	JumpAccounts    []string
+	JumpCommodities []string
+	// PluginCommands are extra palette rows from plugin.Reg.Palette (enabled modules).
+	PluginCommands []CommandItem
 	// QueryList is the /queries report (plugin web_queries).
 	QueryList []QueryListRow
 	// Query detail page (/l/{ledger}/query/{name}).
@@ -415,14 +420,17 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 
 	if pg.Fill != nil {
 		pg.Fill(PageContext{
-			Request:   r,
-			Project:   proj,
-			Prices:    pdb,
-			Ledger:    l,
-			TimeQuery: tq,
-			Period:    tq.Period,
-			PeriodErr: tq.PeriodErr,
-			AsOf:      tq.AsOf,
+			Request:    r,
+			Sess:       sess,
+			Project:    proj,
+			Prices:     pdb,
+			Ledger:     l,
+			LedgerName: name,
+			Time:       tq.Time,
+			TimeQuery:  tq,
+			Period:     tq.Period,
+			PeriodErr:  tq.PeriodErr,
+			AsOf:       tq.AsOf,
 		}, &data)
 	}
 	s.render(w, r, LedgerPage(data))
