@@ -22,9 +22,9 @@ type fakeWeb struct {
 	palettes int
 }
 
-func (f *fakeWeb) ModuleID() string  { return f.id }
-func (f *fakeWeb) Page(page any)     { f.pages++ }
-func (f *fakeWeb) Palette(p any)     { f.palettes++ }
+func (f *fakeWeb) ModuleID() string { return f.id }
+func (f *fakeWeb) Page(page any)    { f.pages++ }
+func (f *fakeWeb) Palette(p any)    { f.palettes++ }
 
 func TestRegisterTypedSetupAndProcess(t *testing.T) {
 	resetForTest()
