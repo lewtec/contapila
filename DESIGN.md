@@ -80,7 +80,8 @@ Cmd+K dialog (`command.templ` + `static/command.js`)
 ## Cmd+K
 
 - **Primitive:** `commandPalette` / `commandPaletteItem` / `commandPaletteTrigger` in `command.templ`
-- **Catalog:** `commandItems` (SSR) — ledgers, sidebar reports, named queries, accounts, commodities
+- **Catalog:** `commandItems` (SSR) — ledgers, sidebar reports, named queries, accounts, commodities, then `PluginCommands`
+- **Plugins:** `reg.Palette(web.Palette{DefaultEnabled, Fill})` via `plugin.Web` (same enablement as pages). `Fill(PageContext) []CommandItem`; use `web.Command` + `*Href` helpers. Example: `web_queries` adds “All queries” (list page is `Sidebar: false`)
 - **Client:** `/static/command.js` — open ⌘K/Ctrl+K, token filter on `data-keywords`, arrows/enter
 - **Not yet:** slash actions (`time …`), recents, fuzzy rank beyond substring tokens
 

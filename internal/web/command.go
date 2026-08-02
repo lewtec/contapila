@@ -4,19 +4,59 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/engine"
+	"github.com/lucasew/contapila-go/internal/prices"
+	"github.com/lucasew/contapila-go/pkg/project"
 )
 
 // CommandItem is one row in the command palette (SSR list; client filters).
 type CommandItem struct {
-	Group    string // section label: Ledgers, Reports, Queries, Accounts, Commodities
+	Group    string // section label: Ledgers, Reports, Queries, Accounts, Commodities, …
 	Label    string // primary text
 	Href     string // navigation target (live or static-shaped)
 	Keywords string // lowercase haystack for client-side filter
 }
 
+// Palette is a command-palette contribution registered via plugin.Reg.Palette.
+// Enablement matches Page: DefaultEnabled when CUE omits plugins.<module>.enabled.
+type Palette struct {
+	// DefaultEnabled: when true, on if contapila.cue omits the plugin key.
+	// When false, omit means off (opt-in). Explicit plugins.<key>.enabled wins.
+	DefaultEnabled bool
+	// Fill returns extra palette rows for the current ledger shell. Required.
+	// Called on every ledger-scoped page render when the module is enabled.
+	// Use AccountHref / LedgerHref / QueryHref / … so static builds get .html paths.
+	Fill func(pc PageContext) []CommandItem
+}
+
+// Command builds a CommandItem. Keywords defaults to group+label (+ extras).
+func Command(group, label, href string, extraKeywords ...string) CommandItem {
+	parts := make([]string, 0, 2+len(extraKeywords))
+	parts = append(parts, group, label)
+	parts = append(parts, extraKeywords...)
+	return CommandItem{
+		Group:    group,
+		Label:    label,
+		Href:     href,
+		Keywords: keywords(parts...),
+	}
+}
+
+// normalizeCommand fills Keywords when empty and drops unusable rows.
+func normalizeCommand(it CommandItem) (CommandItem, bool) {
+	if it.Href == "" || it.Label == "" {
+		return CommandItem{}, false
+	}
+	if it.Keywords == "" {
+		it.Keywords = keywords(it.Group, it.Label)
+	}
+	return it, true
+}
+
 // commandItems builds the palette catalog for the current page shell.
-// Home: ledgers only. Ledger-scoped: reports, queries, accounts, commodities, other ledgers.
+// Home: ledgers only. Ledger-scoped: reports, queries, accounts, commodities,
+// other ledgers, then PluginCommands (from plugin.Reg.Palette).
 func commandItems(d pageData) []CommandItem {
 	var out []CommandItem
 
@@ -89,7 +129,69 @@ func commandItems(d pageData) []CommandItem {
 		})
 	}
 
+	for _, it := range d.PluginCommands {
+		if n, ok := normalizeCommand(it); ok {
+			out = append(out, n)
+		}
+	}
+
 	return out
+}
+
+// collectPluginCommands runs enabled palette hooks for this ledger shell.
+func collectPluginCommands(sess *Session, proj *project.Project, pdb *prices.DB, l *engine.Ledger, ledgerName string, tq pageTimeQuery) []CommandItem {
+	entries := pluginContributedPalettes()
+	if len(entries) == 0 {
+		return nil
+	}
+	var flags map[string]bool
+	if proj != nil && proj.Config != nil {
+		if f, err := config.PluginFlags(proj.Config.Value); err == nil {
+			flags = f
+		}
+	}
+	pc := PageContext{
+		Sess:       sess,
+		Project:    proj,
+		Prices:     pdb,
+		Ledger:     l,
+		LedgerName: ledgerName,
+		Time:       tq.Time,
+		TimeQuery:  tq,
+		Period:     tq.Period,
+		PeriodErr:  tq.PeriodErr,
+		AsOf:       tq.AsOf,
+	}
+	return applyPaletteEntries(entries, flags, pc)
+}
+
+// applyPaletteEntries runs Fill for enabled entries (testable without BindWeb).
+func applyPaletteEntries(entries []paletteEntry, flags map[string]bool, pc PageContext) []CommandItem {
+	var out []CommandItem
+	for _, e := range entries {
+		if !pluginContribEnabled(e.pluginKey, e.defaultEnabled, flags) {
+			continue
+		}
+		if e.fill == nil {
+			continue
+		}
+		for _, it := range e.fill(pc) {
+			if n, ok := normalizeCommand(it); ok {
+				out = append(out, n)
+			}
+		}
+	}
+	return out
+}
+
+// pluginContribEnabled matches filterContribPages: explicit CUE wins, else default.
+func pluginContribEnabled(key string, defaultEnabled bool, flags map[string]bool) bool {
+	if flags != nil {
+		if b, ok := flags[key]; ok {
+			return b
+		}
+	}
+	return defaultEnabled
 }
 
 // ledgerSwitchHref picks a destination when jumping ledgers.

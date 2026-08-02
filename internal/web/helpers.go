@@ -95,10 +95,18 @@ func queriesUIEnabled(d PageData) bool {
 	return ok
 }
 
-// basePageData attaches this server's resolved PageRegistry (sidebar / body lookup).
+// basePageData attaches this server's resolved PageRegistry (sidebar / body lookup)
+// and enabled plugin palette rows.
 func (s *Server) basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledgerName, title, page string, tq pageTimeQuery) pageData {
 	data := basePageData(sess, proj, l, ledgerName, title, page, tq)
 	data.Pages = s.resolvedPages(sess)
+	var pdb *prices.DB
+	if sess != nil {
+		if _, p, err := sess.Project(); err == nil {
+			pdb = p
+		}
+	}
+	data.PluginCommands = collectPluginCommands(sess, proj, pdb, l, ledgerName, tq)
 	return data
 }
 

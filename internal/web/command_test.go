@@ -136,3 +136,88 @@ func TestCommandItemsStaticHrefs(t *testing.T) {
 		}
 	}
 }
+
+func TestCommandItemsIncludesPluginCommands(t *testing.T) {
+	d := pageData{
+		Page:       "check",
+		LedgerName: "personal",
+		Ledgers:    []string{"personal"},
+		PluginCommands: []CommandItem{
+			Command("Extra", "Thing", "/l/personal/thing", "thing"),
+			{Label: "skip-no-href"}, // dropped
+		},
+	}
+	items := commandItems(d)
+	var found bool
+	for _, it := range items {
+		if it.Group == "Extra" && it.Label == "Thing" {
+			found = true
+			if it.Keywords == "" {
+				t.Fatal("expected keywords")
+			}
+		}
+		if it.Label == "skip-no-href" {
+			t.Fatal("empty href should be dropped")
+		}
+	}
+	if !found {
+		t.Fatalf("plugin command missing: %+v", items)
+	}
+}
+
+func TestPluginContribEnabled(t *testing.T) {
+	if !pluginContribEnabled("x", true, nil) {
+		t.Fatal("default on, no flags")
+	}
+	if pluginContribEnabled("x", false, nil) {
+		t.Fatal("default off, no flags")
+	}
+	if !pluginContribEnabled("x", false, map[string]bool{"x": true}) {
+		t.Fatal("explicit on")
+	}
+	if pluginContribEnabled("x", true, map[string]bool{"x": false}) {
+		t.Fatal("explicit off")
+	}
+}
+
+func TestApplyPaletteEntriesRespectsFlags(t *testing.T) {
+	entries := []paletteEntry{
+		{
+			pluginKey:      "web_demo",
+			defaultEnabled: false,
+			fill: func(pc PageContext) []CommandItem {
+				return []CommandItem{Command("Demo", "Hit", "/hit")}
+			},
+		},
+		{
+			pluginKey:      "web_on",
+			defaultEnabled: true,
+			fill: func(pc PageContext) []CommandItem {
+				return []CommandItem{Command("On", "Always", "/always")}
+			},
+		},
+	}
+	pc := PageContext{LedgerName: "personal"}
+
+	// No flags: only default-on modules.
+	got := applyPaletteEntries(entries, nil, pc)
+	if len(got) != 1 || got[0].Label != "Always" {
+		t.Fatalf("default-on only: %+v", got)
+	}
+
+	// Explicit enable demo, disable on.
+	got = applyPaletteEntries(entries, map[string]bool{
+		"web_demo": true,
+		"web_on":   false,
+	}, pc)
+	if len(got) != 1 || got[0].Label != "Hit" {
+		t.Fatalf("explicit flags: %+v", got)
+	}
+}
+
+func TestCommandHelperKeywords(t *testing.T) {
+	it := Command("Accounts", "Assets:Cash", "/a", "account")
+	if !strings.Contains(it.Keywords, "cash") {
+		t.Fatalf("keywords %q", it.Keywords)
+	}
+}

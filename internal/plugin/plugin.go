@@ -44,6 +44,8 @@ const (
 type Web interface {
 	ModuleID() string
 	Page(page any)
+	// Palette registers command-palette contributions (host expects web.Palette).
+	Palette(palette any)
 }
 
 // Host is per-ledger-open context for stream processing.
@@ -84,6 +86,15 @@ func (r *Reg[S]) Page(page any) {
 		return
 	}
 	r.Web.Page(page)
+}
+
+// Palette registers command-palette rows via the host middleman (no-op if Web not bound).
+// palette is typically web.Palette; the host type-asserts.
+func (r *Reg[S]) Palette(palette any) {
+	if r == nil || r.Web == nil || palette == nil {
+		return
+	}
+	r.Web.Palette(palette)
 }
 
 // OnProcess registers a stream transformer for phase.

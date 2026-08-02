@@ -69,12 +69,17 @@ type SidebarSection struct {
 	Queries []string // named journal queries (web_queries); empty for other sections
 }
 
-// PageContext is the live request + ledger snapshot passed to Page.Fill.
+// PageContext is the live request + ledger snapshot passed to Page.Fill
+// and Palette.Fill.
 type PageContext struct {
-	Request   *http.Request
-	Project   *project.Project
-	Prices    *prices.DB
-	Ledger    *engine.Ledger
+	Request    *http.Request
+	Sess       *Session // link URL shape (live vs static); may be nil in tests
+	Project    *project.Project
+	Prices     *prices.DB
+	Ledger     *engine.Ledger
+	LedgerName string
+	// Time is the raw time filter string for hrefs (may be empty).
+	Time      string
 	TimeQuery pageTimeQuery
 	Period    period.Range
 	PeriodErr error
