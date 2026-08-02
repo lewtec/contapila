@@ -185,26 +185,27 @@ func ledgerSwitchHref(d pageData, ledger string) string {
 
 // jumpAccountNames returns sorted account keys for the palette.
 func jumpAccountNames(l *engine.Ledger) []string {
-	if l == nil || len(l.Accounts) == 0 {
+	if l == nil {
 		return nil
 	}
-	out := make([]string, 0, len(l.Accounts))
-	for name := range l.Accounts {
-		if name != "" {
-			out = append(out, name)
-		}
-	}
-	sort.Strings(out)
-	return out
+	return sortedNonEmptyKeys(l.Accounts)
 }
 
 // jumpCommodityNames returns sorted commodity keys for the palette.
 func jumpCommodityNames(l *engine.Ledger) []string {
-	if l == nil || len(l.Commodities) == 0 {
+	if l == nil {
 		return nil
 	}
-	out := make([]string, 0, len(l.Commodities))
-	for name := range l.Commodities {
+	return sortedNonEmptyKeys(l.Commodities)
+}
+
+// sortedNonEmptyKeys returns sorted keys of a map, skipping empty strings.
+func sortedNonEmptyKeys[V any](m map[string]V) []string {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(m))
+	for name := range m {
 		if name != "" {
 			out = append(out, name)
 		}

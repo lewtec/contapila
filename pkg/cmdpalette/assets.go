@@ -9,32 +9,12 @@ import (
 
 // Style emits package CSS. Safe on every page.
 func Style() templ.Component {
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		_, err := io.WriteString(w, "<style data-cmdpalette-css>\n")
-		if err != nil {
-			return err
-		}
-		if _, err := io.WriteString(w, commandCSS); err != nil {
-			return err
-		}
-		_, err = io.WriteString(w, "\n</style>")
-		return err
-	})
+	return rawBlock("style", "data-cmdpalette-css", commandCSS)
 }
 
 // Script emits the keyboard/filter runtime (JS self-guards double bind).
 func Script() templ.Component {
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		_, err := io.WriteString(w, "<script data-cmdpalette-js>\n")
-		if err != nil {
-			return err
-		}
-		if _, err := io.WriteString(w, commandJS); err != nil {
-			return err
-		}
-		_, err = io.WriteString(w, "\n</script>")
-		return err
-	})
+	return rawBlock("script", "data-cmdpalette-js", commandJS)
 }
 
 // Assets emits CSS + JS. Prefer once per document in <head>.
@@ -45,4 +25,20 @@ func Assets() templ.Component {
 // (p Palette) Assets is the same as package Assets — kept for method-call style.
 func (p Palette) Assets() templ.Component {
 	return Assets()
+}
+
+// rawBlock writes <tag attr>\nbody\n</tag> without HTML-escaping body.
+func rawBlock(tag, attr, body string) templ.Component {
+	open := "<" + tag + " " + attr + ">\n"
+	close := "\n</" + tag + ">"
+	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
+		if _, err := io.WriteString(w, open); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, body); err != nil {
+			return err
+		}
+		_, err := io.WriteString(w, close)
+		return err
+	})
 }
