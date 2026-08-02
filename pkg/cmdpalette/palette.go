@@ -134,11 +134,11 @@ func (p Palette) rootID() string {
 	return p.ID
 }
 
-func (p Palette) openID() string      { return p.rootID() + "-open" }
-func (p Palette) inputID() string     { return p.rootID() + "-input" }
-func (p Palette) listID() string      { return p.rootID() + "-list" }
-func (p Palette) emptyID() string     { return p.rootID() + "-empty" }
-func (p Palette) hotkeyID() string    { return p.rootID() + "-hotkey" }
+func (p Palette) openID() string   { return p.rootID() + "-open" }
+func (p Palette) inputID() string  { return p.rootID() + "-input" }
+func (p Palette) listID() string   { return p.rootID() + "-list" }
+func (p Palette) emptyID() string  { return p.rootID() + "-empty" }
+func (p Palette) hotkeyID() string { return p.rootID() + "-hotkey" }
 func (p Palette) titleText() string {
 	if p.Title == "" {
 		return "Jump"
