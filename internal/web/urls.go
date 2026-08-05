@@ -38,6 +38,18 @@ func PathLedgerRoot(ledger string) string {
 
 func (s *Session) staticMode() bool { return s != nil && s.Static }
 
+// linkURL maps a live path to the static or filtered form used in hrefs.
+// Static builds append .html (no query). Live keeps the path and optional ?time=.
+func (s *Session) linkURL(u, timeFilter string) string {
+	if s.staticMode() {
+		return u + ".html"
+	}
+	if timeFilter != "" {
+		u += "?time=" + url.QueryEscape(timeFilter)
+	}
+	return u
+}
+
 // HomeURL is the site root (breadcrumb "contapila").
 func (s *Session) HomeURL() string {
 	if s.staticMode() {
@@ -48,50 +60,22 @@ func (s *Session) HomeURL() string {
 
 // LedgerURL is a report page link (check, pnl, …).
 func (s *Session) LedgerURL(ledger, page, timeFilter string) string {
-	u := PathLedger(ledger, page)
-	if s.staticMode() {
-		return u + ".html"
-	}
-	if timeFilter != "" {
-		u += "?time=" + url.QueryEscape(timeFilter)
-	}
-	return u
+	return s.linkURL(PathLedger(ledger, page), timeFilter)
 }
 
 // AccountURL is an account page link.
 func (s *Session) AccountURL(ledger, account, timeFilter string) string {
-	u := PathAccount(ledger, account)
-	if s.staticMode() {
-		return u + ".html"
-	}
-	if timeFilter != "" {
-		u += "?time=" + url.QueryEscape(timeFilter)
-	}
-	return u
+	return s.linkURL(PathAccount(ledger, account), timeFilter)
 }
 
 // CommodityURL is a commodity page link.
 func (s *Session) CommodityURL(ledger, commodity, timeFilter string) string {
-	u := PathCommodity(ledger, commodity)
-	if s.staticMode() {
-		return u + ".html"
-	}
-	if timeFilter != "" {
-		u += "?time=" + url.QueryEscape(timeFilter)
-	}
-	return u
+	return s.linkURL(PathCommodity(ledger, commodity), timeFilter)
 }
 
 // QueryURL is a named query page link.
 func (s *Session) QueryURL(ledger, name, timeFilter string) string {
-	u := PathQuery(ledger, name)
-	if s.staticMode() {
-		return u + ".html"
-	}
-	if timeFilter != "" {
-		u += "?time=" + url.QueryEscape(timeFilter)
-	}
-	return u
+	return s.linkURL(PathQuery(ledger, name), timeFilter)
 }
 
 // LedgerRootURL is the ledger landing path (/l/x/ live, /l/x/index.html static).
@@ -109,39 +93,32 @@ func sessionStatic(s *Session) bool {
 	return s != nil && s.Static
 }
 
-func homeURL(s *Session) string {
+// orSession returns s, or an empty Session when s is nil (live URL defaults).
+func orSession(s *Session) *Session {
 	if s == nil {
-		return (&Session{}).HomeURL()
+		return &Session{}
 	}
-	return s.HomeURL()
+	return s
+}
+
+func homeURL(s *Session) string {
+	return orSession(s).HomeURL()
 }
 
 func ledgerURL(s *Session, ledger, page, timeFilter string) string {
-	if s == nil {
-		return (&Session{}).LedgerURL(ledger, page, timeFilter)
-	}
-	return s.LedgerURL(ledger, page, timeFilter)
+	return orSession(s).LedgerURL(ledger, page, timeFilter)
 }
 
 func accountURL(s *Session, ledger, account, timeFilter string) string {
-	if s == nil {
-		return (&Session{}).AccountURL(ledger, account, timeFilter)
-	}
-	return s.AccountURL(ledger, account, timeFilter)
+	return orSession(s).AccountURL(ledger, account, timeFilter)
 }
 
 func commodityURL(s *Session, ledger, commodity, timeFilter string) string {
-	if s == nil {
-		return (&Session{}).CommodityURL(ledger, commodity, timeFilter)
-	}
-	return s.CommodityURL(ledger, commodity, timeFilter)
+	return orSession(s).CommodityURL(ledger, commodity, timeFilter)
 }
 
 func queryURL(s *Session, ledger, name, timeFilter string) string {
-	if s == nil {
-		return (&Session{}).QueryURL(ledger, name, timeFilter)
-	}
-	return s.QueryURL(ledger, name, timeFilter)
+	return orSession(s).QueryURL(ledger, name, timeFilter)
 }
 
 func pageTitle(d PageData) string {
