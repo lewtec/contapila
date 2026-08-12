@@ -273,10 +273,7 @@ func filterContribPages(pages []Page, flags map[string]bool) []Page {
 	}
 	var out []Page
 	for _, p := range pages {
-		key := p.PluginKey
-		if key == "" {
-			key = PagePluginKey(p.ID)
-		}
+		key := pagePluginKey(p)
 		if flags != nil {
 			if b, ok := flags[key]; ok {
 				if b {

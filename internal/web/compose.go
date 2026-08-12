@@ -30,6 +30,15 @@ func PagePluginKey(pageID string) string {
 	return "web_" + pageID
 }
 
+// pagePluginKey returns p.PluginKey, or PagePluginKey(p.ID) when empty.
+// Same rule as Page.PluginKey docs and filterContribPages / FilterPagesByPlugins.
+func pagePluginKey(p Page) string {
+	if p.PluginKey != "" {
+		return p.PluginKey
+	}
+	return PagePluginKey(p.ID)
+}
+
 // FilterPagesByPlugins returns a new registry keeping only pages whose
 // plugin key is enabled. enabled(key) false drops the page; nil enabled keeps all.
 func FilterPagesByPlugins(r *PageRegistry, enabled func(pluginKey string) bool) *PageRegistry {
@@ -38,11 +47,7 @@ func FilterPagesByPlugins(r *PageRegistry, enabled func(pluginKey string) bool) 
 		return out
 	}
 	for _, p := range r.pages {
-		key := p.PluginKey
-		if key == "" {
-			key = PagePluginKey(p.ID)
-		}
-		if enabled != nil && !enabled(key) {
+		if enabled != nil && !enabled(pagePluginKey(p)) {
 			continue
 		}
 		out.Register(p)
