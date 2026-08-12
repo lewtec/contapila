@@ -117,6 +117,15 @@ func TestPagePluginKey(t *testing.T) {
 	}
 }
 
+func TestPagePluginKeyResolver(t *testing.T) {
+	if got := pagePluginKey(Page{ID: "accounts"}); got != "web_accounts" {
+		t.Fatalf("empty PluginKey: %q", got)
+	}
+	if got := pagePluginKey(Page{ID: "accounts", PluginKey: "custom"}); got != "custom" {
+		t.Fatalf("explicit PluginKey: %q", got)
+	}
+}
+
 func TestResolvedPagesRespectsCUEPlugins(t *testing.T) {
 	resetPluginPagesForTest()
 	t.Cleanup(resetPluginPagesForTest)
