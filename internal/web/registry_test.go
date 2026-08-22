@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -123,6 +124,15 @@ func TestRegistryInstancesExample(t *testing.T) {
 	}
 	if commodities == 0 {
 		t.Error("expected commodity pages")
+	}
+}
+
+func TestExpandLedgerMapPagesNilSession(t *testing.T) {
+	_, err := expandLedgerMapPages(nil, func(l *engine.Ledger) map[string]engine.AccountInfo {
+		return l.Accounts
+	}, PathAccount)
+	if !errors.Is(err, ErrSessionNil) {
+		t.Fatalf("err=%v want ErrSessionNil", err)
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	docsutil "github.com/lucasew/contapila-go/internal/docs"
+	"github.com/lucasew/contapila-go/internal/engine"
 )
 
 // Registry / path sentinel errors.
@@ -200,34 +201,43 @@ func registerIndex(r *Registry, s *Server) {
 	})
 }
 
+// expandLedgerMapPages walks each project ledger, sorts keys of m(l), and
+// emits KindPage instances at pathFn(ledgerName, key).
+func expandLedgerMapPages[V any](sess *Session, m func(*engine.Ledger) map[string]V, pathFn func(ledger, key string) string) ([]Instance, error) {
+	if sess == nil {
+		return nil, ErrSessionNil
+	}
+	names, err := sess.LedgerNames()
+	if err != nil {
+		return nil, err
+	}
+	var out []Instance
+	for _, name := range names {
+		l, err := sess.Ledger(name)
+		if err != nil {
+			return nil, err
+		}
+		mp := m(l)
+		keys := make([]string, 0, len(mp))
+		for k := range mp {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			out = append(out, Instance{Path: pathFn(name, k), Kind: KindPage})
+		}
+	}
+	return out, nil
+}
+
 func registerAccount(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/account/{account...}",
 		Handle:  http.HandlerFunc(s.handleAccount),
 		Expand: func(sess *Session) ([]Instance, error) {
-			if sess == nil {
-				return nil, ErrSessionNil
-			}
-			names, err := sess.LedgerNames()
-			if err != nil {
-				return nil, err
-			}
-			var out []Instance
-			for _, name := range names {
-				l, err := sess.Ledger(name)
-				if err != nil {
-					return nil, err
-				}
-				accts := make([]string, 0, len(l.Accounts))
-				for a := range l.Accounts {
-					accts = append(accts, a)
-				}
-				sort.Strings(accts)
-				for _, a := range accts {
-					out = append(out, Instance{Path: PathAccount(name, a), Kind: KindPage})
-				}
-			}
-			return out, nil
+			return expandLedgerMapPages(sess, func(l *engine.Ledger) map[string]engine.AccountInfo {
+				return l.Accounts
+			}, PathAccount)
 		},
 	})
 }
@@ -237,29 +247,9 @@ func registerCommodity(r *Registry, s *Server) {
 		Pattern: "GET /l/{ledger}/commodity/{commodity...}",
 		Handle:  http.HandlerFunc(s.handleCommodity),
 		Expand: func(sess *Session) ([]Instance, error) {
-			if sess == nil {
-				return nil, ErrSessionNil
-			}
-			names, err := sess.LedgerNames()
-			if err != nil {
-				return nil, err
-			}
-			var out []Instance
-			for _, name := range names {
-				l, err := sess.Ledger(name)
-				if err != nil {
-					return nil, err
-				}
-				comms := make([]string, 0, len(l.Commodities))
-				for c := range l.Commodities {
-					comms = append(comms, c)
-				}
-				sort.Strings(comms)
-				for _, c := range comms {
-					out = append(out, Instance{Path: PathCommodity(name, c), Kind: KindPage})
-				}
-			}
-			return out, nil
+			return expandLedgerMapPages(sess, func(l *engine.Ledger) map[string]engine.CommodityInfo {
+				return l.Commodities
+			}, PathCommodity)
 		},
 	})
 }
