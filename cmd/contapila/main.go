@@ -59,38 +59,7 @@ func main() {
 	// operator-visible. Level Info by default; Debug with --verbose.
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
 
-	root := &cobra.Command{
-		Use:           "contapila",
-		Short:         "Contapila — Beancount-class ledger in Go",
-		Version:       version.GetBuildID(),
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		// Apply --verbose / -C before subcommands; discovery starts from -C.
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if verbose {
-				logLevel.Set(slog.LevelDebug)
-			}
-			if workDir == "" {
-				return nil
-			}
-			abs, err := filepath.Abs(workDir)
-			if err != nil {
-				return fmt.Errorf("-C %s: %w", workDir, err)
-			}
-			info, err := os.Stat(abs)
-			if err != nil {
-				return fmt.Errorf("-C %s: %w", workDir, err)
-			}
-			if !info.IsDir() {
-				return fmt.Errorf("-C %s: %w", workDir, ErrNotDirectory)
-			}
-			workDir = abs
-			return nil
-		},
-	}
-	root.PersistentFlags().StringVarP(&workDir, "directory", "C", "", "run as if contapila started in this directory (project discovery)")
-	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable debug logging on stderr")
-	root.AddCommand(statusCmd(), checkCmd(), balancesCmd(), journalCmd(), pnlCmd(), networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), buildCmd(), desktopCmd(), lspCmd(), dumpCmd())
+	root := newRoot()
 
 	// Not-a-TTY bare launch / project path → desktop (SPEC §3.2.1).
 	// After flag registration so workDir is not wiped by StringVarP defaults;
@@ -101,6 +70,46 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// newRoot builds the cobra tree used by main and same-package CLI tests.
+func newRoot() *cobra.Command {
+	root := &cobra.Command{
+		Use:           "contapila",
+		Short:         "Contapila — Beancount-class ledger in Go",
+		Version:       version.GetBuildID(),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		// Apply --verbose / -C before subcommands; discovery starts from -C.
+		PersistentPreRunE: applyPersistentFlags,
+	}
+	root.PersistentFlags().StringVarP(&workDir, "directory", "C", "", "run as if contapila started in this directory (project discovery)")
+	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable debug logging on stderr")
+	root.AddCommand(statusCmd(), checkCmd(), balancesCmd(), journalCmd(), pnlCmd(), networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), buildCmd(), desktopCmd(), lspCmd(), dumpCmd())
+	return root
+}
+
+// applyPersistentFlags applies --verbose and resolves -C before subcommands.
+func applyPersistentFlags(_ *cobra.Command, _ []string) error {
+	if verbose {
+		logLevel.Set(slog.LevelDebug)
+	}
+	if workDir == "" {
+		return nil
+	}
+	abs, err := filepath.Abs(workDir)
+	if err != nil {
+		return fmt.Errorf("-C %s: %w", workDir, err)
+	}
+	info, err := os.Stat(abs)
+	if err != nil {
+		return fmt.Errorf("-C %s: %w", workDir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("-C %s: %w", workDir, ErrNotDirectory)
+	}
+	workDir = abs
+	return nil
 }
 
 // projectCwd returns the project search start directory: -C if set, else process CWD.

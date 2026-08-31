@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -11,9 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/lucasew/contapila-go/pkg/version"
-	"github.com/spf13/cobra"
 )
 
 // exampleDir is the multi-ledger fixture used for CLI smoke tests.
@@ -29,48 +25,9 @@ func exampleDir(t *testing.T) string {
 	return dir
 }
 
-// newTestRoot mirrors main()'s cobra tree so same-package tests can drive
-// status/check/parse without calling main() (which os.Exit on failure).
-func newTestRoot() *cobra.Command {
-	root := &cobra.Command{
-		Use:           "contapila",
-		Short:         "Contapila — Beancount-class ledger in Go",
-		Version:       version.GetBuildID(),
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if verbose {
-				logLevel.Set(slog.LevelDebug)
-			}
-			if workDir == "" {
-				return nil
-			}
-			abs, err := filepath.Abs(workDir)
-			if err != nil {
-				return fmt.Errorf("-C %s: %w", workDir, err)
-			}
-			info, err := os.Stat(abs)
-			if err != nil {
-				return fmt.Errorf("-C %s: %w", workDir, err)
-			}
-			if !info.IsDir() {
-				return fmt.Errorf("-C %s: %w", workDir, ErrNotDirectory)
-			}
-			workDir = abs
-			return nil
-		},
-	}
-	root.PersistentFlags().StringVarP(&workDir, "directory", "C", "", "run as if contapila started in this directory")
-	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable debug logging on stderr")
-	root.AddCommand(
-		statusCmd(), checkCmd(), balancesCmd(), journalCmd(), pnlCmd(),
-		networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), desktopCmd(), lspCmd(), dumpCmd(),
-	)
-	return root
-}
-
 // runCLI executes the CLI with args, capturing stdout/stderr. Resets package
-// globals bound by -C/--verbose between calls.
+// globals bound by -C/--verbose between calls. Uses newRoot() (not main()) so
+// failures return instead of os.Exit.
 func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 	workDir = ""
@@ -84,7 +41,7 @@ func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 		logLevel.Set(slog.LevelInfo)
 	})
 
-	root := newTestRoot()
+	root := newRoot()
 	root.SetArgs(args)
 
 	oldOut, oldErr := os.Stdout, os.Stderr
