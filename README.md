@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/logo.png" alt="Contapila" width="128" height="128">
+</p>
+
 # Contapila
 
 Beancount-class double-entry engine and read-only web UI in one Go binary.

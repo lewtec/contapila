@@ -51,7 +51,8 @@ Implementation (daisyUI way):
 └────────┴─────────────────────────────────────────┘
 ```
 
-- Left **reports rail** (~13rem), menu-sm, minimal brand block
+- Left **reports rail** (~13rem), menu-sm
+- Brand mark: gold 1-real coin with a C (`docs/images/logo.png`); favicon + breadcrumb
 - **Ledger selector in breadcrumbs** (not a separate end control)
 - **Time** = single Fava expression field
 - Main content **full width** of drawer content (drop decorative max-width padding sea)

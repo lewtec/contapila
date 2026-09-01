@@ -12,7 +12,8 @@ templ head(d pageData) {
 	if d.NeedCharts {
 		@chartAssets()
 	}
-	<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231a5632'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-size='14' font-family='system-ui,sans-serif' font-weight='600' fill='%23e8c547'%3Ec%3C/text%3E%3C/svg%3E"/>
+	<link rel="icon" type="image/png" href="/static/logo.png"/>
+	<link rel="apple-touch-icon" href="/static/logo.png"/>
 	<script>
 		(function () {
 			try {
@@ -75,7 +76,12 @@ templ breadcrumbs(d pageData) {
 	<div class="flex min-w-0 flex-1 items-center text-xs sm:text-sm">
 		<div class="breadcrumbs py-0 shrink-0 overflow-visible">
 			<ul class="flex-nowrap items-center">
-				<li><a href={ templ.SafeURL(homeURL(d.Sess)) } class="link link-hover">contapila</a></li>
+				<li>
+					<a href={ templ.SafeURL(homeURL(d.Sess)) } class="link link-hover inline-flex items-center gap-1.5">
+						<img src="/static/logo.png" alt="" width="20" height="20" class="h-5 w-5 shrink-0"/>
+						contapila
+					</a>
+				</li>
 				if len(d.Ledgers) > 0 {
 					<li class="relative z-[60]">
 						<details class="dropdown dropdown-bottom">

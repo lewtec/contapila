@@ -40,6 +40,7 @@ func TestDefaultRegistryMountParity(t *testing.T) {
 	}{
 		{"/", http.StatusOK},
 		{"/static/app.css", http.StatusOK},
+		{"/static/logo.png", http.StatusOK},
 		{"/l/personal/check", http.StatusOK},
 		{"/l/personal/balances", http.StatusOK},
 		{"/l/personal/journal", http.StatusOK},
@@ -105,6 +106,9 @@ func TestRegistryInstancesExample(t *testing.T) {
 	}
 	if _, ok := byPath["/static/app.css"]; !ok {
 		t.Error("missing /static/app.css")
+	}
+	if _, ok := byPath["/static/logo.png"]; !ok {
+		t.Error("missing /static/logo.png")
 	}
 	// Account + commodity expansion from engine maps.
 	var accounts, commodities int
