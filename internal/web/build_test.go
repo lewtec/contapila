@@ -20,6 +20,7 @@ func TestBuildExample(t *testing.T) {
 		"index.html",
 		"static/app.css",
 		"static/charts.js",
+		"static/logo.png",
 		"l/personal/index.html", // ledger root (live redirect → check)
 		"l/acme/index.html",
 		// *.html files + rewritten hrefs so static hosts hit real files (not …/index.html).

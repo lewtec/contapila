@@ -51,6 +51,15 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 		if !bytes.Contains(html, []byte(`data-cmdpalette`)) {
 			t.Fatalf("%s: missing data-cmdpalette root", page)
 		}
+		if !bytes.Contains(html, []byte(`href="/static/logo.png"`)) {
+			t.Fatalf("%s: missing favicon", page)
+		}
+		if !bytes.Contains(html, []byte(`src="/static/logo.png"`)) {
+			t.Fatalf("%s: missing brand logo", page)
+		}
+		if bytes.Contains(html, []byte(`data:image/svg+xml`)) {
+			t.Fatalf("%s: old inline favicon still present", page)
+		}
 	}
 	// account + commodity
 	for _, page := range []templ.Component{
