@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/lucasew/contapila-go/internal/ast"
-	"github.com/lucasew/contapila-go/internal/config"
-	_ "github.com/lucasew/contapila-go/internal/plugins/checkclosing"
 )
 
 func TestCheckClosingPluginGatesAutoclose(t *testing.T) {
@@ -75,13 +73,12 @@ plugin "check_closing"
 		if err != nil {
 			t.Fatal(err)
 		}
-		on, err := config.PluginEnabled(p.Config.Value, "check_closing")
-		if err != nil || !on {
-			t.Fatalf("plugin should be on: %v %v", on, err)
-		}
 		l, err := OpenLedger(p, pdb, "personal")
 		if err != nil {
 			t.Fatal(err)
+		}
+		if !l.PluginEnabled("check_closing", false) {
+			t.Fatal("journal plugin check_closing should enable the module")
 		}
 		if countCloses(l.dirs) == 0 {
 			t.Fatal("expected synthetic close when plugin on")

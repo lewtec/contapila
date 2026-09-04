@@ -9,7 +9,6 @@ import (
 
 	"github.com/lucasew/contapila-go/internal/engine"
 	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
-	_ "github.com/lucasew/contapila-go/internal/plugins/checkclosing"
 	"github.com/lucasew/contapila-go/internal/web"
 )
 

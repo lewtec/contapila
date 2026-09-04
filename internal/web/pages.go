@@ -241,6 +241,11 @@ var defaultPages = sync.OnceValue(func() *PageRegistry {
 // resolvedPages is the live registry: explicit s.Pages, else core builtins plus
 // plugin pages enabled in contapila.cue (opt-in; core reports always on).
 func (s *Server) resolvedPages(sess *Session) *PageRegistry {
+	return s.resolvedPagesFor(sess, nil)
+}
+
+// resolvedPagesFor is resolvedPages plus journal plugin "name" on this ledger.
+func (s *Server) resolvedPagesFor(sess *Session, l *engine.Ledger) *PageRegistry {
 	if s != nil && s.Pages != nil {
 		return s.Pages
 	}
@@ -262,12 +267,12 @@ func (s *Server) resolvedPages(sess *Session) *PageRegistry {
 		// Opt-in: on decode failure, ship core only (no blanking builtins).
 		return builtins
 	}
-	return ComposePages(builtins, filterContribPages(contrib, flags)...)
+	return ComposePages(builtins, filterContribPages(contrib, flags, l)...)
 }
 
 // filterContribPages keeps plugin pages enabled by CUE or DefaultEnabled.
 // Explicit plugins.<PluginKey>.enabled wins; missing key uses Page.DefaultEnabled.
-func filterContribPages(pages []Page, flags map[string]bool) []Page {
+func filterContribPages(pages []Page, flags map[string]bool, l *engine.Ledger) []Page {
 	if len(pages) == 0 {
 		return nil
 	}
@@ -281,6 +286,10 @@ func filterContribPages(pages []Page, flags map[string]bool) []Page {
 				}
 				continue
 			}
+		}
+		if l != nil && l.PluginEnabled(key, p.DefaultEnabled) {
+			out = append(out, p)
+			continue
 		}
 		if p.DefaultEnabled {
 			out = append(out, p)

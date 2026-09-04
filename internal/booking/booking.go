@@ -1,6 +1,7 @@
 package booking
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -110,12 +111,23 @@ func (e *Engine) tol(comm string) *big.Rat {
 }
 
 func (e *Engine) Book(dirs []ast.Directive) {
+	_ = e.BookContext(context.Background(), dirs)
+}
+
+// BookContext is Book, aborting with ctx.Err() if the context is canceled.
+func (e *Engine) BookContext(ctx context.Context, dirs []ast.Directive) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	// Sort by date, then Beancount-style type rank (open before txn, close last),
 	// then source line. Same-day open that appears after a txn in include order
 	// must still open the account before the txn is booked.
 	indexed := sortedDirectives(dirs)
 
 	for _, d := range indexed {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		switch v := d.(type) {
 		case ast.Open:
 			e.bookOpen(v)
@@ -137,6 +149,7 @@ func (e *Engine) Book(dirs []ast.Directive) {
 			// handled elsewhere (Custom index series used by autointerest projection)
 		}
 	}
+	return nil
 }
 
 func sortedDirectives(dirs []ast.Directive) []ast.Directive {

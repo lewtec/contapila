@@ -136,6 +136,41 @@ func sortDocuments(docs []ast.Document) {
 	})
 }
 
+// FromMetadata turns document: "path" keys on txns/postings into document directives.
+// Account for a txn-level document: is the first posting account (if any).
+func FromMetadata(dirs []ast.Directive) []ast.Document {
+	var out []ast.Document
+	for _, d := range dirs {
+		t, ok := d.(ast.Transaction)
+		if !ok {
+			continue
+		}
+		firstAcct := ""
+		if len(t.Postings) > 0 {
+			firstAcct = t.Postings[0].Account
+		}
+		if path := t.Metadata["document"]; path != "" {
+			out = append(out, ast.Document{
+				Meta:      ast.Meta{Date: t.Date, File: t.File, Line: t.Line},
+				Account:   firstAcct,
+				Path:      path,
+				Synthetic: true,
+			})
+		}
+		for _, p := range t.Postings {
+			if path := p.Metadata["document"]; path != "" {
+				out = append(out, ast.Document{
+					Meta:      ast.Meta{Date: t.Date, File: t.File, Line: t.Line},
+					Account:   p.Account,
+					Path:      path,
+					Synthetic: true,
+				})
+			}
+		}
+	}
+	return out
+}
+
 // Merge combines ledger document directives with synthetic docs.
 // Prefer explicit (non-synthetic) when the same Path appears twice.
 func Merge(fromLedger, synthetic []ast.Document) []ast.Document {

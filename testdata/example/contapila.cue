@@ -18,7 +18,8 @@ commodities: {
 // Cross-ledger hints; ledger fields must be #LedgerName (discovered keys).
 // Not enforced by check yet — CUE validates names only.
 //
-// First-party modules: enable via journal plugin "web_…" (or plugins in this file).
+// First-party modules: CUE plugins.<id>.enabled, or journal plugin "name"
+// on the ledger that should enable them (stream steps and web pages).
 links: [
 	{
 		name: "acme-profit-distribution"

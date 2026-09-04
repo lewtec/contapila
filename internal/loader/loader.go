@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -26,23 +27,29 @@ var (
 
 // LoadFile parses a file and expands includes depth-first (disk).
 func LoadFile(path string) ([]ast.Directive, diag.List, error) {
-	return LoadFileFS(filesys.OS{}, path)
+	return LoadFileFS(context.Background(), filesys.OS{}, path)
 }
 
 // LoadFileFS is LoadFile using fsys for reads/stats.
-func LoadFileFS(fsys filesys.FS, path string) ([]ast.Directive, diag.List, error) {
+func LoadFileFS(ctx context.Context, fsys filesys.FS, path string) ([]ast.Directive, diag.List, error) {
 	if fsys == nil {
 		fsys = filesys.OS{}
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	var diags diag.List
 	seen := map[string]bool{}
 	stack := map[string]bool{}
 	var out []ast.Directive
-	err := loadOne(fsys, path, &out, &diags, seen, stack)
+	err := loadOne(ctx, fsys, path, &out, &diags, seen, stack)
 	return out, diags, err
 }
 
-func loadOne(fsys filesys.FS, path string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
+func loadOne(ctx context.Context, fsys filesys.FS, path string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return err
@@ -81,14 +88,14 @@ func loadOne(fsys filesys.FS, path string, out *[]ast.Directive, diags *diag.Lis
 			*out = append(*out, d)
 			continue
 		}
-		if err := expandInclude(fsys, dir, inc.Path, out, diags, seen, stack); err != nil {
+		if err := expandInclude(ctx, fsys, dir, inc.Path, out, diags, seen, stack); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func expandInclude(fsys filesys.FS, baseDir, pattern string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
+func expandInclude(ctx context.Context, fsys filesys.FS, baseDir, pattern string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
 	pattern = strings.TrimSpace(pattern)
 	if pattern == "" {
 		diags.Error(baseDir, 0, "include path is empty")
@@ -112,7 +119,7 @@ func expandInclude(fsys filesys.FS, baseDir, pattern string, out *[]ast.Directiv
 			diags.Error(baseDir, 0, fmt.Sprintf("include is a directory: %s", pattern))
 			return fmt.Errorf("%w: %s", ErrIncludeIsDir, pattern)
 		}
-		return loadOne(fsys, target, out, diags, seen, stack)
+		return loadOne(ctx, fsys, target, out, diags, seen, stack)
 	}
 
 	// Glob still uses the process FS (overlay files without disk names won't appear).
@@ -137,7 +144,7 @@ func expandInclude(fsys filesys.FS, baseDir, pattern string, out *[]ast.Directiv
 		if info.IsDir() {
 			continue
 		}
-		if err := loadOne(fsys, m, out, diags, seen, stack); err != nil {
+		if err := loadOne(ctx, fsys, m, out, diags, seen, stack); err != nil {
 			return err
 		}
 	}

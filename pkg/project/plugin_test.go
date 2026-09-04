@@ -3,13 +3,12 @@ package project
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/lucasew/contapila-go/internal/config"
 )
 
-func TestOpenProjectJournalPluginEnables(t *testing.T) {
+func TestOpenProjectJournalPluginDoesNotMutateCUE(t *testing.T) {
 	config.RegisterKnownPlugin("web_accounts")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "contapila.cue"), []byte("// empty\n"), 0o644); err != nil {
@@ -33,8 +32,11 @@ plugin "web_accounts"
 		t.Fatal(err)
 	}
 	ok, err := config.PluginEnabled(p.Config.Value, "web_accounts")
-	if err != nil || !ok {
-		t.Fatalf("want web_accounts enabled from plugin directive: ok=%v err=%v", ok, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok {
+		t.Fatal("journal plugin must not mutate project CUE; enable is per-ledger at open")
 	}
 }
 
@@ -64,21 +66,6 @@ plugin "web_does_not_exist"
 	}
 	if ok {
 		t.Fatal("unknown plugin must not enable in CUE")
-	}
-	if !p.Diags.HasWarnings() {
-		t.Fatal("want project-level warn diag for unknown plugin")
-	}
-	found := false
-	for _, d := range p.Diags {
-		if d.IsWarn() && strings.Contains(d.Message, "web_does_not_exist") {
-			found = true
-			if d.Line < 1 {
-				t.Fatalf("want line number on diag: %+v", d)
-			}
-		}
-	}
-	if !found {
-		t.Fatalf("diag message missing: %v", p.Diags)
 	}
 }
 

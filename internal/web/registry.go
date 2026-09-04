@@ -262,10 +262,6 @@ func registerQuery(r *Registry, s *Server) {
 			if sess == nil {
 				return nil, ErrSessionNil
 			}
-			// Only materialize when web_queries is enabled for this project.
-			if _, ok := s.resolvedPages(sess).Lookup("queries"); !ok {
-				return nil, nil
-			}
 			names, err := sess.LedgerNames()
 			if err != nil {
 				return nil, err
@@ -275,6 +271,9 @@ func registerQuery(r *Registry, s *Server) {
 				l, err := sess.Ledger(name)
 				if err != nil {
 					return nil, err
+				}
+				if _, ok := s.resolvedPagesFor(sess, l).Lookup("queries"); !ok {
+					continue
 				}
 				seen := map[string]struct{}{}
 				for _, q := range l.Queries() {
@@ -305,14 +304,13 @@ func registerLedgerPage(r *Registry, s *Server) {
 			if err != nil {
 				return nil, err
 			}
-			pages := s.resolvedPages(sess).BuildIDs()
 			var out []Instance
 			for _, name := range names {
-				// Touch ledger so booking errors surface during expand, not mid-render.
-				if _, err := sess.Ledger(name); err != nil {
+				l, err := sess.Ledger(name)
+				if err != nil {
 					return nil, err
 				}
-				for _, page := range pages {
+				for _, page := range s.resolvedPagesFor(sess, l).BuildIDs() {
 					out = append(out, Instance{Path: PathLedger(name, page), Kind: KindPage})
 				}
 			}

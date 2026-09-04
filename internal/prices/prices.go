@@ -1,6 +1,7 @@
 package prices
 
 import (
+	"context"
 	"math/big"
 	"sort"
 	"strings"
@@ -40,7 +41,7 @@ func LoadFile(path string) (*DB, diag.List, error) {
 // LoadFileFS loads prices via fsys (includes expanded).
 func LoadFileFS(fsys filesys.FS, path string) (*DB, diag.List, error) {
 	db := NewDB()
-	dirs, diags, err := loader.LoadFileFS(fsys, path)
+	dirs, diags, err := loader.LoadFileFS(context.Background(), fsys, path)
 	if err != nil {
 		return db, diags, err
 	}

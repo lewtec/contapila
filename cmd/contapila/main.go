@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -26,10 +27,8 @@ import (
 	"github.com/lucasew/contapila-go/pkg/version"
 	"github.com/spf13/cobra"
 
-	// First-party modules. Stream expanders (dated_costs, autointerest, pads,
-	// docs_*) register via internal/engine blank imports. Opt-in pages/bookers here.
+	// First-party web pages (stream expanders are called from engine, not registered).
 	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
-	_ "github.com/lucasew/contapila-go/internal/plugins/checkclosing"
 	_ "github.com/lucasew/contapila-go/internal/plugins/events"
 	_ "github.com/lucasew/contapila-go/internal/plugins/queries"
 )
@@ -150,7 +149,7 @@ func withLedgers(args []string, fn func(*engine.Ledger) error) error {
 	}
 	var failed bool
 	for _, name := range names {
-		l, err := h.Ledger(name)
+		l, err := h.Ledger(context.Background(), name)
 		if err != nil {
 			return err
 		}
@@ -484,7 +483,7 @@ func accountCmd() *cobra.Command {
 				return err
 			}
 			printDiags(h.Diags)
-			l, err := h.Ledger(args[0])
+			l, err := h.Ledger(context.Background(), args[0])
 			if err != nil {
 				return err
 			}

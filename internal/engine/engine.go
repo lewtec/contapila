@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,7 +21,6 @@ import (
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/loader"
 	"github.com/lucasew/contapila-go/internal/period"
-	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/prices"
 	"github.com/lucasew/contapila-go/pkg/project"
 )
@@ -77,9 +77,10 @@ type Ledger struct {
 	// AutoInterest accounts (interest_rate on open) for projection.
 	AutoInterest []booking.AutoInterestAccount
 
-	dirs    []ast.Directive
-	book    *booking.Engine
-	indexDB booking.IndexDB
+	dirs           []ast.Directive
+	book           *booking.Engine
+	indexDB        booking.IndexDB
+	journalPlugins map[string]bool
 }
 
 // Handle is an opened project plus shared prices. Open named ledgers from it.
@@ -92,11 +93,14 @@ type Handle struct {
 
 // Open discovers the project from cwd and loads shared prices.
 func Open(cwd string) (*Handle, error) {
-	return OpenFS(filesys.OS{}, cwd)
+	return OpenFS(context.Background(), filesys.OS{}, cwd)
 }
 
 // OpenFS is Open using fsys for file reads (LSP overlays).
-func OpenFS(fsys filesys.FS, cwd string) (*Handle, error) {
+func OpenFS(ctx context.Context, fsys filesys.FS, cwd string) (*Handle, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	p, pdb, diags, err := OpenProjectFS(fsys, cwd)
 	if err != nil {
 		return nil, err
@@ -105,11 +109,11 @@ func OpenFS(fsys filesys.FS, cwd string) (*Handle, error) {
 }
 
 // Ledger loads and books one named ledger through this handle's FS and prices.
-func (h *Handle) Ledger(name string) (*Ledger, error) {
+func (h *Handle) Ledger(ctx context.Context, name string) (*Ledger, error) {
 	if h == nil {
 		return nil, ErrNilHandle
 	}
-	return OpenLedgerFS(h.fsys, h.Project, h.Prices, name)
+	return OpenLedgerFS(ctx, h.fsys, h.Project, h.Prices, name)
 }
 
 // LedgerNames returns sorted ledger directory names.
@@ -150,11 +154,14 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*project.Project, *prices.DB, d
 
 // OpenLedger loads and books one named ledger from disk.
 func OpenLedger(p *project.Project, pdb *prices.DB, name string) (*Ledger, error) {
-	return OpenLedgerFS(filesys.OS{}, p, pdb, name)
+	return OpenLedgerFS(context.Background(), filesys.OS{}, p, pdb, name)
 }
 
 // OpenLedgerFS loads and books one named ledger via fsys.
-func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name string) (*Ledger, error) {
+func OpenLedgerFS(ctx context.Context, fsys filesys.FS, p *project.Project, pdb *prices.DB, name string) (*Ledger, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if fsys == nil {
 		fsys = filesys.OS{}
 	}
@@ -168,13 +175,12 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	if entry == "" {
 		return nil, fmt.Errorf("%w %q", ErrUnknownLedger, name)
 	}
-	dirs, diags, err := loader.LoadFileFS(fsys, entry)
+	dirs, diags, err := loader.LoadFileFS(ctx, fsys, entry)
 	if err != nil {
 		return nil, err
 	}
-	// Project-level warnings (unknown plugin directives, …) show on check.
-	if p != nil {
-		diags.Merge(p.Diags)
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	// Invalid ledgers.<name>.plot_from: check error; chart still ignores the floor.
 	if p != nil && p.Config != nil {
@@ -196,7 +202,7 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	}
 	// Prelude project_journals with role "stream" are auto-injected into every ledger.
 	// Skip a path if the ledger stream already loaded that realpath via include.
-	stream, idiags := injectProjectStreamJournals(fsys, p, stream)
+	stream, idiags := injectProjectStreamJournals(ctx, fsys, p, stream)
 	diags.Merge(idiags)
 
 	root := ""
@@ -207,15 +213,22 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 			cfg = p.Config.Value
 		}
 	}
-	h := &plugin.Host{Ledger: name, Root: root, Prices: pdb}
+	journal, jdiags := journalPlugins(stream)
+	diags.Merge(jdiags)
+	on := func(id string, defaultOn bool) bool { return moduleOn(cfg, journal, id, defaultOn) }
 
-	// PhaseEarly: dated_costs (and other early expanders).
-	_, stream, pd := plugin.RunPhase(cfg, h, stream, plugin.PhaseEarly)
-	diags.Merge(pd)
-
-	// PhaseMid: autointerest expand (synth income opens before account collect).
-	_, stream, pd = plugin.RunPhase(cfg, h, stream, plugin.PhaseMid)
-	diags.Merge(pd)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if on("dated_costs", true) {
+		stream = booking.ExpandDatedCosts(stream, pdb)
+	}
+	if on("autointerest", true) {
+		diags.Merge(booking.ValidateAutoInterestRates(stream))
+		var adiags diag.List
+		stream, adiags = booking.ExpandAutoInterest(stream)
+		diags.Merge(adiags)
+	}
 
 	// Collect documents, opens, commodities after mid expand (includes synth income opens).
 	var ledgerDocs []ast.Document
@@ -254,29 +267,53 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	setupBooking := func(e *booking.Engine) {
 		e.CommTol = commTol
 	}
-	h.Setup = setupBooking
 
-	// PhaseBook: pads then check_closing (or other bookers); last Engine wins.
-	b, stream, pd := plugin.RunPhase(cfg, h, stream, plugin.PhaseBook)
-	diags.Merge(pd)
-	if b == nil {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if on("pads", true) {
+		var pdiags diag.List
+		stream, pdiags = booking.ExpandPads(stream, setupBooking)
+		diags.Merge(pdiags)
+	}
+
+	var b *booking.Engine
+	if on("check_closing", false) {
+		var cdiags diag.List
+		b, stream, cdiags = booking.BookWithClosing(stream, setupBooking)
+		diags.Merge(cdiags)
+	} else {
 		if booking.HasClosingMeta(stream) {
 			diags.Warn("", 0, `closing: TRUE present but plugin "check_closing" is not enabled; autoclose skipped`)
 		}
 		b = booking.New()
 		setupBooking(b)
-		b.Book(stream)
+		if err := b.BookContext(ctx, stream); err != nil {
+			return nil, err
+		}
 		diags.Merge(b.Diags)
 	}
 
 	autoInterest := booking.CollectAutoInterest(stream)
 	indexDB := booking.LoadIndexDB(stream)
 
-	// PhaseLate: docs_folder / docs_meta append to h.Documents (not the stream).
-	h.Documents = nil
-	_, stream, pd = plugin.RunPhase(cfg, h, stream, plugin.PhaseLate)
-	diags.Merge(pd)
-	allDocs := docs.Merge(ledgerDocs, h.Documents)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	var synthDocs []ast.Document
+	if on("docs_folder", true) {
+		synth, sdiags, err := docs.ScanByAccount(root, name)
+		diags.Merge(sdiags)
+		if err != nil {
+			slog.Warn("docs scan failed", "ledger", name, "err", err)
+			diags.Error("", 0, fmt.Sprintf("docs_folder scan: %v", err))
+		}
+		synthDocs = append(synthDocs, synth...)
+	}
+	if on("docs_meta", true) {
+		synthDocs = append(synthDocs, docs.FromMetadata(stream)...)
+	}
+	allDocs := docs.Merge(ledgerDocs, synthDocs)
 
 	op := inferOpCurrency(stream, p)
 	return &Ledger{
@@ -289,9 +326,10 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 		Accounts:     accounts,
 		Commodities:  commodities,
 		AutoInterest: autoInterest,
-		dirs:         stream,
-		book:         b,
-		indexDB:      indexDB,
+		dirs:           stream,
+		book:           b,
+		indexDB:        indexDB,
+		journalPlugins: journal,
 	}, nil
 }
 
@@ -310,7 +348,7 @@ func canonicalPath(path string) string {
 
 // injectProjectStreamJournals prepends prelude project_journals (role stream) into the ledger.
 // Paths already present in the stream (via include) are skipped to avoid double-load.
-func injectProjectStreamJournals(fsys filesys.FS, p *project.Project, stream []ast.Directive) ([]ast.Directive, diag.List) {
+func injectProjectStreamJournals(ctx context.Context, fsys filesys.FS, p *project.Project, stream []ast.Directive) ([]ast.Directive, diag.List) {
 	var diags diag.List
 	if p == nil || len(p.StreamJournals) == 0 {
 		return stream, diags
@@ -332,7 +370,11 @@ func injectProjectStreamJournals(fsys filesys.FS, p *project.Project, stream []a
 		if present[abs] {
 			continue
 		}
-		dirs, ldiags, err := loader.LoadFileFS(fsys, j.Path)
+		if err := ctx.Err(); err != nil {
+			diags.Error(j.Path, 0, err.Error())
+			return stream, diags
+		}
+		dirs, ldiags, err := loader.LoadFileFS(ctx, fsys, j.Path)
 		diags.Merge(ldiags)
 		if err != nil {
 			diags.Error(j.Path, 0, fmt.Sprintf("load project journal %s: %v", j.RelPath, err))
@@ -423,6 +465,19 @@ func (l *Ledger) Events() []ast.Event {
 		return nil
 	}
 	return l.book.Events
+}
+
+// PluginEnabled reports whether first-party module id is on for this ledger
+// (CUE explicit flag, else journal plugin directive, else the module default).
+func (l *Ledger) PluginEnabled(id string, defaultOn bool) bool {
+	if l == nil {
+		return defaultOn
+	}
+	var cfg cue.Value
+	if l.Project != nil && l.Project.Config != nil {
+		cfg = l.Project.Config.Value
+	}
+	return moduleOn(cfg, l.journalPlugins, id, defaultOn)
 }
 
 // Account returns the open for name, if present.

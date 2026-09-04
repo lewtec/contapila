@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -312,7 +313,7 @@ func TestLoadFileFSNilUsesOS(t *testing.T) {
 	main := writeFile(t, dir, "main.beancount", `
 2020-01-01 open Assets:Cash
 `)
-	dirs, diags, err := LoadFileFS(nil, main)
+	dirs, diags, err := LoadFileFS(context.Background(), nil, main)
 	if err != nil {
 		t.Fatalf("LoadFileFS(nil): %v", err)
 	}
@@ -334,7 +335,7 @@ func TestLoadFileFSOverlayOverridesDisk(t *testing.T) {
 	ov := filesys.NewOverlay(filesys.OS{})
 	ov.Set(main, "2020-01-01 open Assets:Overlay\n")
 
-	dirs, diags, err := LoadFileFS(ov, main)
+	dirs, diags, err := LoadFileFS(context.Background(), ov, main)
 	if err != nil {
 		t.Fatalf("LoadFileFS: %v", err)
 	}
@@ -359,7 +360,7 @@ include "only-overlay.beancount"
 	ov := filesys.NewOverlay(filesys.OS{})
 	ov.Set(incPath, "2020-01-01 open Assets:FromOverlay\n")
 
-	dirs, diags, err := LoadFileFS(ov, mainPath)
+	dirs, diags, err := LoadFileFS(context.Background(), ov, mainPath)
 	if err != nil {
 		t.Fatalf("LoadFileFS: %v", err)
 	}
