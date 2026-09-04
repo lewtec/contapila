@@ -23,6 +23,9 @@ func fillPlugins(pc PageContext, data *PageData) {
 	for _, info := range infos {
 		seen[info.ID] = true
 		on := plugin.IsEnabled(cfg, info.ID)
+		if pc.Ledger != nil {
+			on = pc.Ledger.PluginEnabled(info.ID, info.DefaultOn)
+		}
 		inCfg := flags != nil && containsPluginFlag(flags, info.ID)
 		entry := plugin.PluginValue(cfg, info.ID)
 		entryStr := formatCUE(entry)
@@ -39,6 +42,38 @@ func fillPlugins(pc PageContext, data *PageData) {
 			InConfig:  inCfg,
 			HasStream: info.HasStream,
 			EntryCUE:  entryStr, // plain; highlighted in templ via codeHighlight
+		})
+	}
+	// Stream expanders are first-party engine steps, not RegisterTyped modules.
+	for _, id := range config.KnownPluginIDs() {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		defaultOn := streamModuleDefaultOn(id)
+		on := defaultOn
+		if pc.Ledger != nil {
+			on = pc.Ledger.PluginEnabled(id, defaultOn)
+		} else if flags != nil {
+			if b, ok := flags[id]; ok {
+				on = b
+			}
+		}
+		inCfg := flags != nil && containsPluginFlag(flags, id)
+		entryStr := formatCUE(plugin.PluginValue(cfg, id))
+		if !inCfg {
+			if defaultOn {
+				entryStr = "(not in unified plugins map — DefaultOn)"
+			} else {
+				entryStr = "(not in unified plugins map — default off)"
+			}
+		}
+		data.PluginRows = append(data.PluginRows, PluginStatusRow{
+			ID:        id,
+			Enabled:   on,
+			InConfig:  inCfg,
+			HasStream: true,
+			EntryCUE:  entryStr,
 		})
 	}
 	for id, on := range flags {
@@ -64,6 +99,15 @@ func fillConfig(pc PageContext, data *PageData) {
 		return
 	}
 	data.ConfigCUE = formatCUE(pc.Project.Config.Value)
+}
+
+func streamModuleDefaultOn(id string) bool {
+	switch id {
+	case "check_closing", "web_accounts":
+		return false
+	default:
+		return true
+	}
 }
 
 func containsPluginFlag(flags map[string]bool, id string) bool {

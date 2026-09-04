@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"math/big"
 	"path/filepath"
 	"strings"
@@ -71,18 +72,18 @@ func TestOpenHandle(t *testing.T) {
 	if len(names) == 0 {
 		t.Fatal("expected ledger names")
 	}
-	l, err := h.Ledger("personal")
+	l, err := h.Ledger(context.Background(), "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if l.Name != "personal" {
 		t.Fatalf("ledger name %q", l.Name)
 	}
-	if _, err := h.Ledger("does-not-exist"); err == nil {
+	if _, err := h.Ledger(context.Background(), "does-not-exist"); err == nil {
 		t.Fatal("expected unknown ledger")
 	}
 	var none *Handle
-	if _, err := none.Ledger("personal"); err == nil {
+	if _, err := none.Ledger(context.Background(), "personal"); err == nil {
 		t.Fatal("expected nil handle error")
 	}
 }

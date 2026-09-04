@@ -64,7 +64,7 @@ func (s *Session) open() (*engine.Handle, error) {
 			s.openErr = ErrProjectRootRequired
 			return
 		}
-		s.handle, s.openErr = engine.Open(s.Root)
+		s.handle, s.openErr = engine.Open(s.Root) // Open uses context.Background
 	})
 	return s.handle, s.openErr
 }
@@ -92,7 +92,7 @@ func (s *Session) Ledger(name string) (*engine.Ledger, error) {
 	}
 	s.ledgerMu.Unlock()
 
-	l, err := h.Ledger(name)
+	l, err := h.Ledger(context.Background(), name)
 	if err != nil {
 		return nil, err
 	}

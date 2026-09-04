@@ -9,11 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/filesys"
-	"github.com/lucasew/contapila-go/internal/loader"
 	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/prices"
 )
@@ -47,8 +45,8 @@ type Project struct {
 	PricesEmpty   bool
 	// StreamJournals are role "stream" files to inject into each ledger (absolute paths).
 	StreamJournals []StreamJournal
-	// Diags are project-level warnings/errors (e.g. unknown plugin directives).
-	// Merged into every ledger's check diags on OpenLedger.
+	// Diags are project-level warnings/errors (reserved; journal plugin
+	// warnings are emitted on the ledger that declared them).
 	Diags diag.List
 }
 
@@ -223,12 +221,10 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 		}
 	}
 
-	// Journal plugin "name" directives → plugins.<name>.enabled: true (config plane).
-	journalPlugins, pluginDiags := collectJournalPluginNames(fsys, ledgers, streamJournals)
-
-	// Re-unify with price_pairs and/or journal plugins when present.
-	if len(pricePairs) > 0 || len(journalPlugins) > 0 {
-		cfg2, err := config.LoadWithPlugins(cueBytes, cuePath, discovered, pricePairs, journalPlugins)
+	// Re-unify with price_pairs when present. Journal plugin "name" is
+	// applied per ledger at OpenLedger (no second parse of every journal).
+	if len(pricePairs) > 0 {
+		cfg2, err := config.LoadWithPlugins(cueBytes, cuePath, discovered, pricePairs, nil)
 		if err != nil {
 			return nil, fmt.Errorf("load config with injects: %w", err)
 		}
@@ -248,79 +244,5 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 		PricesMissing:  pricesMissing,
 		PricesEmpty:    pricesEmpty,
 		StreamJournals: streamJournals,
-		Diags:          pluginDiags,
 	}, nil
-}
-
-// collectJournalPluginNames loads each ledger main (+ stream journals) and
-// returns unique known plugin directive names (e.g. "web_accounts").
-// Unknown names and ids with '/' are skipped; a warn diag (and slog) is emitted.
-func collectJournalPluginNames(fsys filesys.FS, ledgers []Ledger, streams []StreamJournal) ([]string, diag.List) {
-	if fsys == nil {
-		fsys = filesys.OS{}
-	}
-	seen := map[string]bool{}
-	var out []string
-	var diags diag.List
-	add := func(path string) {
-		if path == "" {
-			return
-		}
-		dirs, _, err := loader.LoadFileFS(fsys, path)
-		if err != nil {
-			slog.Warn("scan plugins: load failed", "path", path, "err", err)
-			return
-		}
-		for _, d := range dirs {
-			p, ok := d.(ast.Plugin)
-			if !ok || p.Name == "" {
-				continue
-			}
-			if err := config.ValidatePluginID(p.Name); err != nil {
-				if !seen[p.Name] {
-					seen[p.Name] = true
-					msg := fmt.Sprintf("invalid plugin id %q: '/' not allowed", p.Name)
-					diags.Warn(p.File, p.Line, msg)
-					slog.Warn("invalid plugin directive",
-						"plugin", p.Name,
-						"file", p.File,
-						"line", p.Line,
-						"err", err.Error(),
-					)
-				}
-				continue
-			}
-			if !config.IsKnownPlugin(p.Name) {
-				// Once per name; first sighting keeps location for the warn.
-				if !seen[p.Name] {
-					seen[p.Name] = true
-					known := config.KnownPluginIDs()
-					msg := fmt.Sprintf("unknown plugin %q", p.Name)
-					if len(known) > 0 {
-						msg = fmt.Sprintf("unknown plugin %q (known: %s)", p.Name, strings.Join(known, ", "))
-					}
-					diags.Warn(p.File, p.Line, msg)
-					slog.Warn("unknown plugin directive",
-						"plugin", p.Name,
-						"file", p.File,
-						"line", p.Line,
-						"known", known,
-					)
-				}
-				continue
-			}
-			if seen[p.Name] {
-				continue
-			}
-			seen[p.Name] = true
-			out = append(out, p.Name)
-		}
-	}
-	for _, l := range ledgers {
-		add(l.MainPath)
-	}
-	for _, s := range streams {
-		add(s.Path)
-	}
-	return out, diags
 }

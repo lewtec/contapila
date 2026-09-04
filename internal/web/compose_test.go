@@ -92,7 +92,7 @@ func TestFilterContribPages(t *testing.T) {
 	got := filterContribPages(pages, map[string]bool{
 		"web_forced-off": false, // PagePluginKey("forced-off")
 		"web_forced-on":  true,
-	})
+	}, nil)
 	ids := map[string]bool{}
 	for _, p := range got {
 		ids[p.ID] = true
@@ -101,7 +101,7 @@ func TestFilterContribPages(t *testing.T) {
 		t.Fatalf("got %v", ids)
 	}
 	// Nil flags → only DefaultEnabled.
-	got = filterContribPages(pages, nil)
+	got = filterContribPages(pages, nil, nil)
 	ids = map[string]bool{}
 	for _, p := range got {
 		ids[p.ID] = true

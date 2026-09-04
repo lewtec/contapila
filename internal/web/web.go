@@ -400,7 +400,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	reg := s.resolvedPages(sess)
+	reg := s.resolvedPagesFor(sess, l)
 	pg, ok := reg.Lookup(pageID)
 	if !ok {
 		http.NotFound(w, r)
@@ -493,7 +493,7 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Opt-in UI: only when web_queries is in the resolved page table.
-	reg := s.resolvedPages(sess)
+	reg := s.resolvedPagesFor(sess, l)
 	if _, enabled := reg.Lookup("queries"); !enabled {
 		http.NotFound(w, r)
 		return
