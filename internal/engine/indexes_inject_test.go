@@ -27,7 +27,7 @@ func TestRootIndexesAutoInjected(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	for _, d := range l.Dirs {
+	for _, d := range l.dirs {
 		if c, ok := d.(ast.Custom); ok && c.Type == "index" {
 			n++
 		}
@@ -35,8 +35,8 @@ func TestRootIndexesAutoInjected(t *testing.T) {
 	if n < 100 {
 		t.Fatalf("expected many index customs from auto-inject, got %d", n)
 	}
-	if len(l.IndexDB["CDI"]) < 100 {
-		t.Fatalf("IndexDB CDI=%d", len(l.IndexDB["CDI"]))
+	if len(l.indexDB["CDI"]) < 100 {
+		t.Fatalf("indexDB CDI=%d", len(l.indexDB["CDI"]))
 	}
 	// acme also gets inject even without interest accounts
 	acme, err := OpenLedger(p, pdb, "acme")
@@ -44,7 +44,7 @@ func TestRootIndexesAutoInjected(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n2 int
-	for _, d := range acme.Dirs {
+	for _, d := range acme.dirs {
 		if c, ok := d.(ast.Custom); ok && c.Type == "index" {
 			n2++
 		}

@@ -34,10 +34,10 @@ func init() {
 }
 
 func fill(pc web.PageContext, data *web.PageData) {
-	if pc.Ledger == nil || pc.Ledger.Book == nil {
+	if pc.Ledger == nil {
 		return
 	}
-	evs := pc.Ledger.Book.Events
+	evs := pc.Ledger.Events()
 	rows := make([]web.EventListRow, 0, len(evs))
 	for _, e := range evs {
 		date := ""

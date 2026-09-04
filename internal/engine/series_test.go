@@ -65,8 +65,8 @@ func TestAccountSeriesUsesPadDate(t *testing.T) {
 		t.Fatalf("errors: %v", book.Diags)
 	}
 	l := &Ledger{
-		Dirs:       expanded,
-		Book:       book,
+		dirs:       expanded,
+		book:       book,
 		OpCurrency: "BRL",
 	}
 

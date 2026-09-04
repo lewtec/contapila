@@ -413,10 +413,11 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	}
 	data := s.basePageData(sess, proj, l, name, title, pageID, tq)
 	data.Pages = reg
-	data.Diags = l.Diags
-	data.HasErrors = l.Diags.HasErrors()
-	data.HasWarnings = l.Diags.HasWarnings()
-	data.OK = !l.Diags.HasErrors()
+	ds := l.Check()
+	data.Diags = ds
+	data.HasErrors = ds.HasErrors()
+	data.HasWarnings = ds.HasWarnings()
+	data.OK = !ds.HasErrors()
 
 	if pg.Fill != nil {
 		pg.Fill(PageContext{
@@ -464,7 +465,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	data.AccountActivity = amountMapRows(l.AccountActivity(account, pr.Start, pr.End), account, "", 4)
 	data.Journal = l.JournalForAccount(account, pr.Start, pr.End)
 	data.AccountDocs = documentRows(l.DocumentsForAccount(account))
-	if info, ok := l.Accounts[account]; ok {
+	if info, ok := l.Account(account); ok {
 		data.AccountMeta = metaRows(info.Metadata)
 		data.AccountCurrencies = info.Currencies
 	}
@@ -499,13 +500,11 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 	}
 	var found bool
 	var text string
-	if l.Book != nil {
-		for _, q := range l.Book.Queries {
-			if q.Name == qname {
-				found = true
-				text = q.Query
-				break
-			}
+	for _, q := range l.Queries() {
+		if q.Name == qname {
+			found = true
+			text = q.Query
+			break
 		}
 	}
 	title := qname

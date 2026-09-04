@@ -76,7 +76,7 @@ func (l *Ledger) walkBalanceSeries(
 			byDay[dt] = nil
 		}
 	}
-	for _, d := range l.Dirs {
+	for _, d := range l.dirs {
 		dt := d.GetDate()
 		if dt.IsZero() {
 			// options etc. — book at start
@@ -87,7 +87,7 @@ func (l *Ledger) walkBalanceSeries(
 		addDay(dt)
 		byDay[dt] = append(byDay[dt], d)
 	}
-	// Market revaluation days from shared PriceDB (prices may not be in l.Dirs).
+	// Market revaluation days from shared PriceDB (prices may not be in l.dirs).
 	if l.Prices != nil {
 		for _, s := range l.Prices.AllSeries() {
 			for _, pt := range s.Points {
@@ -117,8 +117,8 @@ func (l *Ledger) walkBalanceSeries(
 				priceDay[d] = true // treat as revaluation sample even if book flat
 			}
 			// Index series days for this indicator.
-			if l.IndexDB != nil {
-				if m := l.IndexDB[a.Rate.Indicator]; m != nil {
+			if l.indexDB != nil {
+				if m := l.indexDB[a.Rate.Indicator]; m != nil {
 					for dk := range m {
 						if dt, err := period.ParseDate(dk); err == nil {
 							if !dt.Before(period.DateOnly(a.OpenDate)) && !dt.After(end) {
@@ -285,7 +285,7 @@ func (l *Ledger) accountValueFromBook(b *booking.Engine, account string, asOf ti
 // unitsForDisplay returns book units, or autointerest projection when configured.
 func (l *Ledger) unitsForDisplay(b *booking.Engine, acct string, book map[string]*big.Rat, asOf time.Time) map[string]*big.Rat {
 	if cfg := l.autoInterestOf(acct); cfg != nil {
-		return booking.ProjectedUnits(acct, cfg.Rate, cfg.OpenDate, cfg.CloseDate, l.Dirs, l.IndexDB, asOf)
+		return booking.ProjectedUnits(acct, cfg.Rate, cfg.OpenDate, cfg.CloseDate, l.dirs, l.indexDB, asOf)
 	}
 	if book != nil {
 		return book
@@ -317,20 +317,20 @@ func monthEndOnOrAfter(t time.Time) time.Time {
 // Chart uses magnitudes: Income = −Σ(income), Expense = Σ(expenses) in op currency.
 func (l *Ledger) PnLBars(from, to time.Time, kind period.BinKind) []BarPoint {
 	if from.IsZero() || to.IsZero() {
-		if len(l.Book.Txns) == 0 {
+		if len(l.book.Txns) == 0 {
 			return nil
 		}
 		if from.IsZero() {
-			from = l.Book.Txns[0].Txn.Date
-			for _, bt := range l.Book.Txns {
+			from = l.book.Txns[0].Txn.Date
+			for _, bt := range l.book.Txns {
 				if bt.Txn.Date.Before(from) {
 					from = bt.Txn.Date
 				}
 			}
 		}
 		if to.IsZero() {
-			to = l.Book.Txns[0].Txn.Date
-			for _, bt := range l.Book.Txns {
+			to = l.book.Txns[0].Txn.Date
+			for _, bt := range l.book.Txns {
 				if bt.Txn.Date.After(to) {
 					to = bt.Txn.Date
 				}
@@ -343,7 +343,7 @@ func (l *Ledger) PnLBars(from, to time.Time, kind period.BinKind) []BarPoint {
 	for _, b := range bins {
 		incSigned := big.NewRat(0, 1) // Beancount signed (usually −)
 		expSigned := big.NewRat(0, 1) // Beancount signed (usually +)
-		for _, bt := range l.Book.Txns {
+		for _, bt := range l.book.Txns {
 			d := bt.Txn.Date
 			if d.Before(b.Start) || d.After(b.End) {
 				continue

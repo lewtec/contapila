@@ -214,8 +214,9 @@ func checkCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return withLedgers(args, func(l *engine.Ledger) error {
 				fmt.Printf("== %s ==\n", l.Name)
-				printDiags(l.Diags)
-				if l.Diags.HasErrors() {
+				ds := l.Check()
+				printDiags(ds)
+				if ds.HasErrors() {
 					return fmt.Errorf("%w for %s", ErrCheckFailed, l.Name)
 				}
 				fmt.Println("OK")

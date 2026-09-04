@@ -69,13 +69,14 @@ func basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledger
 
 // queryNavItems builds the sidebar query list from booked journal queries (name order).
 func queryNavItems(l *engine.Ledger) []QueryNavItem {
-	if l == nil || l.Book == nil || len(l.Book.Queries) == 0 {
+	qs := l.Queries()
+	if len(qs) == 0 {
 		return nil
 	}
 	// Preserve journal order; drop empty names; de-dupe by first occurrence.
 	seen := map[string]struct{}{}
-	out := make([]QueryNavItem, 0, len(l.Book.Queries))
-	for _, q := range l.Book.Queries {
+	out := make([]QueryNavItem, 0, len(qs))
+	for _, q := range qs {
 		name := q.Name
 		if name == "" {
 			continue

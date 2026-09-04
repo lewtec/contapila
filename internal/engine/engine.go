@@ -58,11 +58,12 @@ type CommodityInfo struct {
 }
 
 // Ledger is a fully loaded and booked named ledger.
+// Surfaces use Check, report methods, Queries, Events, and Account.
+// The booked stream and booking engine stay unexported.
 type Ledger struct {
-	Name       string
-	Project    *project.Project
-	Dirs       []ast.Directive
-	Book       *booking.Engine
+	Name    string
+	Project *project.Project
+	// Diags are load/booking diagnostics. Prefer Check().
 	Diags      diag.List
 	OpCurrency string
 	Prices     *prices.DB
@@ -72,9 +73,12 @@ type Ledger struct {
 	Accounts map[string]AccountInfo
 	// Commodities keyed by currency (from commodity directives in this ledger stream).
 	Commodities map[string]CommodityInfo
-	// AutoInterest accounts (interest_rate on open) and index series for projection.
+	// AutoInterest accounts (interest_rate on open) for projection.
 	AutoInterest []booking.AutoInterestAccount
-	IndexDB      booking.IndexDB
+
+	dirs    []ast.Directive
+	book    *booking.Engine
+	indexDB booking.IndexDB
 }
 
 // OpenProject wraps project.OpenProject and loads shared prices from disk.
@@ -239,8 +243,6 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 	return &Ledger{
 		Name:         name,
 		Project:      p,
-		Dirs:         stream,
-		Book:         b,
 		Diags:        diags,
 		OpCurrency:   op,
 		Prices:       pdb,
@@ -248,7 +250,9 @@ func OpenLedgerFS(fsys filesys.FS, p *project.Project, pdb *prices.DB, name stri
 		Accounts:     accounts,
 		Commodities:  commodities,
 		AutoInterest: autoInterest,
-		IndexDB:      indexDB,
+		dirs:         stream,
+		book:         b,
+		indexDB:      indexDB,
 	}, nil
 }
 
@@ -358,6 +362,39 @@ func (l *Ledger) DocumentsForAccount(account string) []ast.Document {
 	return docs.ForAccount(l.Documents, account)
 }
 
+// Check returns load and booking diagnostics. Errors fail check; warnings do not.
+func (l *Ledger) Check() diag.List {
+	if l == nil {
+		return nil
+	}
+	return l.Diags
+}
+
+// Queries returns stored journal query directives (no BQL execution).
+func (l *Ledger) Queries() []ast.Query {
+	if l == nil || l.book == nil {
+		return nil
+	}
+	return l.book.Queries
+}
+
+// Events returns stored journal event directives.
+func (l *Ledger) Events() []ast.Event {
+	if l == nil || l.book == nil {
+		return nil
+	}
+	return l.book.Events
+}
+
+// Account returns the open for name, if present.
+func (l *Ledger) Account(name string) (AccountInfo, bool) {
+	if l == nil {
+		return AccountInfo{}, false
+	}
+	info, ok := l.Accounts[name]
+	return info, ok
+}
+
 func inferOpCurrency(dirs []ast.Directive, p *project.Project) string {
 	// options first
 	for _, d := range dirs {
@@ -383,7 +420,7 @@ func inferOpCurrency(dirs []ast.Directive, p *project.Project) string {
 func (l *Ledger) BalancesAsOf(asOf time.Time) map[string]map[string]*big.Rat {
 	b := booking.New()
 	var subset []ast.Directive
-	for _, d := range l.Dirs {
+	for _, d := range l.dirs {
 		if d.GetDate().IsZero() || !d.GetDate().After(asOf) {
 			subset = append(subset, d)
 		}
@@ -433,7 +470,7 @@ func AccountMatches(acct, account string) bool {
 
 func (l *Ledger) journalFiltered(from, to time.Time, account string) []JournalEntry {
 	var out []JournalEntry
-	for _, bt := range l.Book.Txns {
+	for _, bt := range l.book.Txns {
 		if !inRange(bt.Txn.Date, from, to) {
 			continue
 		}
@@ -456,7 +493,7 @@ func (l *Ledger) journalFiltered(from, to time.Time, account string) []JournalEn
 			Metadata: bt.Txn.Metadata,
 		})
 	}
-	for _, n := range l.Book.Notes {
+	for _, n := range l.book.Notes {
 		if !inRange(n.Date, from, to) {
 			continue
 		}
@@ -465,7 +502,7 @@ func (l *Ledger) journalFiltered(from, to time.Time, account string) []JournalEn
 		}
 		out = append(out, JournalEntry{Date: n.Date, Kind: "note", Account: n.Account, Comment: n.Comment})
 	}
-	for _, e := range l.Book.Events {
+	for _, e := range l.book.Events {
 		if account != "" {
 			continue // events are not account-scoped
 		}
@@ -501,7 +538,7 @@ func (l *Ledger) AccountBalances(account string, asOf time.Time) map[string]*big
 // AccountActivity sums postings to account (exact match only) in [from,to].
 func (l *Ledger) AccountActivity(account string, from, to time.Time) map[string]*big.Rat {
 	out := map[string]*big.Rat{}
-	for _, bt := range l.Book.Txns {
+	for _, bt := range l.book.Txns {
 		if !inRange(bt.Txn.Date, from, to) {
 			continue
 		}
@@ -534,7 +571,7 @@ func (l *Ledger) CommodityBalances(commodity string, asOf time.Time) map[string]
 // CommodityActivity sums postings in commodity per account in [from,to].
 func (l *Ledger) CommodityActivity(commodity string, from, to time.Time) map[string]*big.Rat {
 	out := map[string]*big.Rat{}
-	for _, bt := range l.Book.Txns {
+	for _, bt := range l.book.Txns {
 		if !inRange(bt.Txn.Date, from, to) {
 			continue
 		}
@@ -554,7 +591,7 @@ func (l *Ledger) CommodityActivity(commodity string, from, to time.Time) map[str
 // JournalForCommodity returns journal entries with at least one posting in commodity.
 func (l *Ledger) JournalForCommodity(commodity string, from, to time.Time) []JournalEntry {
 	var out []JournalEntry
-	for _, bt := range l.Book.Txns {
+	for _, bt := range l.book.Txns {
 		if !inRange(bt.Txn.Date, from, to) {
 			continue
 		}
@@ -601,7 +638,7 @@ func (l *Ledger) PnL(from, to time.Time) PnL {
 		}
 		m[acct][comm].Add(m[acct][comm], n)
 	}
-	for _, bt := range l.Book.Txns {
+	for _, bt := range l.book.Txns {
 		d := bt.Txn.Date
 		if !from.IsZero() && d.Before(from) {
 			continue

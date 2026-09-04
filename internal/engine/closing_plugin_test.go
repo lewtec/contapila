@@ -52,8 +52,8 @@ func TestCheckClosingPluginGatesAutoclose(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if countCloses(l.Dirs) != 0 {
-			t.Fatalf("expected no synthetic close when plugin off, dirs=%v", l.Dirs)
+		if countCloses(l.dirs) != 0 {
+			t.Fatalf("expected no synthetic close when plugin off, dirs=%v", l.dirs)
 		}
 		foundWarn := false
 		for _, dg := range l.Diags {
@@ -83,7 +83,7 @@ plugin "check_closing"
 		if err != nil {
 			t.Fatal(err)
 		}
-		if countCloses(l.Dirs) == 0 {
+		if countCloses(l.dirs) == 0 {
 			t.Fatal("expected synthetic close when plugin on")
 		}
 	})
