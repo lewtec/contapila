@@ -59,7 +59,7 @@ func TestExpandClosingHappyPath(t *testing.T) {
 	if !ok || cl.Account != "Assets:Pending:Refund" || !cl.Date.Equal(d("2024-01-11")) {
 		t.Fatalf("close=%+v", out[len(dirs)+1])
 	}
-	e, _, bdiags := BookWithClosing(dirs, nil)
+	e, _, bdiags := BookWithClosing(t.Context(), dirs, nil)
 	if bdiags.HasErrors() {
 		t.Fatalf("book: %v", bdiags)
 	}
@@ -107,7 +107,7 @@ func TestExpandClosingResidualInferred(t *testing.T) {
 	if !found || bal.Account != "Assets:Pending:Refund" || bal.Amount.Commodity != "BRL" {
 		t.Fatalf("expected residual→BRL balance, got found=%v bal=%+v", found, bal)
 	}
-	e, _, bdiags := BookWithClosing(dirs, nil)
+	e, _, bdiags := BookWithClosing(t.Context(), dirs, nil)
 	if bdiags.HasErrors() {
 		t.Fatalf("book: %v", bdiags)
 	}

@@ -10,11 +10,11 @@ import (
 
 func TestSessionMemoizesProjectAndLedger(t *testing.T) {
 	sess := NewSession(exampleRoot(t))
-	p1, pdb1, err := sess.Project()
+	p1, pdb1, err := sess.Project(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	p2, pdb2, err := sess.Project()
+	p2, pdb2, err := sess.Project(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,11 +22,11 @@ func TestSessionMemoizesProjectAndLedger(t *testing.T) {
 		t.Fatal("Project() should return the same pointers after Once")
 	}
 
-	l1, err := sess.Ledger("personal")
+	l1, err := sess.Ledger(t.Context(), "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
-	l2, err := sess.Ledger("personal")
+	l2, err := sess.Ledger(t.Context(), "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,17 +40,17 @@ func TestSessionMemoizesProjectAndLedger(t *testing.T) {
 
 func TestSessionNil(t *testing.T) {
 	var sess *Session
-	if _, _, err := sess.Project(); err != ErrSessionNil {
+	if _, _, err := sess.Project(t.Context()); err != ErrSessionNil {
 		t.Fatalf("Project: %v", err)
 	}
-	if _, err := sess.Ledger("x"); err != ErrSessionNil {
+	if _, err := sess.Ledger(t.Context(), "x"); err != ErrSessionNil {
 		t.Fatalf("Ledger: %v", err)
 	}
 }
 
 func TestLiveMiddlewareNewSessionPerRequest(t *testing.T) {
 	root := exampleRoot(t)
-	p, pdb, _, err := engine.OpenProject(root)
+	p, pdb, _, err := engine.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,12 +73,12 @@ func TestLiveMiddlewareNewSessionPerRequest(t *testing.T) {
 func TestBuildSessionSharedOnRequest(t *testing.T) {
 	root := exampleRoot(t)
 	sess := NewSession(root)
-	p, pdb, err := sess.Project()
+	p, pdb, err := sess.Project(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Warm personal once.
-	if _, err := sess.Ledger("personal"); err != nil {
+	if _, err := sess.Ledger(t.Context(), "personal"); err != nil {
 		t.Fatal(err)
 	}
 	s, err := New(p, pdb)
@@ -97,7 +97,7 @@ func TestBuildSessionSharedOnRequest(t *testing.T) {
 			t.Fatalf("%s: status %d", path, rr.Code)
 		}
 	}
-	l, err := sess.Ledger("personal")
+	l, err := sess.Ledger(t.Context(), "personal")
 	if err != nil || l == nil {
 		t.Fatalf("ledger after requests: %v", err)
 	}

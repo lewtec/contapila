@@ -23,7 +23,7 @@ func exampleRoot(t *testing.T) string {
 
 func TestDefaultRegistryMountParity(t *testing.T) {
 	root := exampleRoot(t)
-	p, pdb, _, err := engine.OpenProject(root)
+	p, pdb, _, err := engine.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestDefaultRegistryMountParity(t *testing.T) {
 func TestRegistryInstancesExample(t *testing.T) {
 	root := exampleRoot(t)
 	sess := NewSession(root)
-	p, pdb, err := sess.Project()
+	p, pdb, err := sess.Project(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestRegistryInstancesExample(t *testing.T) {
 		t.Fatal(err)
 	}
 	reg := DefaultRegistry(s)
-	insts, err := reg.Instances(sess)
+	insts, err := reg.Instances(t.Context(), sess)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestRegistryInstancesExample(t *testing.T) {
 }
 
 func TestExpandLedgerMapPagesNilSession(t *testing.T) {
-	_, err := expandLedgerMapPages(nil, func(l *engine.Ledger) map[string]engine.AccountInfo {
+	_, err := expandLedgerMapPages(t.Context(), nil, func(l *engine.Ledger) map[string]engine.AccountInfo {
 		return l.Accounts
 	}, PathAccount)
 	if !errors.Is(err, ErrSessionNil) {

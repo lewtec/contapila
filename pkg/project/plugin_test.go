@@ -27,7 +27,7 @@ plugin "web_accounts"
 		t.Fatal(err)
 	}
 
-	p, err := OpenProject(dir)
+	p, err := OpenProject(t.Context(), dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ plugin "web_does_not_exist"
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	p, err := OpenProject(dir)
+	p, err := OpenProject(t.Context(), dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ option "operating_currency" "BRL"
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	p, err := OpenProject(dir)
+	p, err := OpenProject(t.Context(), dir)
 	if err != nil {
 		t.Fatal(err)
 	}

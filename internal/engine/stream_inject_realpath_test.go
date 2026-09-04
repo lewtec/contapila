@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -43,7 +42,7 @@ func TestInjectSkipsStreamJournalAlreadyIncludedViaSymlink(t *testing.T) {
 	p := &project.Project{
 		StreamJournals: []project.StreamJournal{{Path: real, RelPath: "indexes.beancount"}},
 	}
-	out, diags := injectProjectStreamJournals(context.Background(), nil, p, stream)
+	out, diags := injectProjectStreamJournals(t.Context(), nil, p, stream)
 	if len(diags) != 0 {
 		t.Fatalf("diags=%v", diags)
 	}

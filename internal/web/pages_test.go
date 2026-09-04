@@ -129,7 +129,7 @@ func TestPageRegistryDuplicatePanics(t *testing.T) {
 
 func TestCustomPagesOnServer(t *testing.T) {
 	root := exampleRoot(t)
-	p, pdb, _, err := engine.OpenProject(root)
+	p, pdb, _, err := engine.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,10 +158,10 @@ func TestCustomPagesOnServer(t *testing.T) {
 	}
 
 	sess := NewSession(root)
-	if _, _, err := sess.Project(); err != nil {
+	if _, _, err := sess.Project(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	insts, err := DefaultRegistry(s).Instances(sess)
+	insts, err := DefaultRegistry(s).Instances(t.Context(), sess)
 	if err != nil {
 		t.Fatal(err)
 	}

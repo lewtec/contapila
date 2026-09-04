@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -31,7 +32,7 @@ var (
 //
 // Progress is logged with slog (Info for pages and phase summaries; Debug for
 // static assets and docs). Use contapila --verbose for asset-level detail.
-func Build(root, outDir string, jobs int) error {
+func Build(ctx context.Context, root, outDir string, jobs int) error {
 	if root == "" {
 		return ErrProjectRootRequired
 	}
@@ -54,9 +55,12 @@ func Build(root, outDir string, jobs int) error {
 
 	// One Session for expand + every page: OpenProject / OpenLedger warm once.
 	// Static=true so Session link methods emit .html / index.html hrefs natively.
+	if ctx == nil {
+		return ErrNilContext
+	}
 	sess := NewSession(root)
 	sess.Static = true
-	p, pdb, err := sess.Project()
+	p, pdb, err := sess.Project(ctx)
 	if err != nil {
 		return err
 	}
@@ -76,7 +80,7 @@ func Build(root, outDir string, jobs int) error {
 
 	reg := DefaultRegistry(s)
 	expandStart := time.Now()
-	insts, err := reg.Instances(sess)
+	insts, err := reg.Instances(ctx, sess)
 	if err != nil {
 		return err
 	}
@@ -101,7 +105,7 @@ func Build(root, outDir string, jobs int) error {
 
 	// Warm every ledger before the pool so workers only read the map.
 	for _, name := range ledgers {
-		if _, err := sess.Ledger(name); err != nil {
+		if _, err := sess.Ledger(ctx, name); err != nil {
 			return err
 		}
 	}

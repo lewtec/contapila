@@ -1,6 +1,7 @@
 package booking
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/lucasew/contapila-go/internal/ast"
@@ -11,8 +12,12 @@ import (
 // ExpandPads materializes Beancount pad directives as synthetic transactions
 // dated at the pad directive, not at the later balance assertion that computes
 // the difference. This keeps historical reports/series aligned with Beancount.
-func ExpandPads(dirs []ast.Directive, setup func(*Engine)) ([]ast.Directive, diag.List) {
+func ExpandPads(ctx context.Context, dirs []ast.Directive, setup func(*Engine)) ([]ast.Directive, diag.List) {
 	var diags diag.List
+	if ctx == nil {
+		diags.Error("", 0, ErrNilContext.Error())
+		return dirs, diags
+	}
 	probe := New()
 	if setup != nil {
 		setup(probe)
@@ -31,7 +36,10 @@ func ExpandPads(dirs []ast.Directive, setup func(*Engine)) ([]ast.Directive, dia
 				}
 			}
 		}
-		probe.Book([]ast.Directive{d})
+		if err := probe.BookContext(ctx, []ast.Directive{d}); err != nil {
+			diags.Error("", 0, err.Error())
+			return dirs, diags
+		}
 	}
 
 	if len(synth) == 0 {

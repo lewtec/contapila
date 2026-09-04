@@ -10,7 +10,7 @@ import (
 
 func TestExamplePricePairsInjected(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, err := project.OpenProject(root)
+	p, err := project.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

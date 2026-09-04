@@ -2,6 +2,7 @@ package prices
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"sort"
 	"strings"
@@ -33,15 +34,21 @@ func NewDB() *DB {
 
 func PairKey(base, quote string) string { return base + "|" + quote }
 
+// ErrNilContext is returned when a prices load is called with a nil context.
+var ErrNilContext = errors.New("nil context")
+
 // LoadFile loads prices.beancount (includes expanded) from disk.
-func LoadFile(path string) (*DB, diag.List, error) {
-	return LoadFileFS(filesys.OS{}, path)
+func LoadFile(ctx context.Context, path string) (*DB, diag.List, error) {
+	return LoadFileFS(ctx, filesys.OS{}, path)
 }
 
 // LoadFileFS loads prices via fsys (includes expanded).
-func LoadFileFS(fsys filesys.FS, path string) (*DB, diag.List, error) {
+func LoadFileFS(ctx context.Context, fsys filesys.FS, path string) (*DB, diag.List, error) {
+	if ctx == nil {
+		return NewDB(), nil, ErrNilContext
+	}
 	db := NewDB()
-	dirs, diags, err := loader.LoadFileFS(context.Background(), fsys, path)
+	dirs, diags, err := loader.LoadFileFS(ctx, fsys, path)
 	if err != nil {
 		return db, diags, err
 	}

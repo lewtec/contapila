@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"math/big"
 	"path/filepath"
 	"strings"
@@ -12,11 +11,11 @@ import (
 func openExamplePersonal(t *testing.T) *Ledger {
 	t.Helper()
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, pdb, _, err := OpenProject(root)
+	p, pdb, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +24,7 @@ func openExamplePersonal(t *testing.T) *Ledger {
 
 func TestLedgerNames(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, _, _, err := OpenProject(root)
+	p, _, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +60,7 @@ func TestLedgerNames(t *testing.T) {
 
 func TestOpenHandle(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	h, err := Open(root)
+	h, err := Open(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,19 +71,22 @@ func TestOpenHandle(t *testing.T) {
 	if len(names) == 0 {
 		t.Fatal("expected ledger names")
 	}
-	l, err := h.Ledger(context.Background(), "personal")
+	l, err := h.Ledger(t.Context(), "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if l.Name != "personal" {
 		t.Fatalf("ledger name %q", l.Name)
 	}
-	if _, err := h.Ledger(context.Background(), "does-not-exist"); err == nil {
+	if _, err := h.Ledger(t.Context(), "does-not-exist"); err == nil {
 		t.Fatal("expected unknown ledger")
 	}
 	var none *Handle
-	if _, err := none.Ledger(context.Background(), "personal"); err == nil {
+	if _, err := none.Ledger(t.Context(), "personal"); err == nil {
 		t.Fatal("expected nil handle error")
+	}
+	if _, err := h.Ledger(nil, "personal"); err == nil {
+		t.Fatal("expected nil context error")
 	}
 }
 

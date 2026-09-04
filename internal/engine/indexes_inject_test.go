@@ -15,14 +15,14 @@ func TestRootIndexesAutoInjected(t *testing.T) {
 	}
 	// internal/engine → repo root → testdata/example
 	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "testdata", "example")
-	p, pdb, _, err := OpenProject(root)
+	p, pdb, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(p.StreamJournals) == 0 {
 		t.Fatal("expected stream journals from prelude (indexes.beancount)")
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestRootIndexesAutoInjected(t *testing.T) {
 		t.Fatalf("indexDB CDI=%d", len(l.indexDB["CDI"]))
 	}
 	// acme also gets inject even without interest accounts
-	acme, err := OpenLedger(p, pdb, "acme")
+	acme, err := OpenLedger(t.Context(), p, pdb, "acme")
 	if err != nil {
 		t.Fatal(err)
 	}

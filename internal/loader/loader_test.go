@@ -1,7 +1,6 @@
 package loader
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -61,7 +60,7 @@ func TestLoadFileSimpleNoIncludes(t *testing.T) {
 2020-01-01 open Expenses:Food
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v", err)
 	}
@@ -87,7 +86,7 @@ include "missing.beancount"
 2020-01-01 open Assets:Cash
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err == nil {
 		t.Fatal("expected error for missing include")
 	}
@@ -115,7 +114,7 @@ include "a.beancount"
 `)
 	main := filepath.Join(dir, "a.beancount")
 
-	_, diags, err := LoadFile(main)
+	_, diags, err := LoadFile(t.Context(), main)
 	if err == nil {
 		t.Fatal("expected error for include cycle")
 	}
@@ -138,7 +137,7 @@ include "shared.beancount"
 2020-01-01 open Assets:Main
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v", err)
 	}
@@ -177,7 +176,7 @@ include "right.beancount"
 2020-01-01 open Assets:Main
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v", err)
 	}
@@ -214,7 +213,7 @@ include "no-such-*.beancount"
 2020-01-01 open Assets:Cash
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v (zero-match glob should not hard-fail)", err)
 	}
@@ -248,7 +247,7 @@ include "parts/*.beancount"
 2020-01-01 open Assets:Main
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v", err)
 	}
@@ -282,7 +281,7 @@ include "mid.beancount"
 2020-01-01 open Assets:Main
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v", err)
 	}
@@ -302,7 +301,7 @@ include "mid.beancount"
 }
 
 func TestLoadFileMissingRoot(t *testing.T) {
-	_, _, err := LoadFile(filepath.Join(t.TempDir(), "nope.beancount"))
+	_, _, err := LoadFile(t.Context(), filepath.Join(t.TempDir(), "nope.beancount"))
 	if err == nil {
 		t.Fatal("expected error for missing root file")
 	}
@@ -313,7 +312,7 @@ func TestLoadFileFSNilUsesOS(t *testing.T) {
 	main := writeFile(t, dir, "main.beancount", `
 2020-01-01 open Assets:Cash
 `)
-	dirs, diags, err := LoadFileFS(context.Background(), nil, main)
+	dirs, diags, err := LoadFileFS(t.Context(), nil, main)
 	if err != nil {
 		t.Fatalf("LoadFileFS(nil): %v", err)
 	}
@@ -335,7 +334,7 @@ func TestLoadFileFSOverlayOverridesDisk(t *testing.T) {
 	ov := filesys.NewOverlay(filesys.OS{})
 	ov.Set(main, "2020-01-01 open Assets:Overlay\n")
 
-	dirs, diags, err := LoadFileFS(context.Background(), ov, main)
+	dirs, diags, err := LoadFileFS(t.Context(), ov, main)
 	if err != nil {
 		t.Fatalf("LoadFileFS: %v", err)
 	}
@@ -360,7 +359,7 @@ include "only-overlay.beancount"
 	ov := filesys.NewOverlay(filesys.OS{})
 	ov.Set(incPath, "2020-01-01 open Assets:FromOverlay\n")
 
-	dirs, diags, err := LoadFileFS(context.Background(), ov, mainPath)
+	dirs, diags, err := LoadFileFS(t.Context(), ov, mainPath)
 	if err != nil {
 		t.Fatalf("LoadFileFS: %v", err)
 	}
@@ -390,7 +389,7 @@ include "`+inc+`"
 2020-01-01 open Assets:Main
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v", err)
 	}
@@ -427,7 +426,7 @@ include "parts/*"
 2020-01-01 open Assets:Main
 `)
 
-	dirs, diags, err := LoadFile(main)
+	dirs, diags, err := LoadFile(t.Context(), main)
 	if err != nil {
 		t.Fatalf("LoadFile: %v", err)
 	}
@@ -460,7 +459,7 @@ include "bad["
 2020-01-01 open Assets:Cash
 `)
 
-	_, _, err := LoadFile(main)
+	_, _, err := LoadFile(t.Context(), main)
 	if err == nil {
 		t.Fatal("expected error for invalid glob pattern")
 	}

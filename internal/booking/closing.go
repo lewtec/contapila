@@ -1,6 +1,7 @@
 package booking
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strings"
@@ -111,7 +112,11 @@ func ExpandClosing(dirs []ast.Directive, booked []BookedTxn) ([]ast.Directive, d
 // pads, then re-books with synthetic balance/close so assertions run in date order.
 // When no closing metadata is present, books once.
 // setup is optional (e.g. set CommTol); applied to each Engine before Book.
-func BookWithClosing(dirs []ast.Directive, setup func(*Engine)) (e *Engine, out []ast.Directive, diags diag.List) {
+func BookWithClosing(ctx context.Context, dirs []ast.Directive, setup func(*Engine)) (e *Engine, out []ast.Directive, diags diag.List) {
+	if ctx == nil {
+		diags.Error("", 0, ErrNilContext.Error())
+		return nil, dirs, diags
+	}
 	out = dirs
 	newE := func() *Engine {
 		eng := New()
@@ -122,11 +127,17 @@ func BookWithClosing(dirs []ast.Directive, setup func(*Engine)) (e *Engine, out 
 	}
 	if !hasClosingMeta(dirs) {
 		e = newE()
-		e.Book(dirs)
+		if err := e.BookContext(ctx, dirs); err != nil {
+			diags.Error("", 0, err.Error())
+			return e, dirs, diags
+		}
 		return e, dirs, e.Diags
 	}
 	probe := newE()
-	probe.Book(dirs)
+	if err := probe.BookContext(ctx, dirs); err != nil {
+		diags.Error("", 0, err.Error())
+		return probe, dirs, diags
+	}
 	var cdiags diag.List
 	out, cdiags = ExpandClosing(dirs, probe.Txns)
 	diags.Merge(cdiags)
@@ -135,7 +146,11 @@ func BookWithClosing(dirs []ast.Directive, setup func(*Engine)) (e *Engine, out 
 	out, adiags = ExpandAutoInterest(out)
 	diags.Merge(adiags)
 	e = newE()
-	e.Book(out)
+	if err := e.BookContext(ctx, out); err != nil {
+		diags.Error("", 0, err.Error())
+		diags.Merge(e.Diags)
+		return e, out, diags
+	}
 	diags.Merge(e.Diags)
 	return e, out, diags
 }

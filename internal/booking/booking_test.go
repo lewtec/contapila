@@ -67,7 +67,7 @@ func TestExpandPadsDatesSyntheticTxnAtPad(t *testing.T) {
 		ast.Balance{Meta: ast.Meta{Date: d("2020-02-01"), File: "t", Line: 10}, Account: "Assets:Cash", Amount: ast.Amount{Number: r("100"), Commodity: "BRL"}},
 	}
 
-	expanded, diags := ExpandPads(dirs, nil)
+	expanded, diags := ExpandPads(t.Context(), dirs, nil)
 	if diags.HasErrors() {
 		t.Fatalf("errors: %v", diags)
 	}

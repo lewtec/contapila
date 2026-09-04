@@ -155,7 +155,7 @@ option "operating_currency" "BRL"
 
 	t.Run("opt-in off by default", func(t *testing.T) {
 		dir := writeProj(t, "// empty\n")
-		p, pdb, _, err := engine.OpenProject(dir)
+		p, pdb, _, err := engine.OpenProject(t.Context(), dir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -163,7 +163,7 @@ option "operating_currency" "BRL"
 		if err != nil {
 			t.Fatal(err)
 		}
-		reg := s.resolvedPages(NewSession(dir))
+		reg := s.resolvedPages(t.Context(), NewSession(dir))
 		if _, ok := reg.Lookup("accounts"); ok {
 			t.Fatal("accounts should be off without plugins stanza")
 		}
@@ -180,7 +180,7 @@ option "operating_currency" "BRL"
 
 	t.Run("explicit enable", func(t *testing.T) {
 		dir := writeProj(t, `plugins: { "web_accounts": { enabled: true } }`)
-		p, pdb, _, err := engine.OpenProject(dir)
+		p, pdb, _, err := engine.OpenProject(t.Context(), dir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -188,7 +188,7 @@ option "operating_currency" "BRL"
 		if err != nil {
 			t.Fatal(err)
 		}
-		reg := s.resolvedPages(NewSession(dir))
+		reg := s.resolvedPages(t.Context(), NewSession(dir))
 		if _, ok := reg.Lookup("accounts"); !ok {
 			t.Fatal("accounts should be on when enabled: true")
 		}

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"log/slog"
 	"math/big"
 	"net/http"
@@ -23,13 +24,13 @@ func (s *Server) openLedgerRequest(w http.ResponseWriter, r *http.Request, ledge
 		sess = NewSession(s.Root)
 	}
 	var err error
-	proj, pdb, err = sess.Project()
+	proj, pdb, err = sess.Project(r.Context())
 	if err != nil {
 		slog.Error("web load project", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	l, err = sess.Ledger(ledgerName)
+	l, err = sess.Ledger(r.Context(), ledgerName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -98,12 +99,12 @@ func queriesUIEnabled(d PageData) bool {
 
 // basePageData attaches this server's resolved PageRegistry (sidebar / body lookup)
 // and enabled plugin palette rows.
-func (s *Server) basePageData(sess *Session, proj *project.Project, l *engine.Ledger, ledgerName, title, page string, tq pageTimeQuery) pageData {
+func (s *Server) basePageData(ctx context.Context, sess *Session, proj *project.Project, l *engine.Ledger, ledgerName, title, page string, tq pageTimeQuery) pageData {
 	data := basePageData(sess, proj, l, ledgerName, title, page, tq)
-	data.Pages = s.resolvedPagesFor(sess, l)
+	data.Pages = s.resolvedPagesFor(ctx, sess, l)
 	var pdb *prices.DB
 	if sess != nil {
-		if _, p, err := sess.Project(); err == nil {
+		if _, p, err := sess.Project(ctx); err == nil {
 			pdb = p
 		}
 	}

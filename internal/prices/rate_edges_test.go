@@ -91,7 +91,7 @@ func TestRateHopUsesEarlierLegDate(t *testing.T) {
 
 func TestLoadFileFSMissing(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing-prices.beancount")
-	db, _, err := LoadFileFS(filesys.OS{}, path)
+	db, _, err := LoadFileFS(t.Context(), filesys.OS{}, path)
 	if err == nil {
 		t.Fatal("expected error for missing file")
 	}
@@ -109,7 +109,7 @@ func TestLoadFileFSParsesPrices(t *testing.T) {
 	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	db, diags, err := LoadFileFS(filesys.OS{}, path)
+	db, diags, err := LoadFileFS(t.Context(), filesys.OS{}, path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestLoadFileFSParsesPrices(t *testing.T) {
 	if err := os.WriteFile(path2, []byte(mixed), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	db2, diags2, err := LoadFileFS(filesys.OS{}, path2)
+	db2, diags2, err := LoadFileFS(t.Context(), filesys.OS{}, path2)
 	if err != nil {
 		t.Fatal(err)
 	}

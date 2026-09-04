@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -22,6 +23,7 @@ var (
 	ErrJournalPathAbsolute = errors.New("project_journals path must be relative to project root")
 	ErrJournalPathEscapes  = errors.New("project_journals path escapes project root")
 	ErrNotAProject         = errors.New("not a contapila project")
+	ErrNilContext          = errors.New("nil context")
 )
 
 type Ledger struct {
@@ -124,12 +126,18 @@ func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
 }
 
 // OpenProject opens from disk (CLI default).
-func OpenProject(cwd string) (*Project, error) {
-	return OpenProjectFS(filesys.OS{}, cwd)
+func OpenProject(ctx context.Context, cwd string) (*Project, error) {
+	return OpenProjectFS(ctx, filesys.OS{}, cwd)
 }
 
 // OpenProjectFS opens a project using fsys for file reads (LSP overlays).
-func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
+func OpenProjectFS(ctx context.Context, fsys filesys.FS, cwd string) (*Project, error) {
+	if ctx == nil {
+		return nil, ErrNilContext
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if fsys == nil {
 		fsys = filesys.OS{}
 	}
@@ -209,7 +217,7 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*Project, error) {
 				pricesPath = abs
 			}
 			// Pair inventory for CUE (not full series).
-			if pdb, _, err := prices.LoadFileFS(fsys, abs); err != nil {
+			if pdb, _, err := prices.LoadFileFS(ctx, fsys, abs); err != nil {
 				slog.Warn("failed loading prices for CUE pair inject", "path", abs, "err", err)
 			} else {
 				for _, p := range pdb.Pairs() {

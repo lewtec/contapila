@@ -84,10 +84,10 @@ func RunWith(ctx context.Context, stream jsonrpc2.Stream) (*Server, jsonrpc2.Con
 	return s, jconn, client
 }
 
-func (s *Server) Initialize(_ context.Context, params *protocol.InitializeParams) (*protocol.InitializeResult, error) {
+func (s *Server) Initialize(ctx context.Context, params *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	// root hint optional; first document still wins per SPEC
 	if params.RootURI != nil {
-		s.session.ensureRoot(uriToPath(*params.RootURI))
+		s.session.ensureRoot(ctx, uriToPath(*params.RootURI))
 	}
 	syncKind := protocol.TextDocumentSyncKindFull
 	trueVal := protocol.Boolean(true)
@@ -114,10 +114,10 @@ func (s *Server) Shutdown(context.Context) error { return nil }
 
 func (s *Server) Exit(context.Context) error { return nil }
 
-func (s *Server) DidOpen(_ context.Context, params *protocol.DidOpenTextDocumentParams) error {
+func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocumentParams) error {
 	path := uriToPath(params.TextDocument.URI)
 	text := params.TextDocument.Text
-	s.session.ensureRoot(path)
+	s.session.ensureRoot(ctx, path)
 	s.session.overlay.Set(path, text)
 	s.session.mu.Lock()
 	s.session.openDocs[path] = params.TextDocument.Version
@@ -178,7 +178,7 @@ func (s *Server) DidClose(_ context.Context, params *protocol.DidCloseTextDocume
 	return nil
 }
 
-func (s *Server) Completion(_ context.Context, params *protocol.CompletionParams) (protocol.CompletionResult, error) {
+func (s *Server) Completion(ctx context.Context, params *protocol.CompletionParams) (protocol.CompletionResult, error) {
 	path := uriToPath(params.TextDocument.URI)
 	text, ok := s.session.docText(path)
 	if !ok {
@@ -221,7 +221,7 @@ func (s *Server) Completion(_ context.Context, params *protocol.CompletionParams
 
 	switch kind {
 	case "account":
-		ledger := s.session.resolveLedger(path)
+		ledger := s.session.resolveLedger(ctx, path)
 		accs := snap.Accounts[ledger]
 		names := make([]string, 0, len(accs))
 		for n := range accs {
@@ -274,7 +274,7 @@ func (s *Server) Completion(_ context.Context, params *protocol.CompletionParams
 	return items, nil
 }
 
-func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams) (protocol.DefinitionResult, error) {
+func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionParams) (protocol.DefinitionResult, error) {
 	path := uriToPath(params.TextDocument.URI)
 	text, ok := s.session.docText(path)
 	if !ok {
@@ -294,7 +294,7 @@ func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams
 	if snap == nil {
 		return nil, nil
 	}
-	ledger := s.session.resolveLedger(path)
+	ledger := s.session.resolveLedger(ctx, path)
 	accs := snap.Accounts[ledger]
 	info, ok := accs[tok]
 	if !ok {
@@ -330,7 +330,7 @@ func readMaybe(s *Server, path string) (string, error) {
 	return string(b), nil
 }
 
-func (s *Server) Hover(_ context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
+func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
 	path := uriToPath(params.TextDocument.URI)
 	text, ok := s.session.docText(path)
 	if !ok {
@@ -347,7 +347,7 @@ func (s *Server) Hover(_ context.Context, params *protocol.HoverParams) (*protoc
 	}
 	// account?
 	if strings.Contains(tok, ":") {
-		ledger := s.session.resolveLedger(path)
+		ledger := s.session.resolveLedger(ctx, path)
 		if info, ok := snap.Accounts[ledger][tok]; ok {
 			mc := &protocol.MarkupContent{Kind: protocol.MarkupKindPlainText, Value: fmtAccountHover(info)}
 			return &protocol.Hover{Contents: mc, Range: rngPtr(rangeFromBytes(text, ts, te, nil))}, nil

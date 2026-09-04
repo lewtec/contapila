@@ -41,7 +41,7 @@ func TestRequestReloadsProjectConfigAndPrices(t *testing.T) {
 	mustWrite("prices.beancount", `2024-01-01 price USD 5.00 BRL
 `)
 
-	p, pdb, _, err := engine.OpenProject(root)
+	p, pdb, _, err := engine.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestRequestReloadsLedgerFileOnRefresh(t *testing.T) {
   Equity:Opening
 `)
 
-	p, pdb, _, err := engine.OpenProject(root)
+	p, pdb, _, err := engine.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -23,20 +23,24 @@ var (
 	ErrIncludePathEmpty = errors.New("include path is empty")
 	ErrIncludeMissing   = errors.New("include missing")
 	ErrIncludeIsDir     = errors.New("include is a directory")
+	ErrNilContext       = errors.New("nil context")
 )
 
 // LoadFile parses a file and expands includes depth-first (disk).
-func LoadFile(path string) ([]ast.Directive, diag.List, error) {
-	return LoadFileFS(context.Background(), filesys.OS{}, path)
+func LoadFile(ctx context.Context, path string) ([]ast.Directive, diag.List, error) {
+	return LoadFileFS(ctx, filesys.OS{}, path)
 }
 
 // LoadFileFS is LoadFile using fsys for reads/stats.
 func LoadFileFS(ctx context.Context, fsys filesys.FS, path string) ([]ast.Directive, diag.List, error) {
+	if ctx == nil {
+		return nil, nil, ErrNilContext
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
 	if fsys == nil {
 		fsys = filesys.OS{}
-	}
-	if ctx == nil {
-		ctx = context.Background()
 	}
 	var diags diag.List
 	seen := map[string]bool{}

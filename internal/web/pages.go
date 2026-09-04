@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"sort"
 	"sync"
@@ -240,12 +241,12 @@ var defaultPages = sync.OnceValue(func() *PageRegistry {
 
 // resolvedPages is the live registry: explicit s.Pages, else core builtins plus
 // plugin pages enabled in contapila.cue (opt-in; core reports always on).
-func (s *Server) resolvedPages(sess *Session) *PageRegistry {
-	return s.resolvedPagesFor(sess, nil)
+func (s *Server) resolvedPages(ctx context.Context, sess *Session) *PageRegistry {
+	return s.resolvedPagesFor(ctx, sess, nil)
 }
 
 // resolvedPagesFor is resolvedPages plus journal plugin "name" on this ledger.
-func (s *Server) resolvedPagesFor(sess *Session, l *engine.Ledger) *PageRegistry {
+func (s *Server) resolvedPagesFor(ctx context.Context, sess *Session, l *engine.Ledger) *PageRegistry {
 	if s != nil && s.Pages != nil {
 		return s.Pages
 	}
@@ -258,7 +259,7 @@ func (s *Server) resolvedPagesFor(sess *Session, l *engine.Ledger) *PageRegistry
 		// No project yet: include all contributed (CLI/tests without session).
 		return ComposePages(builtins, contrib...)
 	}
-	p, _, err := sess.Project()
+	p, _, err := sess.Project(ctx)
 	if err != nil || p == nil || p.Config == nil {
 		return ComposePages(builtins, contrib...)
 	}
@@ -300,7 +301,7 @@ func filterContribPages(pages []Page, flags map[string]bool, l *engine.Ledger) [
 
 // pageRegistry is resolvedPages without a session (no CUE filter).
 func (s *Server) pageRegistry() *PageRegistry {
-	return s.resolvedPages(nil)
+	return s.resolvedPages(nil, nil)
 }
 
 // pagesFor resolves the registry on page data (custom or default builtins).

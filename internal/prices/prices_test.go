@@ -75,7 +75,7 @@ func TestAllSeriesAndPairs(t *testing.T) {
 
 func TestLoadFileExample(t *testing.T) {
 	path := filepath.Join("..", "..", "testdata", "example", "prices.beancount")
-	db, diags, err := LoadFile(path)
+	db, diags, err := LoadFile(t.Context(), path)
 	if err != nil {
 		t.Fatal(err)
 	}
