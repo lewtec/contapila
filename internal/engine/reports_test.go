@@ -82,6 +82,58 @@ func TestParseDate(t *testing.T) {
 	}
 }
 
+func TestLedgerCheckQueriesEventsAccount(t *testing.T) {
+	l := openExamplePersonal(t)
+
+	if l.Check().HasErrors() {
+		t.Fatalf("example personal check: %v", l.Check())
+	}
+
+	info, ok := l.Account("Assets:BR:Alfa:ContaCorrente")
+	if !ok {
+		t.Fatal("missing open Assets:BR:Alfa:ContaCorrente")
+	}
+	if info.Account != "Assets:BR:Alfa:ContaCorrente" {
+		t.Fatalf("account name %q", info.Account)
+	}
+	if _, ok := l.Account("Assets:DoesNotExist"); ok {
+		t.Fatal("unknown account should be absent")
+	}
+
+	var foundQ bool
+	for _, q := range l.Queries() {
+		if q.Name == "cash" {
+			foundQ = true
+			break
+		}
+	}
+	if !foundQ {
+		t.Fatalf("expected query %q, got %v", "cash", l.Queries())
+	}
+
+	var foundE bool
+	for _, e := range l.Events() {
+		if e.Type == "location" {
+			foundE = true
+			break
+		}
+	}
+	if !foundE {
+		t.Fatalf("expected event type %q, got %v", "location", l.Events())
+	}
+
+	var none *Ledger
+	if none.Check() != nil {
+		t.Fatalf("nil Check: %v", none.Check())
+	}
+	if none.Queries() != nil || none.Events() != nil {
+		t.Fatal("nil Queries/Events want nil")
+	}
+	if _, ok := none.Account("x"); ok {
+		t.Fatal("nil Account should miss")
+	}
+}
+
 func TestJournal(t *testing.T) {
 	l := openExamplePersonal(t)
 

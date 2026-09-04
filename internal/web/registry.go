@@ -276,11 +276,8 @@ func registerQuery(r *Registry, s *Server) {
 				if err != nil {
 					return nil, err
 				}
-				if l.Book == nil {
-					continue
-				}
 				seen := map[string]struct{}{}
-				for _, q := range l.Book.Queries {
+				for _, q := range l.Queries() {
 					if q.Name == "" {
 						continue
 					}

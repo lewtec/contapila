@@ -50,10 +50,10 @@ func palette(pc web.PageContext) []web.CommandItem {
 }
 
 func fill(pc web.PageContext, data *web.PageData) {
-	if pc.Ledger == nil || pc.Ledger.Book == nil {
+	if pc.Ledger == nil {
 		return
 	}
-	qs := pc.Ledger.Book.Queries
+	qs := pc.Ledger.Queries()
 	rows := make([]web.QueryListRow, 0, len(qs))
 	for _, q := range qs {
 		date := ""
