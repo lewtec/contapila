@@ -33,7 +33,7 @@ func TestAccountsPageLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, pdb, _, err := engine.OpenProject(root)
+	p, pdb, _, err := engine.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

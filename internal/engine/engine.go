@@ -32,8 +32,16 @@ var AsOfLatest = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 var (
 	ErrUnknownLedger     = errors.New("unknown ledger")
 	ErrNilHandle         = errors.New("nil project handle")
+	ErrNilContext        = errors.New("nil context")
 	ErrOpCurrencyUnknown = errors.New("operating currency unknown; set option operating_currency")
 )
+
+func requireCtx(ctx context.Context) error {
+	if ctx == nil {
+		return ErrNilContext
+	}
+	return ctx.Err()
+}
 
 // AccountInfo is an opened account plus metadata from the open directive.
 type AccountInfo struct {
@@ -92,16 +100,16 @@ type Handle struct {
 }
 
 // Open discovers the project from cwd and loads shared prices.
-func Open(cwd string) (*Handle, error) {
-	return OpenFS(context.Background(), filesys.OS{}, cwd)
+func Open(ctx context.Context, cwd string) (*Handle, error) {
+	return OpenFS(ctx, filesys.OS{}, cwd)
 }
 
 // OpenFS is Open using fsys for file reads (LSP overlays).
 func OpenFS(ctx context.Context, fsys filesys.FS, cwd string) (*Handle, error) {
-	if err := ctx.Err(); err != nil {
+	if err := requireCtx(ctx); err != nil {
 		return nil, err
 	}
-	p, pdb, diags, err := OpenProjectFS(fsys, cwd)
+	p, pdb, diags, err := OpenProjectFS(ctx, fsys, cwd)
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +118,9 @@ func OpenFS(ctx context.Context, fsys filesys.FS, cwd string) (*Handle, error) {
 
 // Ledger loads and books one named ledger through this handle's FS and prices.
 func (h *Handle) Ledger(ctx context.Context, name string) (*Ledger, error) {
+	if err := requireCtx(ctx); err != nil {
+		return nil, err
+	}
 	if h == nil {
 		return nil, ErrNilHandle
 	}
@@ -125,23 +136,26 @@ func (h *Handle) LedgerNames() []string {
 }
 
 // OpenProject wraps project.OpenProject and loads shared prices from disk.
-func OpenProject(cwd string) (*project.Project, *prices.DB, diag.List, error) {
-	return OpenProjectFS(filesys.OS{}, cwd)
+func OpenProject(ctx context.Context, cwd string) (*project.Project, *prices.DB, diag.List, error) {
+	return OpenProjectFS(ctx, filesys.OS{}, cwd)
 }
 
 // OpenProjectFS opens a project and prices via fsys.
-func OpenProjectFS(fsys filesys.FS, cwd string) (*project.Project, *prices.DB, diag.List, error) {
+func OpenProjectFS(ctx context.Context, fsys filesys.FS, cwd string) (*project.Project, *prices.DB, diag.List, error) {
+	if err := requireCtx(ctx); err != nil {
+		return nil, nil, nil, err
+	}
 	if fsys == nil {
 		fsys = filesys.OS{}
 	}
 	var diags diag.List
-	p, err := project.OpenProjectFS(fsys, cwd)
+	p, err := project.OpenProjectFS(ctx, fsys, cwd)
 	if err != nil {
 		return nil, nil, diags, err
 	}
 	db := prices.NewDB()
 	if !p.PricesMissing && !p.PricesEmpty {
-		pdb, pd, err := prices.LoadFileFS(fsys, p.PricesPath)
+		pdb, pd, err := prices.LoadFileFS(ctx, fsys, p.PricesPath)
 		diags.Merge(pd)
 		if err != nil {
 			slog.Warn("failed loading prices", "err", err)
@@ -153,13 +167,13 @@ func OpenProjectFS(fsys filesys.FS, cwd string) (*project.Project, *prices.DB, d
 }
 
 // OpenLedger loads and books one named ledger from disk.
-func OpenLedger(p *project.Project, pdb *prices.DB, name string) (*Ledger, error) {
-	return OpenLedgerFS(context.Background(), filesys.OS{}, p, pdb, name)
+func OpenLedger(ctx context.Context, p *project.Project, pdb *prices.DB, name string) (*Ledger, error) {
+	return OpenLedgerFS(ctx, filesys.OS{}, p, pdb, name)
 }
 
 // OpenLedgerFS loads and books one named ledger via fsys.
 func OpenLedgerFS(ctx context.Context, fsys filesys.FS, p *project.Project, pdb *prices.DB, name string) (*Ledger, error) {
-	if err := ctx.Err(); err != nil {
+	if err := requireCtx(ctx); err != nil {
 		return nil, err
 	}
 	if fsys == nil {
@@ -273,14 +287,14 @@ func OpenLedgerFS(ctx context.Context, fsys filesys.FS, p *project.Project, pdb 
 	}
 	if on("pads", true) {
 		var pdiags diag.List
-		stream, pdiags = booking.ExpandPads(stream, setupBooking)
+		stream, pdiags = booking.ExpandPads(ctx, stream, setupBooking)
 		diags.Merge(pdiags)
 	}
 
 	var b *booking.Engine
 	if on("check_closing", false) {
 		var cdiags diag.List
-		b, stream, cdiags = booking.BookWithClosing(stream, setupBooking)
+		b, stream, cdiags = booking.BookWithClosing(ctx, stream, setupBooking)
 		diags.Merge(cdiags)
 	} else {
 		if booking.HasClosingMeta(stream) {
@@ -349,6 +363,11 @@ func canonicalPath(path string) string {
 // injectProjectStreamJournals prepends prelude project_journals (role stream) into the ledger.
 // Paths already present in the stream (via include) are skipped to avoid double-load.
 func injectProjectStreamJournals(ctx context.Context, fsys filesys.FS, p *project.Project, stream []ast.Directive) ([]ast.Directive, diag.List) {
+	if err := requireCtx(ctx); err != nil {
+		var diags diag.List
+		diags.Error("", 0, err.Error())
+		return stream, diags
+	}
 	var diags diag.List
 	if p == nil || len(p.StreamJournals) == 0 {
 		return stream, diags

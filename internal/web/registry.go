@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -41,7 +42,7 @@ type Instance struct {
 // ExpandFunc yields concrete instances for one registered route pattern.
 // Nil means the route is live-only (e.g. redirects) and skipped by build.
 // sess is the same Session used for render (lazy OpenProject / OpenLedger).
-type ExpandFunc func(sess *Session) ([]Instance, error)
+type ExpandFunc func(ctx context.Context, sess *Session) ([]Instance, error)
 
 // Route is one mux pattern plus optional static-site expansion.
 type Route struct {
@@ -93,7 +94,10 @@ func (r *Registry) Mount(mux *http.ServeMux) {
 
 // Instances expands all routes with Expand set. Order is registration order,
 // then each expander's own order. Duplicate paths are not deduped.
-func (r *Registry) Instances(sess *Session) ([]Instance, error) {
+func (r *Registry) Instances(ctx context.Context, sess *Session) ([]Instance, error) {
+	if ctx == nil {
+		return nil, ErrNilContext
+	}
 	if r == nil {
 		return nil, nil
 	}
@@ -102,7 +106,7 @@ func (r *Registry) Instances(sess *Session) ([]Instance, error) {
 		if rt.Expand == nil {
 			continue
 		}
-		insts, err := rt.Expand(sess)
+		insts, err := rt.Expand(ctx, sess)
 		if err != nil {
 			return nil, err
 		}
@@ -131,7 +135,7 @@ func registerStatic(r *Registry) {
 	r.Register(Route{
 		Pattern: "GET /static/",
 		Handle:  http.FileServer(http.FS(staticFS)),
-		Expand: func(sess *Session) ([]Instance, error) {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
 			var out []Instance
 			err := fs.WalkDir(staticFS, "static", func(p string, d fs.DirEntry, err error) error {
 				if err != nil {
@@ -156,18 +160,18 @@ func registerDocFile(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /docfile/{path...}",
 		Handle:  http.HandlerFunc(s.handleDocFile),
-		Expand: func(sess *Session) ([]Instance, error) {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
 			if sess == nil {
 				return nil, ErrSessionNil
 			}
-			names, err := sess.LedgerNames()
+			names, err := sess.LedgerNames(ctx)
 			if err != nil {
 				return nil, err
 			}
 			seen := map[string]struct{}{}
 			var out []Instance
 			for _, name := range names {
-				l, err := sess.Ledger(name)
+				l, err := sess.Ledger(ctx, name)
 				if err != nil {
 					return nil, err
 				}
@@ -195,7 +199,7 @@ func registerIndex(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /{$}",
 		Handle:  http.HandlerFunc(s.handleIndex),
-		Expand: func(sess *Session) ([]Instance, error) {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
 			return []Instance{{Path: "/", Kind: KindPage}}, nil
 		},
 	})
@@ -203,17 +207,20 @@ func registerIndex(r *Registry, s *Server) {
 
 // expandLedgerMapPages walks each project ledger, sorts keys of m(l), and
 // emits KindPage instances at pathFn(ledgerName, key).
-func expandLedgerMapPages[V any](sess *Session, m func(*engine.Ledger) map[string]V, pathFn func(ledger, key string) string) ([]Instance, error) {
+func expandLedgerMapPages[V any](ctx context.Context, sess *Session, m func(*engine.Ledger) map[string]V, pathFn func(ledger, key string) string) ([]Instance, error) {
+	if ctx == nil {
+		return nil, ErrNilContext
+	}
 	if sess == nil {
 		return nil, ErrSessionNil
 	}
-	names, err := sess.LedgerNames()
+	names, err := sess.LedgerNames(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var out []Instance
 	for _, name := range names {
-		l, err := sess.Ledger(name)
+		l, err := sess.Ledger(ctx, name)
 		if err != nil {
 			return nil, err
 		}
@@ -234,8 +241,8 @@ func registerAccount(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/account/{account...}",
 		Handle:  http.HandlerFunc(s.handleAccount),
-		Expand: func(sess *Session) ([]Instance, error) {
-			return expandLedgerMapPages(sess, func(l *engine.Ledger) map[string]engine.AccountInfo {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
+			return expandLedgerMapPages(ctx, sess, func(l *engine.Ledger) map[string]engine.AccountInfo {
 				return l.Accounts
 			}, PathAccount)
 		},
@@ -246,8 +253,8 @@ func registerCommodity(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/commodity/{commodity...}",
 		Handle:  http.HandlerFunc(s.handleCommodity),
-		Expand: func(sess *Session) ([]Instance, error) {
-			return expandLedgerMapPages(sess, func(l *engine.Ledger) map[string]engine.CommodityInfo {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
+			return expandLedgerMapPages(ctx, sess, func(l *engine.Ledger) map[string]engine.CommodityInfo {
 				return l.Commodities
 			}, PathCommodity)
 		},
@@ -258,21 +265,21 @@ func registerQuery(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/query/{name...}",
 		Handle:  http.HandlerFunc(s.handleQuery),
-		Expand: func(sess *Session) ([]Instance, error) {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
 			if sess == nil {
 				return nil, ErrSessionNil
 			}
-			names, err := sess.LedgerNames()
+			names, err := sess.LedgerNames(ctx)
 			if err != nil {
 				return nil, err
 			}
 			var out []Instance
 			for _, name := range names {
-				l, err := sess.Ledger(name)
+				l, err := sess.Ledger(ctx, name)
 				if err != nil {
 					return nil, err
 				}
-				if _, ok := s.resolvedPagesFor(sess, l).Lookup("queries"); !ok {
+				if _, ok := s.resolvedPagesFor(ctx, sess, l).Lookup("queries"); !ok {
 					continue
 				}
 				seen := map[string]struct{}{}
@@ -296,21 +303,21 @@ func registerLedgerPage(r *Registry, s *Server) {
 	r.Register(Route{
 		Pattern: "GET /l/{ledger}/{page}",
 		Handle:  http.HandlerFunc(s.handleLedgerPage),
-		Expand: func(sess *Session) ([]Instance, error) {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
 			if sess == nil {
 				return nil, ErrSessionNil
 			}
-			names, err := sess.LedgerNames()
+			names, err := sess.LedgerNames(ctx)
 			if err != nil {
 				return nil, err
 			}
 			var out []Instance
 			for _, name := range names {
-				l, err := sess.Ledger(name)
+				l, err := sess.Ledger(ctx, name)
 				if err != nil {
 					return nil, err
 				}
-				for _, page := range s.resolvedPagesFor(sess, l).BuildIDs() {
+				for _, page := range s.resolvedPagesFor(ctx, sess, l).BuildIDs() {
 					out = append(out, Instance{Path: PathLedger(name, page), Kind: KindPage})
 				}
 			}
@@ -327,11 +334,11 @@ func registerLedgerRoot(r *Registry, s *Server) {
 		Handle: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			http.Redirect(w, req, "/l/"+req.PathValue("ledger")+"/check", http.StatusFound)
 		}),
-		Expand: func(sess *Session) ([]Instance, error) {
+		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
 			if sess == nil {
 				return nil, ErrSessionNil
 			}
-			names, err := sess.LedgerNames()
+			names, err := sess.LedgerNames(ctx)
 			if err != nil {
 				return nil, err
 			}

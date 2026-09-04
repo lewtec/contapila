@@ -91,11 +91,11 @@ func TestInferOpCurrencyEmpty(t *testing.T) {
 
 func TestDocumentsForAccount(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, pdb, _, err := OpenProject(root)
+	p, pdb, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}

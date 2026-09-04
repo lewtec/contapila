@@ -17,7 +17,7 @@ func TestChartPriceJSONExample(t *testing.T) {
 		t.Fatal("runtime.Caller failed")
 	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example", "prices.beancount")
-	db, _, err := prices.LoadFile(root)
+	db, _, err := prices.LoadFile(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestChartPriceJSONYear2026Empty(t *testing.T) {
 		t.Fatal("runtime.Caller failed")
 	}
 	root := filepath.Join(filepath.Dir(f), "..", "..", "testdata", "example", "prices.beancount")
-	db, _, err := prices.LoadFile(root)
+	db, _, err := prices.LoadFile(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

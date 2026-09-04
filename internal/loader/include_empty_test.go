@@ -15,7 +15,7 @@ func TestLoadFileEmptyInclude(t *testing.T) {
 	if err := os.WriteFile(main, []byte("include \"\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, diags, err := LoadFile(main)
+	_, diags, err := LoadFile(t.Context(), main)
 	if err == nil {
 		t.Fatal("expected error for empty include")
 	}
@@ -37,7 +37,7 @@ func TestLoadFileIncludeDirectory(t *testing.T) {
 	if err := os.WriteFile(main, []byte("include \"subdir\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, diags, err := LoadFile(main)
+	_, diags, err := LoadFile(t.Context(), main)
 	if err == nil {
 		t.Fatal("expected error for directory include")
 	}

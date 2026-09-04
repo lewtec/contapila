@@ -191,7 +191,7 @@ func BenchmarkBook_avgCostInventory(b *testing.B) {
 
 func BenchmarkExpandPads(b *testing.B) {
 	dirs := padBalanceStream(32)
-	expanded0, diags0 := ExpandPads(dirs, nil)
+	expanded0, diags0 := ExpandPads(b.Context(), dirs, nil)
 	if diags0.HasErrors() {
 		b.Fatalf("fixture expand errors: %v", diags0)
 	}
@@ -203,7 +203,7 @@ func BenchmarkExpandPads(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		expanded, diags := ExpandPads(dirs, nil)
+		expanded, diags := ExpandPads(b.Context(), dirs, nil)
 		if diags.HasErrors() {
 			b.Fatalf("errors: %v", diags)
 		}

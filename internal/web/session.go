@@ -10,8 +10,12 @@ import (
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
-// ErrSessionNil is returned when Session methods are called on a nil receiver.
-var ErrSessionNil = errors.New("web: session is nil")
+var (
+	// ErrSessionNil is returned when Session methods are called on a nil receiver.
+	ErrSessionNil = errors.New("web: session is nil")
+	// ErrNilContext is returned when a Session method is called with a nil context.
+	ErrNilContext = errors.New("web: nil context")
+)
 
 // Session memoizes project and ledger loads for one lifetime:
 //
@@ -55,7 +59,10 @@ func sessionFrom(ctx context.Context) *Session {
 	return s
 }
 
-func (s *Session) open() (*engine.Handle, error) {
+func (s *Session) open(ctx context.Context) (*engine.Handle, error) {
+	if ctx == nil {
+		return nil, ErrNilContext
+	}
 	if s == nil {
 		return nil, ErrSessionNil
 	}
@@ -64,14 +71,14 @@ func (s *Session) open() (*engine.Handle, error) {
 			s.openErr = ErrProjectRootRequired
 			return
 		}
-		s.handle, s.openErr = engine.Open(s.Root) // Open uses context.Background
+		s.handle, s.openErr = engine.Open(ctx, s.Root)
 	})
 	return s.handle, s.openErr
 }
 
 // Project opens the project and prices once (sync.Once), then returns them.
-func (s *Session) Project() (*project.Project, *prices.DB, error) {
-	h, err := s.open()
+func (s *Session) Project(ctx context.Context) (*project.Project, *prices.DB, error) {
+	h, err := s.open(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,8 +86,8 @@ func (s *Session) Project() (*project.Project, *prices.DB, error) {
 }
 
 // Ledger returns a booked ledger by directory name, opening it once per name.
-func (s *Session) Ledger(name string) (*engine.Ledger, error) {
-	h, err := s.open()
+func (s *Session) Ledger(ctx context.Context, name string) (*engine.Ledger, error) {
+	h, err := s.open(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +99,7 @@ func (s *Session) Ledger(name string) (*engine.Ledger, error) {
 	}
 	s.ledgerMu.Unlock()
 
-	l, err := h.Ledger(context.Background(), name)
+	l, err := h.Ledger(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +117,8 @@ func (s *Session) Ledger(name string) (*engine.Ledger, error) {
 }
 
 // LedgerNames returns sorted ledger directory names after Project() succeeds.
-func (s *Session) LedgerNames() ([]string, error) {
-	h, err := s.open()
+func (s *Session) LedgerNames(ctx context.Context) ([]string, error) {
+	h, err := s.open(ctx)
 	if err != nil {
 		return nil, err
 	}

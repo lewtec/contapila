@@ -42,11 +42,11 @@ func TestCheckClosingPluginGatesAutoclose(t *testing.T) {
 
 	t.Run("disabled skips autoclose and warns", func(t *testing.T) {
 		dir := writeProj(t, "option \"operating_currency\" \"BRL\"\n"+body)
-		p, pdb, _, err := OpenProject(dir)
+		p, pdb, _, err := OpenProject(t.Context(), dir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		l, err := OpenLedger(p, pdb, "personal")
+		l, err := OpenLedger(t.Context(), p, pdb, "personal")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -69,11 +69,11 @@ func TestCheckClosingPluginGatesAutoclose(t *testing.T) {
 option "operating_currency" "BRL"
 plugin "check_closing"
 `+body)
-		p, pdb, _, err := OpenProject(dir)
+		p, pdb, _, err := OpenProject(t.Context(), dir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		l, err := OpenLedger(p, pdb, "personal")
+		l, err := OpenLedger(t.Context(), p, pdb, "personal")
 		if err != nil {
 			t.Fatal(err)
 		}

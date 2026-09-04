@@ -24,11 +24,11 @@ plugin "web_does_not_exist"
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	p, pdb, _, err := OpenProject(dir)
+	p, pdb, _, err := OpenProject(t.Context(), dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,11 +63,11 @@ plugin "check_closing"
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	p, pdb, _, err := OpenProject(dir)
+	p, pdb, _, err := OpenProject(t.Context(), dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,9 +80,9 @@ plugin "check_closing"
 }
 
 func TestOpenLedgerCanceled(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	p, pdb, _, err := OpenProject(filepath.Join("..", "..", "testdata", "example"))
+	p, pdb, _, err := OpenProject(t.Context(), filepath.Join("..", "..", "testdata", "example"))
 	if err != nil {
 		t.Fatal(err)
 	}

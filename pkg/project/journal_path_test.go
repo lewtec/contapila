@@ -59,7 +59,7 @@ project_journals: [
 	if err := os.WriteFile(filepath.Join(ledger, "main.beancount"), []byte("2020-01-01 open Assets:Cash\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := OpenProject(root)
+	_, err := OpenProject(t.Context(), root)
 	if err == nil {
 		t.Fatal("expected error for escaping project_journals path")
 	}

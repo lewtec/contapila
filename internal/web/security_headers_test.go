@@ -22,7 +22,7 @@ func TestSecurityHeadersOnIndex(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(ledger, "main.beancount"), []byte("2020-01-01 open Assets:Cash\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	p, err := project.OpenProject(root)
+	p, err := project.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatalf("OpenProject: %v", err)
 	}

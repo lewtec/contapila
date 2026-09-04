@@ -21,6 +21,7 @@ var defaultTolerance = big.NewRat(5, 1_000_000)
 var (
 	ErrCostCommodityMismatch = errors.New("cost commodity mismatch")
 	ErrNoPosition            = errors.New("no position")
+	ErrNilContext            = errors.New("nil context")
 )
 
 // Position is average-cost inventory for one account+commodity (model A).
@@ -111,23 +112,34 @@ func (e *Engine) tol(comm string) *big.Rat {
 }
 
 func (e *Engine) Book(dirs []ast.Directive) {
-	_ = e.BookContext(context.Background(), dirs)
+	e.applySorted(sortedDirectives(dirs))
 }
 
 // BookContext is Book, aborting with ctx.Err() if the context is canceled.
 func (e *Engine) BookContext(ctx context.Context, dirs []ast.Directive) error {
 	if ctx == nil {
-		ctx = context.Background()
+		return ErrNilContext
 	}
-	// Sort by date, then Beancount-style type rank (open before txn, close last),
-	// then source line. Same-day open that appears after a txn in include order
-	// must still open the account before the txn is booked.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	indexed := sortedDirectives(dirs)
-
 	for _, d := range indexed {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		e.applyOne(d)
+	}
+	return nil
+}
+
+func (e *Engine) applySorted(indexed []ast.Directive) {
+	for _, d := range indexed {
+		e.applyOne(d)
+	}
+}
+
+func (e *Engine) applyOne(d ast.Directive) {
 		switch v := d.(type) {
 		case ast.Open:
 			e.bookOpen(v)
@@ -148,8 +160,6 @@ func (e *Engine) BookContext(ctx context.Context, dirs []ast.Directive) error {
 		case ast.Option, ast.Commodity, ast.Price, ast.Include, ast.Document, ast.Unknown, ast.Custom:
 			// handled elsewhere (Custom index series used by autointerest projection)
 		}
-	}
-	return nil
 }
 
 func sortedDirectives(dirs []ast.Directive) []ast.Directive {

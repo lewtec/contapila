@@ -317,7 +317,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if sess == nil {
 		sess = NewSession(s.Root)
 	}
-	p, _, err := sess.Project()
+	p, _, err := sess.Project(r.Context())
 	if err != nil {
 		slog.Error("web handler", "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -400,7 +400,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	reg := s.resolvedPagesFor(sess, l)
+	reg := s.resolvedPagesFor(r.Context(), sess, l)
 	pg, ok := reg.Lookup(pageID)
 	if !ok {
 		http.NotFound(w, r)
@@ -411,7 +411,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 	if pg.Label == "" {
 		title = name + " · " + pageID
 	}
-	data := s.basePageData(sess, proj, l, name, title, pageID, tq)
+	data := s.basePageData(r.Context(), sess, proj, l, name, title, pageID, tq)
 	data.Pages = reg
 	ds := l.Check()
 	data.Diags = ds
@@ -454,7 +454,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := s.basePageData(sess, proj, l, name, account, "account", tq)
+	data := s.basePageData(r.Context(), sess, proj, l, name, account, "account", tq)
 	data.AccountName = account
 	if perr != nil {
 		s.render(w, r, AccountPage(data))
@@ -493,7 +493,7 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Opt-in UI: only when web_queries is in the resolved page table.
-	reg := s.resolvedPagesFor(sess, l)
+	reg := s.resolvedPagesFor(r.Context(), sess, l)
 	if _, enabled := reg.Lookup("queries"); !enabled {
 		http.NotFound(w, r)
 		return
@@ -508,7 +508,7 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	title := qname
-	data := s.basePageData(sess, proj, l, ledger, title, "query", tq)
+	data := s.basePageData(r.Context(), sess, proj, l, ledger, title, "query", tq)
 	data.Pages = reg
 	data.QueryName = qname
 	data.QueryText = text
@@ -875,7 +875,7 @@ func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {
 	}
 	pr, perr, asOf := tq.Period, tq.PeriodErr, tq.AsOf
 
-	data := s.basePageData(sess, proj, l, name, commodity, "commodity", tq)
+	data := s.basePageData(r.Context(), sess, proj, l, name, commodity, "commodity", tq)
 	data.CommodityName = commodity
 	if perr != nil {
 		s.render(w, r, CommodityPage(data))

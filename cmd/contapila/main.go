@@ -130,12 +130,12 @@ func printDiags(ds diag.List) {
 	fmt.Fprintln(os.Stderr, ds.Format())
 }
 
-func withLedgers(args []string, fn func(*engine.Ledger) error) error {
+func withLedgers(ctx context.Context, args []string, fn func(*engine.Ledger) error) error {
 	cwd, err := projectCwd()
 	if err != nil {
 		return err
 	}
-	h, err := engine.Open(cwd)
+	h, err := engine.Open(ctx, cwd)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func withLedgers(args []string, fn func(*engine.Ledger) error) error {
 	}
 	var failed bool
 	for _, name := range names {
-		l, err := h.Ledger(context.Background(), name)
+		l, err := h.Ledger(ctx, name)
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ func statusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			p, err := project.OpenProject(cwd)
+			p, err := project.OpenProject(cmd.Context(), cwd)
 			if err != nil {
 				return err
 			}
@@ -211,7 +211,7 @@ func checkCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "check [ledger]", Short: "Validate ledger(s)", Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return withLedgers(args, func(l *engine.Ledger) error {
+			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
 				fmt.Printf("== %s ==\n", l.Name)
 				ds := l.Check()
 				printDiags(ds)
@@ -239,7 +239,7 @@ func balancesCmd() *cobra.Command {
 			}
 			// Single ledger: hierarchical tree. Multi-ledger: flat sorted table.
 			if len(args) == 1 {
-				return withLedgers(args, func(l *engine.Ledger) error {
+				return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
 					tree := l.BalancesTree(t)
 					fmt.Printf("== %s balances ==\n", l.Name)
 					for _, ln := range tree {
@@ -262,7 +262,7 @@ func balancesCmd() *cobra.Command {
 				ledger, account, amount, commodity string
 			}
 			var rows []row
-			err = withLedgers(args, func(l *engine.Ledger) error {
+			err = withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
 				bals := l.BalancesAsOf(t)
 				var accts []string
 				for a := range bals {
@@ -319,7 +319,7 @@ func journalCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return withLedgers(args, func(l *engine.Ledger) error {
+			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
 				fmt.Printf("== %s ==", l.Name)
 				if !r.Empty() {
 					fmt.Printf("  [%s]", r.Label())
@@ -359,7 +359,7 @@ func pnlCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return withLedgers(args, func(l *engine.Ledger) error {
+			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
 				fmt.Printf("== %s ==", l.Name)
 				if !r.Empty() {
 					fmt.Printf("  [%s]", r.Label())
@@ -430,7 +430,7 @@ func networthCmd() *cobra.Command {
 			if t.IsZero() {
 				t = engine.AsOfLatest
 			}
-			return withLedgers(args, func(l *engine.Ledger) error {
+			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
 				lines, total, err := l.NetWorthTree(t)
 				if err != nil {
 					return err
@@ -478,12 +478,12 @@ func accountCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			h, err := engine.Open(cwd)
+			h, err := engine.Open(cmd.Context(), cwd)
 			if err != nil {
 				return err
 			}
 			printDiags(h.Diags)
-			l, err := h.Ledger(context.Background(), args[0])
+			l, err := h.Ledger(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}
@@ -672,7 +672,7 @@ func webCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			h, err := engine.Open(cwd)
+			h, err := engine.Open(cmd.Context(), cwd)
 			if err != nil {
 				return err
 			}
@@ -699,7 +699,7 @@ func buildCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := web.Build(cwd, out, jobs); err != nil {
+			if err := web.Build(cmd.Context(), cwd, out, jobs); err != nil {
 				return err
 			}
 			// Phase detail is on stderr via slog; keep a one-line stdout summary.

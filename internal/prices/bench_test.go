@@ -12,7 +12,7 @@ func examplePricesPath() string {
 
 func mustLoadExample(b *testing.B) *DB {
 	b.Helper()
-	db, diags, err := LoadFile(examplePricesPath())
+	db, diags, err := LoadFile(b.Context(), examplePricesPath())
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func mustLoadExample(b *testing.B) *DB {
 func BenchmarkLoadFile_example(b *testing.B) {
 	path := examplePricesPath()
 	// Sanity once so fixture failures fail fast outside the loop.
-	if _, diags, err := LoadFile(path); err != nil {
+	if _, diags, err := LoadFile(b.Context(), path); err != nil {
 		b.Fatal(err)
 	} else if diags.HasErrors() {
 		b.Fatalf("diags: %v", diags)
@@ -35,7 +35,7 @@ func BenchmarkLoadFile_example(b *testing.B) {
 
 	b.ReportAllocs()
 	for b.Loop() {
-		db, diags, err := LoadFile(path)
+		db, diags, err := LoadFile(b.Context(), path)
 		if err != nil {
 			b.Fatal(err)
 		}

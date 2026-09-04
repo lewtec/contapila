@@ -13,11 +13,11 @@ import (
 
 func TestExampleNetWorthSeries(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, pdb, _, err := OpenProject(root)
+	p, pdb, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestAccountSeriesUsesPadDate(t *testing.T) {
 		},
 		ast.Balance{Meta: ast.Meta{Date: d("2020-02-01"), File: "t", Line: 10}, Account: "Assets:Cash", Amount: ast.Amount{Number: r("100"), Commodity: "BRL"}},
 	}
-	expanded, diags := booking.ExpandPads(dirs, nil)
+	expanded, diags := booking.ExpandPads(t.Context(), dirs, nil)
 	if diags.HasErrors() {
 		t.Fatalf("errors: %v", diags)
 	}
@@ -121,11 +121,11 @@ func TestTrimZeroEdgeSeries(t *testing.T) {
 // Net worth series must revalue on PriceDB days even without balance-changing txns.
 func TestNetWorthSeriesIncludesPriceDays(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, pdb, _, err := OpenProject(root)
+	p, pdb, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,11 +155,11 @@ func TestNetWorthSeriesIncludesPriceDays(t *testing.T) {
 
 func TestExamplePnLBarsYear(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, pdb, _, err := OpenProject(root)
+	p, pdb, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}

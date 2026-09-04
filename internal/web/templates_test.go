@@ -12,7 +12,7 @@ import (
 
 func TestTemplatesParseAndRenderShell(t *testing.T) {
 	root := filepath.Join("..", "..", "testdata", "example")
-	p, pdb, _, err := engine.OpenProject(root)
+	p, pdb, _, err := engine.OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

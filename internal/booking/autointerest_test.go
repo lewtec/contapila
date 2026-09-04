@@ -301,7 +301,7 @@ func TestExpandAutoInterestAfterClosingMeta(t *testing.T) {
 	if aiDiags.HasErrors() {
 		t.Fatalf("ExpandAutoInterest: %v", aiDiags)
 	}
-	e, out, diags := BookWithClosing(stream, nil)
+	e, out, diags := BookWithClosing(t.Context(), stream, nil)
 	if diags.HasErrors() {
 		t.Fatalf("%v", diags)
 	}

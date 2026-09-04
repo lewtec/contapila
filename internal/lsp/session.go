@@ -93,7 +93,7 @@ func (s *Session) setClient(c protocol.Client) {
 	s.mu.Unlock()
 }
 
-func (s *Session) ensureRoot(path string) {
+func (s *Session) ensureRoot(ctx context.Context, path string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.root != "" {
@@ -104,7 +104,7 @@ func (s *Session) ensureRoot(path string) {
 		dir = filepath.Dir(path)
 	}
 	// walk using disk (marker usually not overlayed)
-	p, err := project.OpenProject(dir)
+	p, err := project.OpenProject(ctx, dir)
 	if err != nil {
 		return
 	}
@@ -163,7 +163,7 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 		s.mu.RLock()
 		for p := range s.openDocs {
 			s.mu.RUnlock()
-			s.ensureRoot(p)
+			s.ensureRoot(ctx, p)
 			s.mu.RLock()
 			root = s.root
 			break
@@ -478,7 +478,7 @@ func (s *Session) ledgerOf(path string) string {
 	return ""
 }
 
-func (s *Session) resolveLedger(path string) string {
+func (s *Session) resolveLedger(ctx context.Context, path string) string {
 	if n := s.ledgerOf(path); n != "" {
 		return n
 	}
@@ -492,7 +492,7 @@ func (s *Session) resolveLedger(path string) string {
 		return ""
 	}
 	// lightweight
-	p, err := project.OpenProject(root)
+	p, err := project.OpenProject(ctx, root)
 	if err != nil {
 		return ""
 	}

@@ -26,7 +26,7 @@ func TestExpandPadsSkipsSameDayPadAndBalance(t *testing.T) {
 			Amount:  ast.Amount{Number: r("100"), Commodity: "BRL"},
 		},
 	}
-	expanded, diags := ExpandPads(dirs, nil)
+	expanded, diags := ExpandPads(t.Context(), dirs, nil)
 	if diags.HasErrors() {
 		t.Fatalf("errors: %v", diags)
 	}
@@ -63,7 +63,7 @@ func TestExpandPadsSkipsWhenWithinTolerance(t *testing.T) {
 			Amount:  ast.Amount{Number: r("50"), Commodity: "BRL"},
 		},
 	}
-	expanded, diags := ExpandPads(dirs, nil)
+	expanded, diags := ExpandPads(t.Context(), dirs, nil)
 	if diags.HasErrors() {
 		t.Fatalf("errors: %v", diags)
 	}
@@ -83,7 +83,7 @@ func TestExpandPadsSkipsWithoutPadDirective(t *testing.T) {
 			Amount:  ast.Amount{Number: r("100"), Commodity: "BRL"},
 		},
 	}
-	expanded, diags := ExpandPads(dirs, nil)
+	expanded, diags := ExpandPads(t.Context(), dirs, nil)
 	if diags.HasErrors() {
 		t.Fatalf("errors: %v", diags)
 	}
@@ -120,7 +120,7 @@ func TestExpandPadsNegDiffCreditsAccount(t *testing.T) {
 			Amount:  ast.Amount{Number: r("150"), Commodity: "BRL"},
 		},
 	}
-	expanded, diags := ExpandPads(dirs, nil)
+	expanded, diags := ExpandPads(t.Context(), dirs, nil)
 	if diags.HasErrors() {
 		t.Fatalf("errors: %v", diags)
 	}

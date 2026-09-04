@@ -14,11 +14,11 @@ func exampleRoot() string {
 
 func mustOpenExamplePersonal(b *testing.B) *Ledger {
 	b.Helper()
-	p, pdb, _, err := OpenProject(exampleRoot())
+	p, pdb, _, err := OpenProject(b.Context(), exampleRoot())
 	if err != nil {
 		b.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(b.Context(), p, pdb, "personal")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -29,18 +29,18 @@ func mustOpenExamplePersonal(b *testing.B) *Ledger {
 // ledger. Project+prices stay outside the timed loop; ExpandDatedCosts may write
 // into the shared PriceDB, but keys are deterministic so later iters stay stable.
 func BenchmarkOpenLedger_examplePersonal(b *testing.B) {
-	p, pdb, _, err := OpenProject(exampleRoot())
+	p, pdb, _, err := OpenProject(b.Context(), exampleRoot())
 	if err != nil {
 		b.Fatal(err)
 	}
 	// Sanity once so fixture failures fail fast outside the loop.
-	if _, err := OpenLedger(p, pdb, "personal"); err != nil {
+	if _, err := OpenLedger(b.Context(), p, pdb, "personal"); err != nil {
 		b.Fatal(err)
 	}
 
 	b.ReportAllocs()
 	for b.Loop() {
-		l, err := OpenLedger(p, pdb, "personal")
+		l, err := OpenLedger(b.Context(), p, pdb, "personal")
 		if err != nil {
 			b.Fatal(err)
 		}

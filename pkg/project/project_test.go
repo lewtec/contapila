@@ -80,7 +80,7 @@ func TestDiscovery(t *testing.T) {
 	})
 
 	t.Run("OpenProject", func(t *testing.T) {
-		p, err := OpenProject(filepath.Join(root, "personal"))
+		p, err := OpenProject(t.Context(), filepath.Join(root, "personal"))
 		if err != nil {
 			t.Fatalf("failed to open project: %v", err)
 		}

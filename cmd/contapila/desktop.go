@@ -42,7 +42,7 @@ deep-link). Project root is discovered from -C / the process working directory
 			if err != nil {
 				return err
 			}
-			h, err := engine.Open(cwd)
+			h, err := engine.Open(cmd.Context(), cwd)
 			if err != nil {
 				return err
 			}

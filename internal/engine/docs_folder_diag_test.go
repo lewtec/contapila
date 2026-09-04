@@ -27,11 +27,11 @@ option "operating_currency" "BRL"
 		t.Fatal(err)
 	}
 
-	p, pdb, _, err := OpenProject(root)
+	p, pdb, _, err := OpenProject(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	l, err := OpenLedger(p, pdb, "personal")
+	l, err := OpenLedger(t.Context(), p, pdb, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
