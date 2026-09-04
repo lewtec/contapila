@@ -140,26 +140,26 @@ func (e *Engine) applySorted(indexed []ast.Directive) {
 }
 
 func (e *Engine) applyOne(d ast.Directive) {
-		switch v := d.(type) {
-		case ast.Open:
-			e.bookOpen(v)
-		case ast.Close:
-			e.bookClose(v)
-		case ast.Transaction:
-			e.bookTxn(v)
-		case ast.Balance:
-			e.bookBalance(v)
-		case ast.Pad:
-			e.Pad[v.Account] = v
-		case ast.Note:
-			e.Notes = append(e.Notes, v)
-		case ast.Event:
-			e.Events = append(e.Events, v)
-		case ast.Query:
-			e.Queries = append(e.Queries, v)
-		case ast.Option, ast.Commodity, ast.Price, ast.Include, ast.Document, ast.Unknown, ast.Custom:
-			// handled elsewhere (Custom index series used by autointerest projection)
-		}
+	switch v := d.(type) {
+	case ast.Open:
+		e.bookOpen(v)
+	case ast.Close:
+		e.bookClose(v)
+	case ast.Transaction:
+		e.bookTxn(v)
+	case ast.Balance:
+		e.bookBalance(v)
+	case ast.Pad:
+		e.Pad[v.Account] = v
+	case ast.Note:
+		e.Notes = append(e.Notes, v)
+	case ast.Event:
+		e.Events = append(e.Events, v)
+	case ast.Query:
+		e.Queries = append(e.Queries, v)
+	case ast.Option, ast.Commodity, ast.Price, ast.Include, ast.Document, ast.Unknown, ast.Custom:
+		// handled elsewhere (Custom index series used by autointerest projection)
+	}
 }
 
 func sortedDirectives(dirs []ast.Directive) []ast.Directive {
