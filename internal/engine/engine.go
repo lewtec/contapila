@@ -31,6 +31,7 @@ var AsOfLatest = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
 // Sentinel errors for ledger open and reports.
 var (
 	ErrUnknownLedger     = errors.New("unknown ledger")
+	ErrNilHandle         = errors.New("nil project handle")
 	ErrOpCurrencyUnknown = errors.New("operating currency unknown; set option operating_currency")
 )
 
@@ -79,6 +80,44 @@ type Ledger struct {
 	dirs    []ast.Directive
 	book    *booking.Engine
 	indexDB booking.IndexDB
+}
+
+// Handle is an opened project plus shared prices. Open named ledgers from it.
+type Handle struct {
+	Project *project.Project
+	Prices  *prices.DB
+	Diags   diag.List
+	fsys    filesys.FS
+}
+
+// Open discovers the project from cwd and loads shared prices.
+func Open(cwd string) (*Handle, error) {
+	return OpenFS(filesys.OS{}, cwd)
+}
+
+// OpenFS is Open using fsys for file reads (LSP overlays).
+func OpenFS(fsys filesys.FS, cwd string) (*Handle, error) {
+	p, pdb, diags, err := OpenProjectFS(fsys, cwd)
+	if err != nil {
+		return nil, err
+	}
+	return &Handle{Project: p, Prices: pdb, Diags: diags, fsys: fsys}, nil
+}
+
+// Ledger loads and books one named ledger through this handle's FS and prices.
+func (h *Handle) Ledger(name string) (*Ledger, error) {
+	if h == nil {
+		return nil, ErrNilHandle
+	}
+	return OpenLedgerFS(h.fsys, h.Project, h.Prices, name)
+}
+
+// LedgerNames returns sorted ledger directory names.
+func (h *Handle) LedgerNames() []string {
+	if h == nil {
+		return nil
+	}
+	return LedgerNames(h.Project)
 }
 
 // OpenProject wraps project.OpenProject and loads shared prices from disk.
@@ -396,10 +435,15 @@ func (l *Ledger) Account(name string) (AccountInfo, bool) {
 }
 
 func inferOpCurrency(dirs []ast.Directive, p *project.Project) string {
-	// options first
+	// Journal option first (per-ledger), then CUE project default, then infer.
 	for _, d := range dirs {
 		if o, ok := d.(ast.Option); ok && o.Key == "operating_currency" {
 			return o.Value
+		}
+	}
+	if p != nil && p.Config != nil {
+		if c := config.OperatingCurrency(p.Config.Value); c != "" {
+			return c
 		}
 	}
 	// first transaction commodity

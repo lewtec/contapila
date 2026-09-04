@@ -58,6 +58,35 @@ func TestLedgerNames(t *testing.T) {
 	}
 }
 
+func TestOpenHandle(t *testing.T) {
+	root := filepath.Join("..", "..", "testdata", "example")
+	h, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.Project == nil || h.Prices == nil {
+		t.Fatal("expected project and prices")
+	}
+	names := h.LedgerNames()
+	if len(names) == 0 {
+		t.Fatal("expected ledger names")
+	}
+	l, err := h.Ledger("personal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l.Name != "personal" {
+		t.Fatalf("ledger name %q", l.Name)
+	}
+	if _, err := h.Ledger("does-not-exist"); err == nil {
+		t.Fatal("expected unknown ledger")
+	}
+	var none *Handle
+	if _, err := none.Ledger("personal"); err == nil {
+		t.Fatal("expected nil handle error")
+	}
+}
+
 func TestParseDate(t *testing.T) {
 	// Empty → zero time (unbounded/open range convention used by journal/PnL filters).
 	got, err := ParseDate("")

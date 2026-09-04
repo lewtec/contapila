@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/ast"
+	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
@@ -41,6 +42,31 @@ func TestInferOpCurrencyFromFirstTxn(t *testing.T) {
 	got := inferOpCurrency(dirs, &project.Project{})
 	if got != "BRL" {
 		t.Fatalf("got %q want BRL", got)
+	}
+}
+
+func TestInferOpCurrencyFromCUE(t *testing.T) {
+	cfg, err := config.Load([]byte("operating_currency: [\"USD\"]\n"), "t.cue", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := inferOpCurrency(nil, &project.Project{Config: cfg})
+	if got != "USD" {
+		t.Fatalf("got %q want USD", got)
+	}
+}
+
+func TestInferOpCurrencyJournalBeatsCUE(t *testing.T) {
+	cfg, err := config.Load([]byte("operating_currency: [\"USD\"]\n"), "t.cue", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirs := []ast.Directive{
+		ast.Option{Key: "operating_currency", Value: "EUR"},
+	}
+	got := inferOpCurrency(dirs, &project.Project{Config: cfg})
+	if got != "EUR" {
+		t.Fatalf("got %q want EUR", got)
 	}
 }
 

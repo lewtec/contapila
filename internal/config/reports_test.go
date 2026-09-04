@@ -8,6 +8,23 @@ import (
 	"github.com/lucasew/contapila-go/internal/period"
 )
 
+func TestOperatingCurrency(t *testing.T) {
+	cfg, err := Load([]byte("operating_currency: [\"BRL\", \"USD\"]\n"), "t.cue", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := OperatingCurrency(cfg.Value); got != "BRL" {
+		t.Fatalf("got %q want BRL", got)
+	}
+	empty, err := Load([]byte("{}\n"), "t.cue", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := OperatingCurrency(empty.Value); got != "" {
+		t.Fatalf("empty want \"\", got %q", got)
+	}
+}
+
 func TestLedgerPlotFrom(t *testing.T) {
 	discovered := []Ledger{
 		{Name: "personal", Main: "/proj/personal/main.beancount"},
