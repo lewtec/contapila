@@ -42,11 +42,11 @@ deep-link). Project root is discovered from -C / the process working directory
 			if err != nil {
 				return err
 			}
-			p, pdb, _, err := engine.OpenProject(cwd)
+			h, err := engine.Open(cwd)
 			if err != nil {
 				return err
 			}
-			s, err := web.New(p, pdb)
+			s, err := web.New(h.Project, h.Prices)
 			if err != nil {
 				return err
 			}
@@ -56,7 +56,7 @@ deep-link). Project root is discovered from -C / the process working directory
 			handler := http.Handler(s.Handler())
 			if len(args) == 1 {
 				name := args[0]
-				if !projectHasLedger(p, name) {
+				if !projectHasLedger(h.Project, name) {
 					return fmt.Errorf("%w %q", ErrUnknownDesktopLedger, name)
 				}
 				handler = rootDeepLinkHandler(handler, name)

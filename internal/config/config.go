@@ -191,6 +191,31 @@ func ProjectJournals(v cue.Value) ([]ProjectJournal, error) {
 	return out, nil
 }
 
+// OperatingCurrency returns the first CUE operating_currency entry, or "".
+// Prelude types the field as a string list (Beancount may declare several);
+// reports use a single primary currency.
+func OperatingCurrency(v cue.Value) string {
+	if !v.Exists() {
+		return ""
+	}
+	list := v.LookupPath(cue.ParsePath("operating_currency"))
+	if !list.Exists() {
+		return ""
+	}
+	iter, err := list.List()
+	if err != nil {
+		return ""
+	}
+	if !iter.Next() {
+		return ""
+	}
+	s, err := iter.Value().String()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(s)
+}
+
 // journalStringField returns the string value of a journal entry field.
 // Absent fields yield ("", nil). Present non-string values are errors.
 func journalStringField(item cue.Value, field string) (string, error) {

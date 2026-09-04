@@ -178,7 +178,7 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 	}
 
 	fsys := s.overlay
-	p, pdb, pdiags, err := engine.OpenProjectFS(fsys, root)
+	h, err := engine.OpenFS(fsys, root)
 	if err != nil {
 		slog.Debug("lsp rebuild: open project", "err", err)
 		if client != nil {
@@ -191,6 +191,7 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 		}
 		return
 	}
+	p, pdiags := h.Project, h.Diags
 	if err := ctx.Err(); err != nil {
 		return
 	}
@@ -241,7 +242,7 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 		if err := ctx.Err(); err != nil {
 			return
 		}
-		led, err := engine.OpenLedgerFS(fsys, p, pdb, name)
+		led, err := h.Ledger(name)
 		if err != nil {
 			slog.Debug("lsp rebuild: open ledger", "ledger", name, "err", err)
 			parseOK = false

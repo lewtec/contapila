@@ -136,21 +136,21 @@ func withLedgers(args []string, fn func(*engine.Ledger) error) error {
 	if err != nil {
 		return err
 	}
-	p, pdb, pdiags, err := engine.OpenProject(cwd)
+	h, err := engine.Open(cwd)
 	if err != nil {
 		return err
 	}
-	printDiags(pdiags)
+	printDiags(h.Diags)
 	names := args
 	if len(names) == 0 {
-		names = engine.LedgerNames(p)
+		names = h.LedgerNames()
 		if len(names) == 0 {
 			return ErrZeroLedgers
 		}
 	}
 	var failed bool
 	for _, name := range names {
-		l, err := engine.OpenLedger(p, pdb, name)
+		l, err := h.Ledger(name)
 		if err != nil {
 			return err
 		}
@@ -479,12 +479,12 @@ func accountCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			p, pdb, pdiags, err := engine.OpenProject(cwd)
+			h, err := engine.Open(cwd)
 			if err != nil {
 				return err
 			}
-			printDiags(pdiags)
-			l, err := engine.OpenLedger(p, pdb, args[0])
+			printDiags(h.Diags)
+			l, err := h.Ledger(args[0])
 			if err != nil {
 				return err
 			}
@@ -673,7 +673,7 @@ func webCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			p, pdb, _, err := engine.OpenProject(cwd)
+			h, err := engine.Open(cwd)
 			if err != nil {
 				return err
 			}
@@ -681,7 +681,7 @@ func webCmd() *cobra.Command {
 			if len(args) == 1 {
 				name = args[0]
 			}
-			return web.Listen(cmd.Context(), p, pdb, name, addr)
+			return web.Listen(cmd.Context(), h.Project, h.Prices, name, addr)
 		},
 	}
 	c.Flags().StringVar(&addr, "addr", "127.0.0.1:8765", "listen address (host:port)")

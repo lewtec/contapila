@@ -21,7 +21,7 @@ var ErrSessionNil = errors.New("web: session is nil")
 //   - contapila build: one Session for expand + every page fetch so OpenProject
 //     and OpenLedger run once per name for the whole site.
 //
-// All ingestion should go through Project / Ledger — not engine.Open* ad hoc.
+// All ingestion should go through Handle / Ledger — not engine.OpenProject ad hoc.
 // URL helpers (HomeURL, LedgerURL, …) honor Static so build emits .html / index.html
 // hrefs natively without post-processing HTML.
 type Session struct {
@@ -29,10 +29,9 @@ type Session struct {
 	// Static is true for contapila build: link methods use on-disk URL shapes.
 	Static bool
 
-	onceProject sync.Once
-	project     *project.Project
-	prices      *prices.DB
-	projectErr  error
+	onceOpen sync.Once
+	handle   *engine.Handle
+	openErr  error
 
 	ledgerMu sync.Mutex
 	ledgers  map[string]*engine.Ledger
@@ -56,27 +55,32 @@ func sessionFrom(ctx context.Context) *Session {
 	return s
 }
 
-// Project opens the project and prices once (sync.Once), then returns them.
-func (s *Session) Project() (*project.Project, *prices.DB, error) {
+func (s *Session) open() (*engine.Handle, error) {
 	if s == nil {
-		return nil, nil, ErrSessionNil
+		return nil, ErrSessionNil
 	}
-	s.onceProject.Do(func() {
+	s.onceOpen.Do(func() {
 		if s.Root == "" {
-			s.projectErr = ErrProjectRootRequired
+			s.openErr = ErrProjectRootRequired
 			return
 		}
-		s.project, s.prices, _, s.projectErr = engine.OpenProject(s.Root)
+		s.handle, s.openErr = engine.Open(s.Root)
 	})
-	return s.project, s.prices, s.projectErr
+	return s.handle, s.openErr
+}
+
+// Project opens the project and prices once (sync.Once), then returns them.
+func (s *Session) Project() (*project.Project, *prices.DB, error) {
+	h, err := s.open()
+	if err != nil {
+		return nil, nil, err
+	}
+	return h.Project, h.Prices, nil
 }
 
 // Ledger returns a booked ledger by directory name, opening it once per name.
 func (s *Session) Ledger(name string) (*engine.Ledger, error) {
-	if s == nil {
-		return nil, ErrSessionNil
-	}
-	proj, pdb, err := s.Project()
+	h, err := s.open()
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +92,7 @@ func (s *Session) Ledger(name string) (*engine.Ledger, error) {
 	}
 	s.ledgerMu.Unlock()
 
-	l, err := engine.OpenLedger(proj, pdb, name)
+	l, err := h.Ledger(name)
 	if err != nil {
 		return nil, err
 	}
@@ -107,9 +111,9 @@ func (s *Session) Ledger(name string) (*engine.Ledger, error) {
 
 // LedgerNames returns sorted ledger directory names after Project() succeeds.
 func (s *Session) LedgerNames() ([]string, error) {
-	p, _, err := s.Project()
+	h, err := s.open()
 	if err != nil {
 		return nil, err
 	}
-	return engine.LedgerNames(p), nil
+	return h.LedgerNames(), nil
 }
