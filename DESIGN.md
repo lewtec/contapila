@@ -27,7 +27,7 @@ Dark: deep base, muted gold for contrast.
 
 Implementation (daisyUI way):
 
-- Source: `styles/input.css` with `@plugin "daisyui"` and `@plugin "daisyui/theme"` for **`contapila-light`** / **`contapila-dark`**
+- Source: `internal/web/input.css` with `@plugin "daisyui"` and `@plugin "daisyui/theme"` for **`contapila-light`** / **`contapila-dark`**
 - Build: `go generate ./...` (tailgopher as `go tool tailwind`) → `internal/web/static/app.css`
 - Serve: embedded `/static/app.css` (not CDN `themes.css` / browser Tailwind)
 - Toggle: `data-theme="contapila-light"` | `contapila-dark` + `theme-controller`
@@ -83,7 +83,7 @@ Cmd+K via reusable `pkg/cmdpalette`
 - **Reusable UI:** `pkg/cmdpalette` — `Palette` + `Button()` / `Modal()` / `Assets()` (templ + embedded CSS/JS)
 - **Contapila catalog:** `commandItems` / `jumpPalette` in `internal/web` — ledgers, reports, queries, accounts, commodities, `PluginCommands`
 - **Plugins:** `reg.Palette(web.Palette{DefaultEnabled, Fill})` (plugin hook, not the UI type). Example: `web_queries` “All queries”
-- **Theme bridge:** CSS vars `--cmdpalette-accent` etc. set from contapila tokens in `styles/input.css`
+- **Theme bridge:** CSS vars `--cmdpalette-accent` etc. set from contapila tokens in `internal/web/input.css`
 - **Not yet:** slash actions (`time …`), recents, fuzzy rank beyond substring tokens
 
 ## Motion
