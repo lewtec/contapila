@@ -1,5 +1,7 @@
 package cmdpalette
 
+//go:generate go tool templ generate
+
 import "strings"
 
 // Item is one row in the palette (SSR; client filters on Keywords).

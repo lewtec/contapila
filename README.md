@@ -147,15 +147,15 @@ Ledger arguments are **directory names** under the project root.
 
 ## Development
 
-Standard Go module (`github.com/lucasew/contapila-go`). Go version is pinned in [`mise.toml`](mise.toml) if you use mise for the toolchain; Bun is only for CSS codegen.
+Standard Go module (`github.com/lucasew/contapila-go`). Go version is pinned in [`mise.toml`](mise.toml) if you use mise for the toolchain. CSS is compiled by [tailgopher](https://github.com/lewtec/tailgopher) via `go generate` — no Node or Bun.
 
 ```bash
 go test ./...
 go build -o contapila ./cmd/contapila/
 
 # optional: mise-managed toolchain + CI-shaped checks
-mise run install    # go mod tidy + bun install
-mise run codegen    # rebuild embedded web CSS
+mise run install    # go mod tidy
+mise run codegen    # templ + embedded web CSS
 mise run ci         # codegen + tests + build
 ```
 
