@@ -1,0 +1,629 @@
+; Suppliers, payroll, tax, distribution
+
+2023-08-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  236.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2023-08-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  236.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-08-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-09-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  238.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2023-09-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  238.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-09-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-09-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2023-09-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-09-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  790.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2023-09-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  790.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-10-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  240.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2023-10-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  240.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-10-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-11-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  242.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2023-11-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  242.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-11-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  244.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2023-12-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  244.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2023-12-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  820.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2023-12-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  820.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-01-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  222.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-01-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  222.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-01-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  224.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-02-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  224.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  226.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-03-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  226.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2024-03-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  730.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2024-03-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  730.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-04-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  228.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-04-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  228.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-04-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-05-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  230.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-05-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  230.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-05-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  232.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-06-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  232.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2024-06-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  760.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2024-06-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  760.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  234.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-07-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  234.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-08-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  236.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-08-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  236.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-08-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  238.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-09-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  238.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2024-09-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  790.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2024-09-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  790.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-10-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  240.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-10-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  240.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-10-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-11-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  242.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-11-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  242.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-11-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  244.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2024-12-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  244.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2024-12-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  820.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2024-12-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  820.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  222.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-01-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  222.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-02-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  224.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-02-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  224.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-02-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  226.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-03-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  226.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2025-03-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  730.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2025-03-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  730.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-04-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  228.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-04-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  228.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-04-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-05-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  230.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-05-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  230.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-05-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  232.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-06-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  232.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2025-06-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  760.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2025-06-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  760.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-07-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  234.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-07-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  234.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-07-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-08-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  236.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-08-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  236.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-08-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  238.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-09-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  238.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2025-09-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  790.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2025-09-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  790.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-10-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  240.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-10-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  240.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-10-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-11-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  242.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-11-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  242.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-11-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  244.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2025-12-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  244.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2025-12-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  820.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2025-12-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  820.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-01-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  222.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2026-01-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  222.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-01-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-02-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  224.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2026-02-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  224.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-02-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  226.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2026-03-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  226.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2026-03-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  730.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2026-03-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  730.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-04-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  228.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2026-04-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  228.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-04-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-05-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  230.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2026-05-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  230.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-05-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-01 * "CloudHost" "Cloud bill"
+  Expenses:Ops:Cloud  232.00 BRL
+  Liabilities:Payable:Supplier:CloudHost
+
+2026-06-12 * "CloudHost" "Pay cloud"
+  Liabilities:Payable:Supplier:CloudHost  232.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-25 * "Contractor Ana" "Monthly contractor"
+  Expenses:Payroll:Contractor  3500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-05 * "Contador Sul" "Accounting"
+  Expenses:Ops:Contabilidade  480.00 BRL
+  Liabilities:Payable:Supplier:Contador
+
+2026-06-20 * "Contador Sul" "Pay accounting"
+  Liabilities:Payable:Supplier:Contador  480.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-15 * "Receita Federal" "DAS accrual"
+  Expenses:Tax:DAS  760.00 BRL
+  Liabilities:Payable:Tax:DAS
+
+2026-06-28 * "Receita Federal" "Pay DAS"
+  Liabilities:Payable:Tax:DAS  760.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-28 * "Owner" "Distribuicao de lucros"
+  Equity:DistribuicaoLucros  5000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-28 * "Owner" "Distribuicao de lucros"
+  Equity:DistribuicaoLucros  8000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-28 * "Owner" "Distribuicao de lucros"
+  Equity:DistribuicaoLucros  6000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-28 * "Owner" "Distribuicao de lucros"
+  Equity:DistribuicaoLucros  10000.00 BRL
+  Assets:BR:Alfa:ContaCorrente

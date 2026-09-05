@@ -1,0 +1,1 @@
+{"dialect":"pdf-dslipak-v1","source":"sample.pdf","data":{"type":"document","children":[{"type":"page","props":{"mediabox":[0,0,612,792],"number":1},"children":[{"type":"content","children":[{"type":"text","children":[{"type":"op","props":{"args":["F1",24],"name":"Tf"}},{"type":"op","props":{"args":[100,700],"name":"Td"}},{"type":"show","props":{"s":"Hello"}}]}]}]}]}}

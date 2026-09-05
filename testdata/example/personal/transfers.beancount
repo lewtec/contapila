@@ -1,0 +1,53 @@
+; Transfers, FX, family loan, soft AR
+
+2023-08-01 * "Family" "Loan received"
+  Assets:BR:Alfa:ContaCorrente  12000.00 BRL
+  Liabilities:Family:Loan2023
+
+2024-02-05 * "Family" "Loan repayment"
+  Liabilities:Family:Loan2023  2000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-08-05 * "Family" "Loan repayment"
+  Liabilities:Family:Loan2023  2500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-05 * "Family" "Loan repayment"
+  Liabilities:Family:Loan2023  3000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-11-05 * "Family" "Loan repayment"
+  Liabilities:Family:Loan2023  2500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-15 * "Transfer Alfa→Beta for brokerage"
+  Assets:BR:Beta:ContaCorrente  5000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-10 * "FX Desk Delta" "Buy USD"
+  Assets:US:Delta:ContaCorrente  800.00 USD @ 5.20 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-10 * "FX Desk Delta" "IOF on FX"
+  Expenses:Taxa:BR:Imposto:IOF  22.88 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-01 * "Friend K" "Short loan out"
+  Assets:Receivable:Friend  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-08-15 * "Friend K" "Loan repaid"
+  Assets:BR:Alfa:ContaCorrente  600.00 BRL
+  Assets:Receivable:Friend
+
+2023-10-01 * "Seed Gama wallet"
+  Assets:BR:Gama:ContaCorrente  300.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-12 * "ATM"
+  Assets:Cash:Carteira  200.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-18 * "Street market cash"
+  Expenses:Prazeres:Alimentacao:Mercado  55.00 BRL
+  Assets:Cash:Carteira

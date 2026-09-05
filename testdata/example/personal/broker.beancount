@@ -1,0 +1,91 @@
+; Equities, FII, USD stocks, crypto, tesouro — avg-cost
+
+2023-08-10 * "Clearinghouse B3" "Buy more PETR4"
+  Assets:BR:B3:Acao  40 B3_PETR4 {33.50 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2023-08-10 * "Clearinghouse B3" "Brokerage"
+  Expenses:Taxa:BR:Beta:Corretagem  2.50 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2023-11-05 * "Clearinghouse B3" "Buy WEGE3"
+  Assets:BR:B3:Acao  20 B3_WEGE3 {38.00 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-01-15 * "Clearinghouse B3" "Buy MXRF11"
+  Assets:BR:B3:FII  150 B3_MXRF11 {10.20 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-02-20 * "Tesouro Direto" "Buy Tesouro Selic 2029"
+  Assets:BR:TesouroDireto  2.0 TDBR_SELIC_2029 {1010.00 BRL}
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-12 * "US Broker Delta" "Buy SPDW"
+  Assets:US:Delta:Stock  20 SPDW {34.00 USD}
+  Assets:US:Delta:ContaCorrente
+
+2024-04-02 * "Exchange Echo" "Buy BTC"
+  Assets:Cripto:Wallet  0.01000000 BTC {280000.00 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-04-02 * "Exchange Echo" "Crypto fee"
+  Expenses:Taxa:Cripto:BTC  15.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2024-09-18 * "Clearinghouse B3" "Sell PETR4 partial"
+  Assets:BR:B3:Acao  -50 B3_PETR4 @@ 1800.00 BRL
+  Assets:BR:Beta:ContaCorrente  1800.00 BRL
+  Income:Gains
+
+2024-09-18 * "Clearinghouse B3" "Emoluments"
+  Expenses:Taxa:BR:B3  3.60 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2025-02-10 * "Clearinghouse B3" "Buy more MXRF11"
+  Assets:BR:B3:FII  50 B3_MXRF11 {10.80 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-06-05 * "US Broker Delta" "Buy more SPDW"
+  Assets:US:Delta:Stock  10 SPDW {36.50 USD}
+  Assets:US:Delta:ContaCorrente
+
+2025-08-14 * "Clearinghouse B3" "Trim WEGE3"
+  Assets:BR:B3:Acao  -15 B3_WEGE3 @@ 600.00 BRL
+  Assets:BR:Beta:ContaCorrente  600.00 BRL
+  Income:Gains
+
+2024-04-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  29.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2024-07-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  32.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2024-10-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  35.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2025-01-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  26.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2025-04-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  29.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2025-07-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  32.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2025-10-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  35.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2026-01-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  26.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2026-04-16 * "Clearinghouse B3" "MXRF11 yield"
+  Assets:BR:Beta:ContaCorrente  29.00 BRL
+  Income:Passivo:BR:B3:FII:MXRF11:Rendimento

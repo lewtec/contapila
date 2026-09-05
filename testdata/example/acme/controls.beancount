@@ -1,0 +1,22 @@
+; AR/AP pads and balances; temp clearing account close.
+
+2023-12-31 pad Assets:BR:Alfa:ContaCorrente Equity:Aporte
+2023-12-31 balance Assets:BR:Alfa:ContaCorrente 10000.00 BRL
+
+2024-06-30 balance Assets:Receivable:Client:Orion  0.00 BRL
+2024-12-31 balance Assets:Receivable:Client:Helix  0.00 USD
+
+2024-03-01 * "Internal" "Clearing float"
+  Assets:Pending:Clearing  500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+  invoice: "CLEAR-1"
+
+2024-03-15 * "Internal" "Clearing settle"
+  Assets:BR:Alfa:ContaCorrente  500.00 BRL
+  Assets:Pending:Clearing
+
+2024-03-16 balance Assets:Pending:Clearing  0.00 BRL
+2024-03-16 close Assets:Pending:Clearing
+
+2025-12-31 pad Liabilities:Payable:Supplier:CloudHost Equity:Aporte
+2025-12-31 balance Liabilities:Payable:Supplier:CloudHost  0.00 BRL

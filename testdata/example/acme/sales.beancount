@@ -1,0 +1,96 @@
+; Invoices + collections (story, not spam)
+
+2023-08-10 * "Orion" "Invoice INV-001"
+  invoice: "INV-001"
+  document: "acme/docs/by-account/Assets/Receivable/Client/Orion/20230810_INV-001.txt"
+  Assets:Receivable:Client:Orion  8000.00 BRL
+    role: "ar"
+  Income:Sales:BR
+
+2023-09-04 * "Orion" "Payment INV-001"
+  Assets:BR:Alfa:ContaCorrente  8000.00 BRL
+  Assets:Receivable:Client:Orion
+
+2023-10-05 * "Nimbus" "Invoice INV-002"
+  Assets:Receivable:Client:Nimbus  5500.00 BRL
+  Income:Sales:BR
+
+2023-10-30 * "Nimbus" "Payment INV-002"
+  Assets:BR:Alfa:ContaCorrente  5500.00 BRL
+  Assets:Receivable:Client:Nimbus
+
+2023-11-20 * "Helix" "Invoice INV-003"
+  Assets:Receivable:Client:Helix  2200.00 USD
+  Income:Sales:US
+
+2023-12-15 * "Helix" "Payment INV-003"
+  Assets:US:Wise:ContaCorrente  2200.00 USD
+  Assets:Receivable:Client:Helix
+
+2024-02-08 * "Orion" "Invoice INV-004"
+  Assets:Receivable:Client:Orion  12000.00 BRL
+  Income:Sales:BR
+
+2024-03-04 * "Orion" "Payment INV-004"
+  Assets:BR:Alfa:ContaCorrente  12000.00 BRL
+  Assets:Receivable:Client:Orion
+
+2024-05-14 * "Nimbus" "Invoice INV-005"
+  Assets:Receivable:Client:Nimbus  7000.00 BRL
+  Income:Sales:BR
+
+2024-06-08 * "Nimbus" "Payment INV-005"
+  Assets:BR:Alfa:ContaCorrente  7000.00 BRL
+  Assets:Receivable:Client:Nimbus
+
+2024-07-01 * "Helix" "Invoice INV-006"
+  Assets:Receivable:Client:Helix  3100.00 USD
+  Income:Sales:US
+
+2024-07-26 * "Helix" "Payment INV-006"
+  Assets:US:Wise:ContaCorrente  3100.00 USD
+  Assets:Receivable:Client:Helix
+
+2024-11-03 * "Orion" "Invoice INV-007"
+  Assets:Receivable:Client:Orion  9000.00 BRL
+  Income:Sales:BR
+
+2024-11-28 * "Orion" "Payment INV-007"
+  Assets:BR:Alfa:ContaCorrente  9000.00 BRL
+  Assets:Receivable:Client:Orion
+
+2025-03-12 * "Nimbus" "Invoice INV-008"
+  Assets:Receivable:Client:Nimbus  15000.00 BRL
+  Income:Sales:BR
+
+2025-04-06 * "Nimbus" "Payment INV-008"
+  Assets:BR:Alfa:ContaCorrente  15000.00 BRL
+  Assets:Receivable:Client:Nimbus
+
+2025-06-20 * "Helix" "Invoice INV-009"
+  Assets:Receivable:Client:Helix  2800.00 USD
+  Income:Sales:US
+
+2025-07-15 * "Helix" "Payment INV-009"
+  Assets:US:Wise:ContaCorrente  2800.00 USD
+  Assets:Receivable:Client:Helix
+
+2025-10-09 * "Orion" "Invoice INV-010"
+  Assets:Receivable:Client:Orion  11000.00 BRL
+  Income:Sales:BR
+
+2025-11-03 * "Orion" "Payment INV-010"
+  Assets:BR:Alfa:ContaCorrente  11000.00 BRL
+  Assets:Receivable:Client:Orion
+
+2026-02-04 * "Nimbus" "Invoice INV-011"
+  Assets:Receivable:Client:Nimbus  6500.00 BRL
+  Income:Sales:BR
+
+2026-03-01 * "Nimbus" "Payment INV-011"
+  Assets:BR:Alfa:ContaCorrente  6500.00 BRL
+  Assets:Receivable:Client:Nimbus
+
+2026-05-18 * "Orion" "Invoice INV-012"
+  Assets:Receivable:Client:Orion  4000.00 BRL
+  Income:Sales:BR

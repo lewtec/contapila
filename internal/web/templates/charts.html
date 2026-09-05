@@ -1,0 +1,22 @@
+{{define "chart-assets"}}
+<link rel="stylesheet" href="/static/vendor/uplot/uplot.min.css" />
+<script src="/static/vendor/uplot/uplot.min.js" defer></script>
+<script src="/static/charts.js" defer></script>
+{{end}}
+
+{{define "chart-panel"}}
+{{if .ChartJSON}}
+<section class="mb-3" aria-label="{{if .ChartTitle}}{{.ChartTitle}}{{else}}Chart{{end}}">
+  {{if .ChartTitle}}
+  <h2 class="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">{{.ChartTitle}}</h2>
+  {{end}}
+  <div id="{{.ChartID}}" class="contapila-chart w-full min-h-[12rem] border border-base-300 bg-base-100 overflow-hidden"></div>
+  <script type="application/json" id="{{.ChartID}}-data">{{.ChartJSON}}</script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.contapilaChart) contapilaChart.boot({{jsonStr .ChartID}});
+    });
+  </script>
+</section>
+{{end}}
+{{end}}

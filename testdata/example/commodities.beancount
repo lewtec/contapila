@@ -1,0 +1,34 @@
+; Shared commodity declarations (included by personal + acme).
+; Precision policy for B3_* lives in contapila.cue ([=~"^B3_"]).
+
+1860-01-01 commodity BRL
+  name: "Brazilian Real"
+  asset-class: "fiat"
+
+1860-01-01 commodity USD
+  name: "US Dollar"
+  asset-class: "fiat"
+
+1860-01-01 commodity B3_PETR4
+  name: "Petrobras PN (anonymized ticker class)"
+  asset-class: "equity"
+  further-info: "https://example.invalid/B3_PETR4"
+
+1860-01-01 commodity B3_WEGE3
+  asset-class: "equity"
+
+1860-01-01 commodity B3_MXRF11
+  asset-class: "fii"
+
+1860-01-01 commodity TDBR_SELIC_2029
+  asset-class: "fixed-income"
+
+1860-01-01 commodity BTC
+  asset-class: "crypto"
+
+1860-01-01 commodity SPDW
+  asset-class: "equity"
+
+1860-01-01 commodity CIGPK
+  name: "Cigarette pack unit (smuggle ledger only)"
+  asset-class: "inventory"

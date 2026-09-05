@@ -1,0 +1,34 @@
+{
+  "dependencies": [
+    {
+      "kind": "tool",
+      "ref": "github:golangci/golangci-lint",
+      "depName": "golangci/golangci-lint",
+      "currentValue": "v2.13.2",
+      "datasource": "github-releases"
+    },
+    {
+      "kind": "tool",
+      "ref": "github:rhysd/actionlint",
+      "depName": "rhysd/actionlint",
+      "currentValue": "v1.7.12",
+      "datasource": "github-releases"
+    },
+    {
+      "kind": "tool",
+      "ref": "registry:biome",
+      "depName": "biomejs/biome",
+      "currentValue": "2.5.12",
+      "datasource": "github-releases",
+      "versioning": "semver",
+      "extractVersion": "^@biomejs/biome@(?\u003cversion\u003e\\d+\\.\\d+\\.\\d+)$"
+    },
+    {
+      "kind": "tool",
+      "ref": "registry:shellcheck",
+      "depName": "koalaman/shellcheck",
+      "currentValue": "0.11.0",
+      "datasource": "github-releases"
+    }
+  ]
+}

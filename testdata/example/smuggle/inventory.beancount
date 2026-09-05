@@ -1,0 +1,80 @@
+; Buys at different costs → avg-cost; transfers; sells; loss
+
+2023-09-05 * "Supplier PY" "Buy 200 packs"
+  Assets:Inventory:Cigarettes:Warehouse  200 CIGPK {8.00 BRL}
+  Assets:Cash:Stash
+
+2023-11-12 * "Supplier PY" "Buy 150 packs on account"
+  Assets:Inventory:Cigarettes:Warehouse  150 CIGPK {9.50 BRL}
+  Liabilities:Payable:Supplier:Border
+
+2023-12-01 * "Supplier PY" "Pay border supplier"
+  Liabilities:Payable:Supplier:Border  1425.00 BRL
+  Assets:Cash:Stash
+
+2024-01-20 * "Ship to transit"
+  Assets:Inventory:Cigarettes:Warehouse  -100 CIGPK
+  Assets:Inventory:Cigarettes:InTransit  100 CIGPK {8.642857 BRL}
+  Income:Gains
+
+2024-01-25 * "Arrive Monza cache"
+  Assets:Inventory:Cigarettes:InTransit  -100 CIGPK
+  Assets:Inventory:Cigarettes:MonzaCache  100 CIGPK {8.642857 BRL}
+  Income:Gains
+
+2024-01-19 * "Checkpoint" "Crossing fee"
+  Expenses:Logistics:Fee  300.00 BRL
+  Assets:Cash:Stash
+
+2024-01-18 * "Fuel Post" "Logistics fuel"
+  Expenses:Logistics:Fuel  120.00 BRL
+  Assets:Cash:Stash
+
+2024-03-10 * "Street" "Sell 40 packs Monza"
+  Assets:Inventory:Cigarettes:MonzaCache  -40 CIGPK @@ 600.00 BRL
+  Assets:Cash:Stash  600.00 BRL
+  Income:Gains
+
+2024-06-03 * "Supplier PY" "Buy 300 packs"
+  Assets:Inventory:Cigarettes:Warehouse  300 CIGPK {7.80 BRL}
+  Assets:Cash:Stash
+
+2024-08-22 * "Street" "Sell 80 packs warehouse"
+  Assets:Inventory:Cigarettes:Warehouse  -80 CIGPK @@ 1200.00 BRL
+  Assets:Cash:Stash  1200.00 BRL
+  Income:Gains
+
+2025-02-14 * "Supplier PY" "Buy 100 packs"
+  Assets:Inventory:Cigarettes:Warehouse  100 CIGPK {10.00 BRL}
+  Assets:Cash:Stash
+
+2025-05-05 * "Street" "Sell 100 packs"
+  Assets:Inventory:Cigarettes:Warehouse  -100 CIGPK @@ 1600.00 BRL
+  Assets:Cash:Stash  1600.00 BRL
+  Income:Gains
+
+2025-09-09 * "Street" "Sell rest Monza"
+  Assets:Inventory:Cigarettes:MonzaCache  -60 CIGPK @@ 990.00 BRL
+  Assets:Cash:Stash  990.00 BRL
+  Income:Gains
+
+2025-11-11 * "Confiscation 50 packs"
+  Expenses:Loss:Confiscation  400.00 BRL
+  Assets:Inventory:Cigarettes:Warehouse  -50 CIGPK
+  Income:Gains
+
+2024-04-28 * "Living draw"
+  Expenses:Living  250.00 BRL
+  Assets:Cash:Stash
+
+2024-10-28 * "Living draw"
+  Expenses:Living  250.00 BRL
+  Assets:Cash:Stash
+
+2025-03-28 * "Living draw"
+  Expenses:Living  250.00 BRL
+  Assets:Cash:Stash
+
+2025-08-28 * "Living draw"
+  Expenses:Living  250.00 BRL
+  Assets:Cash:Stash

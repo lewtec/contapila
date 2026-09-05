@@ -1,0 +1,6 @@
+; smuggle — fictional inventory depth (CIGPK).
+option "operating_currency" "BRL"
+
+include "accounts.beancount"
+include "opening.beancount"
+include "inventory.beancount"
