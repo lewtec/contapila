@@ -71,8 +71,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f h1:CtLIaYB7c/1LU39AuUgMtBEt7Gg+DXMYkBkUM5Gu1FA=
 github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f/go.mod h1:fCt3ncDh9YzAN0mpBg+gDE3gjYgZX2fJ9L4Kkpgo5uQ=
-github.com/lewtec/tailgopher v0.0.0-20260905000803-9acf23e062c8 h1:s2nyDSu2xj8sP+h9Q38FyrZyItWWZkhCJpNu9KcIZrc=
-github.com/lewtec/tailgopher v0.0.0-20260905000803-9acf23e062c8/go.mod h1:wNGs3imOPr9sco1Jyu3XkAdVwkc6vCLR2zc3Ba8asII=
+github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0 h1:0aH6Uew/9eJSpMTlHo4X67ne/EIxg8kkqDGZf1YDO4A=
+github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0/go.mod h1:wNGs3imOPr9sco1Jyu3XkAdVwkc6vCLR2zc3Ba8asII=
 github.com/lib/pq v1.10.7 h1:p7ZhMD+KsSRozJr34udlUrhboJwWAgCg34+/ZZNvZZw=
 github.com/lib/pq v1.10.7/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
