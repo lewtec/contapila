@@ -78,7 +78,7 @@ func chartPanel(d pageData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(chartAriaLabel(d))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/charts.templ`, Line: 17, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `charts.templ`, Line: 17, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -101,7 +101,7 @@ func chartPanel(d pageData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(d.ChartID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/charts.templ`, Line: 21, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `charts.templ`, Line: 21, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {

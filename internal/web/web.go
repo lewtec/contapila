@@ -1,6 +1,7 @@
 package web
 
 //go:generate go tool templ generate
+//go:generate go tool tailwind -i ../../styles/input.css -o static/app.css --minify
 
 import (
 	"cmp"

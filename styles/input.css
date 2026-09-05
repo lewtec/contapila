@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-@source "./internal/web/templates/**/*.html";
+@source "../internal/web";
+@source "../internal/plugins";
+@source "../pkg/cmdpalette";
 
 @plugin "daisyui" {
   themes: contapila-light --default, contapila-dark --prefersdark;

@@ -28,7 +28,7 @@ Dark: deep base, muted gold for contrast.
 Implementation (daisyUI way):
 
 - Source: `styles/input.css` with `@plugin "daisyui"` and `@plugin "daisyui/theme"` for **`contapila-light`** / **`contapila-dark`**
-- Build: `bun install && bun run build:css` (mise provides `bun`) → `internal/web/static/app.css`
+- Build: `go generate ./...` (tailgopher as `go tool tailwind`) → `internal/web/static/app.css`
 - Serve: embedded `/static/app.css` (not CDN `themes.css` / browser Tailwind)
 - Toggle: `data-theme="contapila-light"` | `contapila-dark` + `theme-controller`
 
