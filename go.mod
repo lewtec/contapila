@@ -10,7 +10,7 @@ require (
 	github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f
 	github.com/mattn/go-isatty v0.0.20
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
-	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
+	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260802195525-37cdcab3c8c7
 	github.com/spf13/cobra v1.10.2
 	github.com/xuri/excelize/v2 v2.11.0
 	go.lsp.dev/jsonrpc2 v1.0.1
