@@ -179,65 +179,6 @@
   }
 }
 @layer utilities {
-  @layer daisyui.l1.l2 {
-    .diff {
-      position: relative;
-      display: grid;
-      width: 100%;
-      overflow: hidden;
-      webkit-user-select: none;
-      user-select: none;
-      align-items: normal;
-      grid-template-rows: 1fr 1.8rem 1fr;
-      direction: ltr;
-      container-type: inline-size;
-      grid-template-columns: auto 1fr;
-    }
-    .diff:focus-visible {
-      outline-style: var(--tw-outline-style);
-      outline-width: 2px;
-      outline-offset: 1px;
-      outline-color: var(--color-base-content);
-    }
-    .diff:has(.diff-item-1:focus-visible) {
-      outline-style: var(--tw-outline-style);
-      outline-width: 2px;
-      outline-offset: 1px;
-      outline-color: var(--color-base-content);
-    }
-    .diff:focus-visible {
-      outline-style: var(--tw-outline-style);
-      outline-width: 2px;
-      outline-offset: 1px;
-      outline-color: var(--color-base-content);
-    }
-    .diff:focus-visible .diff-resizer {
-      min-width: 95cqi;
-      max-width: 95cqi;
-    }
-    .diff:has(.diff-item-1:focus-visible) {
-      outline-style: var(--tw-outline-style);
-      outline-width: 2px;
-      outline-offset: 1px;
-    }
-    .diff:has(.diff-item-1:focus-visible) .diff-resizer {
-      min-width: 5cqi;
-      max-width: 5cqi;
-    }
-    .diff:hover .diff-item-2::after {
-      height: 2.4rem;
-    }
-    @supports (-webkit-overflow-scrolling: touch) and (overflow: -webkit-paged-x) {
-      .diff:focus .diff-resizer {
-        min-width: 5cqi;
-        max-width: 5cqi;
-      }
-      .diff:has(.diff-item-1:focus) .diff-resizer {
-        min-width: 95cqi;
-        max-width: 95cqi;
-      }
-    }
-  }
   @layer daisyui.l1.l2.l3 {
     .modal {
       pointer-events: none;
@@ -1630,21 +1571,6 @@
       cursor: not-allowed;
       opacity: 30%;
     }
-    .indicator {
-      position: relative;
-      display: inline-flex;
-      width: max-content;
-    }
-    .indicator :where(.indicator-item) {
-      z-index: 1;
-      position: absolute;
-      white-space: nowrap;
-      top: var(--indicator-t, 0);
-      bottom: var(--indicator-b, auto);
-      left: var(--indicator-s, auto);
-      right: var(--indicator-e, 0);
-      translate: var(--indicator-x, 50%) var(--indicator-y, -50%);
-    }
     .table {
       font-size: 0.875rem;
       position: relative;
@@ -1717,162 +1643,8 @@
         border-bottom: var(--border) solid color-mix(in oklch, var(--color-base-content) 5%, #0000);
       }
     }
-    .steps {
-      display: inline-grid;
-      grid-auto-flow: column;
-      overflow: hidden;
-      overflow-x: auto;
-      counter-reset: step;
-      grid-auto-columns: 1fr;
-    }
-    .steps .step {
-      display: grid;
-      grid-template-columns: repeat(1, minmax(0, 1fr));
-      grid-template-columns: auto;
-      grid-template-rows: repeat(2, minmax(0, 1fr));
-      grid-template-rows: 40px 1fr;
-      place-items: center;
-      text-align: center;
-      min-width: 4rem;
-      --step-bg: var(--color-base-300);
-      --step-fg: var(--color-base-content);
-    }
-    .steps .step:before {
-      top: 0px;
-      grid-column-start: 1;
-      grid-row-start: 1;
-      height: calc(0.25rem * 2);
-      width: 100%;
-      border: 1px solid;
-      color: var(--step-bg);
-      background-color: var(--step-bg);
-      content: "";
-      margin-inline-start: -100%;
-    }
-    .steps .step  > .step-icon, .steps .step:not(:has(.step-icon)):after {
-      --tw-content: counter(step);
-      content: var(--tw-content);
-      counter-increment: step;
-      z-index: 1;
-      color: var(--step-fg);
-      background-color: var(--step-bg);
-      border: 1px solid var(--step-bg);
-      position: relative;
-      grid-column-start: 1;
-      grid-row-start: 1;
-      display: grid;
-      height: calc(0.25rem * 8);
-      width: calc(0.25rem * 8);
-      place-items: center;
-      place-self: center;
-      border-radius: calc(infinity * 1px);
-    }
-    .steps .step:first-child:before {
-      --tw-content: none;
-      content: var(--tw-content);
-    }
-    .steps .step[data-content]:after {
-      --tw-content: attr(data-content);
-      content: var(--tw-content);
-    }
   }
   @layer daisyui.l1.l2 {
-    .steps .step-neutral + .step-neutral:before {
-      --step-bg: var(--color-neutral);
-      --step-fg: var(--color-neutral-content);
-    }
-    .steps .step-neutral:after {
-      --step-bg: var(--color-neutral);
-      --step-fg: var(--color-neutral-content);
-    }
-    .steps .step-neutral > .step-icon {
-      --step-bg: var(--color-neutral);
-      --step-fg: var(--color-neutral-content);
-    }
-    .steps .step-primary + .step-primary:before {
-      --step-bg: var(--color-primary);
-      --step-fg: var(--color-primary-content);
-    }
-    .steps .step-primary:after {
-      --step-bg: var(--color-primary);
-      --step-fg: var(--color-primary-content);
-    }
-    .steps .step-primary > .step-icon {
-      --step-bg: var(--color-primary);
-      --step-fg: var(--color-primary-content);
-    }
-    .steps .step-secondary + .step-secondary:before {
-      --step-bg: var(--color-secondary);
-      --step-fg: var(--color-secondary-content);
-    }
-    .steps .step-secondary:after {
-      --step-bg: var(--color-secondary);
-      --step-fg: var(--color-secondary-content);
-    }
-    .steps .step-secondary > .step-icon {
-      --step-bg: var(--color-secondary);
-      --step-fg: var(--color-secondary-content);
-    }
-    .steps .step-accent + .step-accent:before {
-      --step-bg: var(--color-accent);
-      --step-fg: var(--color-accent-content);
-    }
-    .steps .step-accent:after {
-      --step-bg: var(--color-accent);
-      --step-fg: var(--color-accent-content);
-    }
-    .steps .step-accent > .step-icon {
-      --step-bg: var(--color-accent);
-      --step-fg: var(--color-accent-content);
-    }
-    .steps .step-info + .step-info:before {
-      --step-bg: var(--color-info);
-      --step-fg: var(--color-info-content);
-    }
-    .steps .step-info:after {
-      --step-bg: var(--color-info);
-      --step-fg: var(--color-info-content);
-    }
-    .steps .step-info > .step-icon {
-      --step-bg: var(--color-info);
-      --step-fg: var(--color-info-content);
-    }
-    .steps .step-success + .step-success:before {
-      --step-bg: var(--color-success);
-      --step-fg: var(--color-success-content);
-    }
-    .steps .step-success:after {
-      --step-bg: var(--color-success);
-      --step-fg: var(--color-success-content);
-    }
-    .steps .step-success > .step-icon {
-      --step-bg: var(--color-success);
-      --step-fg: var(--color-success-content);
-    }
-    .steps .step-warning + .step-warning:before {
-      --step-bg: var(--color-warning);
-      --step-fg: var(--color-warning-content);
-    }
-    .steps .step-warning:after {
-      --step-bg: var(--color-warning);
-      --step-fg: var(--color-warning-content);
-    }
-    .steps .step-warning > .step-icon {
-      --step-bg: var(--color-warning);
-      --step-fg: var(--color-warning-content);
-    }
-    .steps .step-error + .step-error:before {
-      --step-bg: var(--color-error);
-      --step-fg: var(--color-error-content);
-    }
-    .steps .step-error:after {
-      --step-bg: var(--color-error);
-      --step-fg: var(--color-error-content);
-    }
-    .steps .step-error > .step-icon {
-      --step-bg: var(--color-error);
-      --step-fg: var(--color-error-content);
-    }
     .swap {
       position: relative;
       display: inline-grid;
@@ -2355,69 +2127,6 @@
     }
   }
   @layer daisyui.l1.l2.l3 {
-    .drawer {
-      position: relative;
-      display: grid;
-      width: 100%;
-      grid-auto-columns: max-content auto;
-    }
-    .card {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      border-radius: var(--radius-box);
-      transition: outline 0.2s ease-in-out;
-      outline: 2px solid #0000;
-      outline-offset: 2px;
-    }
-    .card:focus-visible {
-      outline-color: currentColor;
-    }
-    .card[aria-checked="true"] {
-      outline-color: currentColor;
-    }
-    .card:has( > :checked,  > :is([type="checkbox"], [type="radio"]):focus-visible) {
-      outline-color: currentColor;
-    }
-    .card:has( > :checked:focus-visible) {
-      outline-width: 4px;
-    }
-    .card[aria-checked="true"]:focus-visible {
-      outline-width: 4px;
-    }
-    .card[aria-checked="true"]:has( > :is([type="checkbox"], [type="radio"]):focus-visible) {
-      outline-width: 4px;
-    }
-    .card:has( > :is([type="checkbox"], [type="radio"])) {
-      cursor: pointer;
-      user-select: none;
-    }
-    .card > :is([type="checkbox"], [type="radio"]) {
-      appearance: none;
-    }
-  }
-  @layer daisyui.l1.l2.l3.l4 {
-    .card figure:first-child {
-      overflow: hidden;
-      border-start-start-radius: inherit;
-      border-start-end-radius: inherit;
-      border-end-start-radius: unset;
-      border-end-end-radius: unset;
-    }
-    .card figure:last-child {
-      overflow: hidden;
-      border-start-start-radius: unset;
-      border-start-end-radius: unset;
-      border-end-start-radius: inherit;
-      border-end-end-radius: inherit;
-    }
-    .card figure {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  }
-  @layer daisyui.l1.l2.l3 {
     .progress {
       position: relative;
       height: calc(0.25rem * 2);
@@ -2524,91 +2233,6 @@
   .left-0 {
     left: 0px;
   }
-  @layer daisyui.l1.l2.l3 {
-    .stack {
-      display: inline-grid;
-      grid-template-columns: 3px 4px 1fr 4px 3px;
-      grid-template-rows: 3px 4px 1fr 4px 3px;
-    }
-    .stack > * {
-      height: 100%;
-      width: 100%;
-    }
-    .stack > *:nth-child(n + 2) {
-      width: 100%;
-      opacity: 70%;
-    }
-    .stack > *:nth-child(2) {
-      z-index: 2;
-      opacity: 90%;
-    }
-    .stack > *:nth-child(1) {
-      z-index: 3;
-      width: 100%;
-    }
-  }
-  @layer daisyui.l1.l2 {
-    :is(:is(.stack), .stack.stack-bottom) > * {
-      grid-column: 3 / 4;
-      grid-row: 3 / 6;
-    }
-    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(2) {
-      grid-column: 2 / 5;
-      grid-row: 2 / 5;
-    }
-    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(1) {
-      grid-column: 1 / 6;
-      grid-row: 1 / 4;
-    }
-    :is(:is(.stack), .stack.stack-bottom) > * {
-      grid-column: 3 / 4;
-      grid-row: 3 / 6;
-    }
-    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(2) {
-      grid-column: 2 / 5;
-      grid-row: 2 / 5;
-    }
-    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(1) {
-      grid-column: 1 / 6;
-      grid-row: 1 / 4;
-    }
-    .stack.stack-top > * {
-      grid-column: 3 / 4;
-      grid-row: 1 / 4;
-    }
-    .stack.stack-top > *:nth-child(2) {
-      grid-column: 2 / 5;
-      grid-row: 2 / 5;
-    }
-    .stack.stack-top > *:nth-child(1) {
-      grid-column: 1 / 6;
-      grid-row: 3 / 6;
-    }
-    .stack.stack-start > * {
-      grid-column: 1 / 4;
-      grid-row: 3 / 4;
-    }
-    .stack.stack-start > *:nth-child(2) {
-      grid-column: 2 / 5;
-      grid-row: 2 / 5;
-    }
-    .stack.stack-start > *:nth-child(1) {
-      grid-column: 3 / 6;
-      grid-row: 1 / 6;
-    }
-    .stack.stack-end > * {
-      grid-column: 3 / 6;
-      grid-row: 3 / 4;
-    }
-    .stack.stack-end > *:nth-child(2) {
-      grid-column: 2 / 5;
-      grid-row: 2 / 5;
-    }
-    .stack.stack-end > *:nth-child(1) {
-      grid-column: 1 / 4;
-      grid-row: 1 / 6;
-    }
-  }
   .join {
     display: inline-flex;
     align-items: stretch;
@@ -2667,19 +2291,6 @@
   }
   .z-\[70\] {
     z-index: 70;
-  }
-  @layer daisyui.l1.l2.l3 {
-    .hero {
-      display: grid;
-      width: 100%;
-      place-items: center;
-      background-size: cover;
-      background-position: center;
-    }
-    .hero > * {
-      grid-column-start: 1;
-      grid-row-start: 1;
-    }
   }
   .m-0 {
     margin: 0px;
@@ -3003,64 +2614,6 @@
         box-shadow: 0 2px 3px -1px color-mix(in oklab, currentColor calc(var(--depth) * 100%), #0000);
       }
     }
-    .footer {
-      display: grid;
-      width: 100%;
-      grid-auto-flow: row;
-      place-items: start;
-      column-gap: calc(0.25rem * 4);
-      row-gap: calc(0.25rem * 10);
-      font-size: 0.875rem;
-      line-height: 1.25rem;
-    }
-    .footer > :not(script, style, template) {
-      display: grid;
-      place-items: start;
-      gap: calc(0.25rem * 2);
-    }
-    .stat {
-      display: inline-grid;
-      width: 100%;
-      column-gap: calc(0.25rem * 4);
-      padding-inline: calc(0.25rem * 6);
-      padding-block: calc(0.25rem * 4);
-      grid-template-columns: repeat(1, 1fr);
-    }
-    .stat:not(:last-child) {
-      border-inline-end: var(--border) dashed currentColor;
-    }
-    @supports (color: color-mix(in lab, red, red)) {
-      .stat:not(:last-child) {
-        border-inline-end: var(--border) dashed color-mix(in oklab, currentColor 10%, #0000);
-      }
-    }
-    .stat:not(:last-child) {
-      border-block-end: none;
-    }
-  }
-  @layer daisyui.l1.l2 {
-    .stats-horizontal .stat:not(:last-child) {
-      border-inline-end: var(--border) dashed currentColor;
-    }
-    @supports (color: color-mix(in lab, red, red)) {
-      .stats-horizontal .stat:not(:last-child) {
-        border-inline-end: var(--border) dashed color-mix(in oklab, currentColor 10%, #0000);
-      }
-    }
-    .stats-horizontal .stat:not(:last-child) {
-      border-block-end: none;
-    }
-    .stats-vertical .stat:not(:last-child) {
-      border-inline-end: none;
-      border-block-end: var(--border) dashed currentColor;
-    }
-    @supports (color: color-mix(in lab, red, red)) {
-      .stats-vertical .stat:not(:last-child) {
-        border-block-end: var(--border) dashed color-mix(in oklab, currentColor 10%, #0000);
-      }
-    }
-  }
-  @layer daisyui.l1.l2.l3 {
     .navbar-end {
       display: inline-flex;
       align-items: center;
@@ -3108,9 +2661,6 @@
   }
   .block {
     display: block;
-  }
-  .contents {
-    display: contents;
   }
   .flex {
     display: flex;
@@ -3226,9 +2776,6 @@
   }
   .shrink-0 {
     flex-shrink: 0;
-  }
-  .grow {
-    flex-grow: 1;
   }
   .border-collapse {
     border-collapse: collapse;
@@ -3592,9 +3139,6 @@
   .p-0 {
     padding: 0px;
   }
-  .p-1 {
-    padding: var(--spacing);
-  }
   .p-1\.5 {
     padding: calc(var(--spacing) * 1.5);
   }
@@ -3640,13 +3184,6 @@
     .menu-xl .menu-title {
       padding-inline: calc(0.25rem * 6);
       padding-block: calc(0.25rem * 3);
-    }
-    .table-sm :not(thead, tfoot) tr {
-      font-size: 0.75rem;
-    }
-    .table-sm :where(th, td) {
-      padding-inline: calc(0.25rem * 3);
-      padding-block: calc(0.25rem * 2);
     }
     .table-xs :not(thead, tfoot) tr {
       font-size: 0.6875rem;
@@ -3840,10 +3377,6 @@
     --tw-ordinal: ordinal;
     font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
   }
-  .tabular-nums {
-    --tw-numeric-spacing: tabular-nums;
-    font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
-  }
   .tabular {
     font-variant-numeric: tabular-nums;
   }
@@ -3919,9 +3452,6 @@
     }
     .aura:has( > .btn,  > .input,  > .select) {
       --aura-radius: var(--radius-field);
-    }
-    .aura:has( > .card,  > .alert) {
-      --aura-radius: var(--radius-box);
     }
     .aura:has( > .checkbox,  > .toggle,  > .badge) {
       --aura-radius: var(--radius-selector);
