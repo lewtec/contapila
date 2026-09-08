@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="contapila-light">
+<head>
+  {{template "head" .}}
+</head>
+{{template "app-open" .}}
+    {{template "period-meta" .}}
+    {{template "page-error" .}}
+
+    {{template "chart-panel" .}}
+
+    {{if .CommodityMeta}}
+    <section class="mb-4">
+      {{template "section-title" "Metadata"}}
+      <div class="overflow-x-auto border border-base-300">
+        <table class="table table-xs">
+          <tbody>
+            {{range .CommodityMeta}}
+            <tr>
+              <td class="text-[0.65rem] uppercase tracking-wide text-base-content/50 w-32">{{.Key}}</td>
+              <td class="font-mono text-xs">{{.Value}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {{end}}
+
+    {{if .CommodityPrices}}
+    <section class="mb-4">
+      <h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">
+        Prices
+        <a class="ml-2 font-normal normal-case tracking-normal link link-hover link-primary text-xs" href="{{ledgerURL .LedgerName "prices" .Time}}">all pairs</a>
+      </h2>
+      <div class="overflow-x-auto border border-base-300 max-h-64 overflow-y-auto">
+        <table class="table table-xs table-zebra">
+          <thead class="sticky top-0 bg-base-100">
+            <tr>
+              <th>Date</th>
+              <th class="text-right">Price</th>
+              <th>Meta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .CommodityPrices}}
+            <tr>
+              <td class="font-mono tabular text-xs text-base-content/70">{{.Date}}</td>
+              <td class="text-right tabular text-xs font-medium font-mono">
+                {{.Rate}} <a class="link link-hover link-primary" href="{{commodityURL $.LedgerName .Quote $.Time}}">{{.Quote}}</a>
+              </td>
+              <td class="text-xs text-base-content/70">
+                {{range $i, $m := .Metadata}}{{if $i}}, {{end}}<span class="font-mono">{{$m.Key}}</span>={{$m.Value}}{{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {{end}}
+
+    <div class="grid gap-4 md:grid-cols-2 mb-4">
+      <section>
+        <h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">Balance by account</h2>
+        {{if not .CommodityBalances}}
+        <p class="text-xs text-base-content/60">Zero / never held.</p>
+        {{else}}
+        <div class="overflow-x-auto border border-base-300">
+          <table class="table table-xs">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .CommodityBalances}}
+              <tr>
+                <td class="font-mono text-xs"><a class="link link-hover link-primary" href="{{accountURL $.LedgerName .Account $.Time}}">{{.Account}}</a></td>
+                <td class="text-right tabular text-xs font-medium">{{.Amount}}</td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+        {{end}}
+      </section>
+      <section>
+        <h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">Change in period</h2>
+        {{if not .CommodityActivity}}
+        <p class="text-xs text-base-content/60">No activity.</p>
+        {{else}}
+        <div class="overflow-x-auto border border-base-300">
+          <table class="table table-xs">
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .CommodityActivity}}
+              <tr>
+                <td class="font-mono text-xs"><a class="link link-hover link-primary" href="{{accountURL $.LedgerName .Account $.Time}}">{{.Account}}</a></td>
+                <td class="text-right tabular text-xs font-medium">{{.Amount}}</td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+        {{end}}
+      </section>
+    </div>
+
+    <section>
+      {{template "section-title" "Journal"}}
+      {{template "journal-list" .}}
+    </section>
+  {{template "app-close" .}}
+</html>

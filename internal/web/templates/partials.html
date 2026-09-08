@@ -1,0 +1,129 @@
+{{/* Shared UI fragments. Call with pageData (.) or dict "Row" … "Ledger" … "Time" … */}}
+
+{{define "page-error"}}
+{{if .Error}}
+<div role="alert" class="alert alert-error alert-soft py-2 text-xs mb-3"><span>{{.Error}}</span></div>
+{{end}}
+{{end}}
+
+{{define "period-meta"}}
+{{/* Op currency + time filter + optional as-of (shown when set). */}}
+{{if or .OpCurrency .PeriodLabel .AsOf}}
+<p class="mb-3 text-xs text-base-content/60 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+  {{if .OpCurrency}}<span class="font-mono">{{.OpCurrency}}</span>{{end}}
+  {{if .PeriodLabel}}
+  <span class="font-mono text-base-content/80" title="{{.Time}}">{{.PeriodLabel}}</span>
+  {{end}}
+  {{if .AsOf}}
+  <span>as of {{.AsOf}}</span>
+  {{end}}
+</p>
+{{end}}
+{{end}}
+
+{{define "section-title"}}
+{{/* . is title string */}}
+<h2 class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-base-content/50">{{.}}</h2>
+{{end}}
+
+{{define "meta-kv"}}
+{{/* . is map[string]string (or compatible range map). */}}
+{{if .}}
+<table class="w-auto mt-0.5 border-collapse font-mono text-[0.65rem] leading-tight">
+  <tbody>
+    {{range $k, $v := .}}
+    <tr>
+      <td class="py-0 pr-1.5 pl-0 text-right font-semibold align-baseline whitespace-nowrap">{{$k}}</td>
+      <td class="py-0 pl-0 text-left text-base-content/70 font-normal align-baseline">{{$v}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}
+{{end}}
+
+{{define "meta-kv-indent"}}
+{{/* Same as meta-kv with left margin (posting-level meta). */}}
+{{if .}}
+<table class="w-auto ml-2 border-collapse font-mono text-[0.65rem] leading-tight font-normal">
+  <tbody>
+    {{range $k, $v := .}}
+    <tr>
+      <td class="py-0 pr-1.5 pl-0 text-right font-semibold align-baseline whitespace-nowrap">{{$k}}</td>
+      <td class="py-0 pl-0 text-left text-base-content/60 align-baseline">{{$v}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}
+{{end}}
+
+{{define "tree-account-cell"}}
+{{/*
+  Collapsible tree account column.
+  Dict keys: Row (IsRollup, PadLeft, Account, Name, Path), Ledger, Time.
+*/}}
+<td class="font-mono text-xs" {{if .Row.PadLeft}}style="padding-left: {{.Row.PadLeft}}"{{end}}>
+  {{if .Row.IsRollup}}
+  <button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
+  {{else}}
+  <span class="inline-block w-5" aria-hidden="true"></span>
+  {{end}}
+  <a class="link link-hover link-primary" href="{{accountURL .Ledger .Row.Account .Time}}" title="{{.Row.Account}}">{{if .Row.Name}}{{.Row.Name}}{{else}}{{.Row.Account}}{{end}}</a>
+</td>
+{{end}}
+
+{{define "pnl-tree-script"}}
+<script src="/static/pnl-tree.js" defer></script>
+{{end}}
+
+{{define "empty-note"}}
+{{/* . is message string */}}
+<p class="text-xs text-base-content/60">{{.}}</p>
+{{end}}
+
+{{define "journal-list"}}
+{{/*
+  Page data with .Journal. Optional highlight:
+  .AccountName — bold matching posting accounts
+  .CommodityName — bold matching unit commodities
+  .Page == "journal" — show Kind on the entry header
+*/}}
+{{if not .Journal}}
+{{template "empty-note" "No journal entries in this range."}}
+{{else}}
+<div class="border border-base-300 divide-y divide-base-300">
+  {{range .Journal}}
+  <article class="px-2 py-1.5">
+    <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+      <time class="font-mono tabular text-base-content/70">{{.Date.Format "2006-01-02"}}</time>
+      {{if eq $.Page "journal"}}
+      <span class="text-[0.65rem] uppercase tracking-wide opacity-50">{{.Kind}}</span>
+      {{end}}
+      {{if .Payee}}<span class="font-medium">{{.Payee}}</span>{{end}}
+      {{if and .Payee .Narration}}<span class="opacity-40">·</span>{{end}}
+      {{if .Narration}}<span class="{{if .Payee}}text-base-content/80{{else}}font-medium{{end}}">{{.Narration}}</span>{{end}}
+      {{if .Comment}}<span class="text-base-content/60">{{.Comment}}</span>{{end}}
+      {{if and (eq $.Page "journal") .Account}}<span class="font-mono text-[0.7rem]">{{.Account}}</span>{{end}}
+    </div>
+    {{template "meta-kv" .Metadata}}
+    {{if .Postings}}
+    <ul class="mt-0.5 space-y-0 font-mono text-xs">
+      {{range .Postings}}
+      <li class="leading-5 {{if and $.AccountName (eq .Account $.AccountName)}}text-primary font-semibold{{else if and $.CommodityName .Units (eq .Units.Commodity $.CommodityName)}}text-primary font-semibold{{end}}">
+        <div class="flex flex-wrap justify-between gap-2">
+          <a class="link link-hover link-primary" href="{{accountURL $.LedgerName .Account $.Time}}">{{.Account}}</a>
+          {{if .Units}}
+          <span class="tabular text-base-content/90">{{.Units.Number.FloatString 4}} <a class="link link-hover link-primary" href="{{commodityURL $.LedgerName .Units.Commodity $.Time}}">{{.Units.Commodity}}</a></span>
+          {{end}}
+        </div>
+        {{template "meta-kv-indent" .Metadata}}
+      </li>
+      {{end}}
+    </ul>
+    {{end}}
+  </article>
+  {{end}}
+</div>
+{{end}}
+{{end}}

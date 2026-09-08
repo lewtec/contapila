@@ -1,0 +1,62 @@
+; Pads, balance assertions, temporary close flow.
+; Pad sources are passive-income accounts (real-repo style).
+
+; --- 2023-12 year-end cash-like ---
+2023-12-31 pad Assets:BR:Alfa:Poupanca Income:Passivo:BR:Alfa:Poupanca
+2023-12-31 balance Assets:BR:Alfa:Poupanca 4100.00 BRL
+
+2023-12-31 pad Assets:Cash:Carteira Equity:RomboAceitavel
+2023-12-31 balance Assets:Cash:Carteira 100.00 BRL
+
+; Multi-commodity on equity account (after 2023 buys: 80+40 PETR, 50+20 WEGE)
+2023-12-31 balance Assets:BR:B3:Acao  120 B3_PETR4
+2023-12-31 balance Assets:BR:B3:Acao  70 B3_WEGE3
+
+; --- 2024 mid ---
+2024-06-30 pad Assets:BR:Alfa:Poupanca Income:Passivo:BR:Alfa:Poupanca
+2024-06-30 balance Assets:BR:Alfa:Poupanca 4200.00 BRL
+
+2024-06-30 pad Assets:BR:Alfa:Investimento:CDB:20241201 Income:Passivo:BR:Alfa:Investimento:CDB:20241201
+2024-06-30 balance Assets:BR:Alfa:Investimento:CDB:20241201 10000.00 BRL
+
+; After Sep 2024 PETR4 sell (-50): 80-50+0 = 30? opening 80 + buy 40 = 120 - 50 = 70 PETR4
+; WEGE: 50+20=70 - later trim 15 in 2025
+2024-10-01 balance Assets:BR:B3:Acao  70 B3_PETR4
+2024-10-01 balance Assets:BR:B3:Acao  70 B3_WEGE3
+
+2024-12-31 pad Assets:BR:Alfa:Poupanca Income:Passivo:BR:Alfa:Poupanca
+2024-12-31 balance Assets:BR:Alfa:Poupanca 4300.00 BRL
+
+; Temporary pending account: open already in accounts; use, zero, close
+2024-11-01 * "Loja Tech" "Returnable deposit"
+  Assets:Pending:Refund  200.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+  fetch_source: "manual"
+  fetch_timestamp: "2024-11-01T12:00:00Z"
+
+2024-11-20 * "Loja Tech" "Deposit returned"
+  Assets:BR:Alfa:ContaCorrente  200.00 BRL
+  Assets:Pending:Refund
+
+2024-11-21 balance Assets:Pending:Refund  0.00 BRL
+2024-11-21 close Assets:Pending:Refund
+
+; --- 2025 ---
+2025-06-30 pad Assets:BR:Alfa:Poupanca Income:Passivo:BR:Alfa:Poupanca
+2025-06-30 balance Assets:BR:Alfa:Poupanca 4400.00 BRL
+
+; WEGE after trim -15: 70-15=55
+2025-09-01 balance Assets:BR:B3:Acao  70 B3_PETR4
+2025-09-01 balance Assets:BR:B3:Acao  55 B3_WEGE3
+
+2025-12-31 pad Assets:BR:Alfa:Poupanca Income:Passivo:BR:Alfa:Poupanca
+2025-12-31 balance Assets:BR:Alfa:Poupanca 4500.00 BRL
+
+2025-12-31 pad Assets:BR:Gama:ContaCorrente Equity:RomboAceitavel
+2025-12-31 balance Assets:BR:Gama:ContaCorrente 300.00 BRL
+
+; Canary: no-space amount (parser accepts)
+2025-12-15 * "Padaria Central" "Bread" #todo
+  orcamento_domestico: "prazeres"
+  Assets:BR:Alfa:ContaCorrente  -12.00BRL
+  Expenses:Prazeres:Alimentacao:Mercado

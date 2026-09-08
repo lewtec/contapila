@@ -1,0 +1,23 @@
+; Cross-ledger mirror: acme Equity:DistribuicaoLucros → personal income.
+; Declared in contapila.cue links (not enforced by check yet).
+
+2024-06-28 * "Acme Ltda" "Profit distribution"
+  Income:Ativo:BR:DistribuicaoLucros:Acme
+  Assets:BR:Alfa:ContaCorrente  5000.00 BRL
+  income-for: "2024-H1"
+  document: "personal/docs/by-account/Income/Ativo/BR/Salary/20240105_payslip.txt"
+
+2024-12-28 * "Acme Ltda" "Profit distribution"
+  Income:Ativo:BR:DistribuicaoLucros:Acme
+  Assets:BR:Alfa:ContaCorrente  8000.00 BRL
+  income-for: "2024-H2"
+
+2025-06-28 * "Acme Ltda" "Profit distribution"
+  Income:Ativo:BR:DistribuicaoLucros:Acme
+  Assets:BR:Alfa:ContaCorrente  6000.00 BRL
+  income-for: "2025-H1"
+
+2025-12-28 * "Acme Ltda" "Profit distribution"
+  Income:Ativo:BR:DistribuicaoLucros:Acme
+  Assets:BR:Alfa:ContaCorrente  10000.00 BRL
+  income-for: "2025-H2"

@@ -1,0 +1,17 @@
+; Parser surface: note/event (supported), query/custom/document (warn+skip).
+; Tags and comments.
+
+; TODO: review FX lots
+2023-08-01 note Assets:BR:Alfa:ContaCorrente "Switched to digital statement delivery"
+2023-09-01 event "location" "Moved city — update address on brokers"
+2024-01-15 note Assets:BR:B3:Acao "Rebalance policy: max 40% single name"
+
+2024-03-01 query "cash" "SELECT account, sum(position) WHERE account ~ 'Cash'"
+2024-03-01 custom "fava-option" "insert-entry" "Transaction"
+2024-03-02 document Assets:BR:Alfa:ContaCorrente "personal/docs/by-account/Assets/BR/Alfa/ContaCorrente/20240301_statement.txt"
+
+2024-05-10 * "Cafe Moka" "Coffee" #todo
+  role: "meal"
+  orcamento_domestico: "prazeres"
+  Assets:BR:Alfa:ContaCorrente  -18.50BRL
+  Expenses:Prazeres:Cafe

@@ -1,0 +1,8 @@
+; acme
+option "operating_currency" "BRL"
+
+include "accounts.beancount"
+include "opening.beancount"
+include "sales.beancount"
+include "collections.beancount"
+include "ops.beancount"

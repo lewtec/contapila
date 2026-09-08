@@ -1,0 +1,11 @@
+; Opening balances
+
+2021-07-01 * "Opening balances"
+  Assets:BR:Alfa:ContaCorrente  25000.00 BRL
+  Assets:BR:Alfa:Poupanca  8000.00 BRL
+  Assets:BR:Beta:ContaCorrente  3000.00 BRL
+  Assets:Cash:Carteira  200.00 BRL
+  Assets:BR:B3:Acao  100 B3_PETR4 {26.50 BRL}
+  Assets:BR:B3:Acao  40 B3_WEGE3 {30.00 BRL}
+  Equity:Opening-Balances
+

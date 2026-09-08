@@ -1,0 +1,16 @@
+; personal — household (high volume)
+option "operating_currency" "BRL"
+
+include "accounts.beancount"
+include "opening.beancount"
+include "income.beancount"
+include "cards.beancount"
+include "broker.beancount"
+include "fixed-income.beancount"
+include "transfers.beancount"
+include "expenses-2021.beancount"
+include "expenses-2022.beancount"
+include "expenses-2023.beancount"
+include "expenses-2024.beancount"
+include "expenses-2025.beancount"
+include "expenses-2026.beancount"

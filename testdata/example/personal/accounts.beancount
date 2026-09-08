@@ -1,0 +1,246 @@
+; personal chart — deep topology, anonymized brands
+
+; open … CURRENCY and key: value meta are intentional surface.
+
+2023-07-01 open Equity:Opening-Balances
+
+2023-07-01 open Equity:RomboAceitavel
+
+2023-07-01 open Assets:BR:Alfa:ContaCorrente BRL
+  institution: "BancoAlfa"
+  role: "checking"
+
+2023-07-01 open Assets:BR:Alfa:Poupanca BRL
+
+2023-07-01 open Assets:BR:Alfa:Investimento:CDB:20241201 BRL
+  interest_rate: "115% CDI"
+
+2023-07-01 open Assets:BR:Alfa:Investimento:CDB:20250601 BRL
+  interest_rate: "115% CDI"
+
+2023-07-01 open Assets:BR:Alfa:Investimento:LCA:20241115 BRL
+  interest_rate: "90% CDI"
+
+2023-07-01 open Assets:BR:Beta:ContaCorrente BRL
+
+2023-07-01 open Assets:BR:Beta:Investimento BRL
+
+2023-07-01 open Assets:BR:Gama:ContaCorrente BRL
+
+2023-07-01 open Assets:Cash:Carteira BRL
+
+2023-07-01 open Assets:Receivable:Friend BRL
+
+2023-07-01 open Assets:Pending:Refund BRL
+
+2023-07-01 open Assets:BR:B3:Acao
+  asset_class: "equity"
+  institution: "B3"
+
+2023-07-01 open Assets:BR:B3:FII
+
+2023-07-01 open Assets:BR:TesouroDireto
+
+2023-07-01 open Assets:Cripto:Wallet
+
+2023-07-01 open Assets:US:Delta:ContaCorrente USD
+
+2023-07-01 open Assets:US:Delta:Stock
+
+2023-07-01 open Liabilities:Family:Loan2023 BRL
+
+2023-07-01 open Liabilities:BR:PrejuizoACompensar:Acao
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202308 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202309 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202310 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202311 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202312 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202401 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202401 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202402 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202402 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202403 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202403 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202404 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202404 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202405 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202405 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202406 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202406 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202407 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202407 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202408 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202408 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202409 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202409 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202410 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202410 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202411 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202411 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202412 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202412 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202501 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202501 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202502 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202502 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202503 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202503 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202504 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202504 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202505 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202505 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202506 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202506 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202507 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202507 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202508 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202508 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202509 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202509 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202510 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202510 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202511 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202511 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202512 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202512 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202601 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202601 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202602 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202602 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202603 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202603 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202604 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202604 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202605 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202605 BRL
+
+2023-07-01 open Liabilities:BR:Alfa:Credito:202606 BRL
+
+2023-07-01 open Liabilities:BR:Beta:Credito:202606 BRL
+
+2023-07-01 open Income:Ativo:BR:Salary
+
+2023-07-01 open Income:Ativo:BR:Freelancer
+
+2023-07-01 open Income:Ativo:US:Freelancer
+
+2023-07-01 open Income:Ativo:Cripto:Airdrop
+
+2023-07-01 open Income:Ativo:BR:DistribuicaoLucros:Acme
+
+2023-07-01 open Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2023-07-01 open Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2023-07-01 open Income:Passivo:BR:B3:FII:MXRF11:Rendimento
+
+2023-07-01 open Income:Passivo:BR:Alfa:Poupanca
+
+2023-07-01 open Income:Passivo:BR:Alfa:Investimento:CDB:20241201
+
+2023-07-01 open Income:Passivo:BR:Alfa:Investimento:CDB:20250601
+
+2023-07-01 open Income:Passivo:BR:Alfa:Investimento:LCA:20241115
+
+2023-07-01 open Income:Passivo:BR:Beta:ContaRemunerada
+
+2023-07-01 open Income:Passivo:US:Stock:SPDW:Rendimento
+
+2023-07-01 open Income:Gains
+
+2023-07-01 open Expenses:CustoFixo:Aluguel
+
+2023-07-01 open Expenses:CustoFixo:Telecom
+
+2023-07-01 open Expenses:CustoFixo:Luz
+
+2023-07-01 open Expenses:CustoFixo:Academia
+
+2023-07-01 open Expenses:CustoFixo:Cloud:Infra
+
+2023-07-01 open Expenses:Prazeres:Alimentacao:Mercado
+
+2023-07-01 open Expenses:Prazeres:Alimentacao:Restaurante
+
+2023-07-01 open Expenses:Prazeres:Cafe
+
+2023-07-01 open Expenses:Prazeres:Cultura
+
+2023-07-01 open Expenses:Conhecimento:Curso
+
+2023-07-01 open Expenses:Taxa:BR:B3
+
+2023-07-01 open Expenses:Taxa:BR:Beta:Corretagem
+
+2023-07-01 open Expenses:Taxa:BR:Imposto:IOF
+
+2023-07-01 open Expenses:Taxa:BR:Imposto:IR
+
+2023-07-01 open Expenses:Taxa:Cripto:BTC
+
+2023-07-01 open Expenses:Hotel
+
+2023-07-01 open Expenses:CustoFixo:PJ
