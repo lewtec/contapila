@@ -1,688 +1,428 @@
-# Contapila — Specification
+# Contapila Specification
 
-Status: MVP implementation in progress (tree-sitter grammar wired via modernc-tree-sitter/ccgo-tree-sitter).
+This document constrains contapila: a local one-binary Beancount-class bookkeeper with average-cost inventory, a multi-ledger project, and read-only HTML plus a Cobra CLI.
 
-Contapila is a self-contained **Go** reimplementation of a Beancount-class ledger engine plus a Fava-class read-only web UI (headless `web` or **eletrocromo** desktop shell) and an optional **language server**: **one binary** (Cobra CLI + HTTP server with templ + `contapila lsp` + `contapila desktop`). Philosophy is **Helix, not Neovim**: good defaults, batteries included, no plugin system, poetic license on tooling.
+Status: draft
+Genre: app + cli
 
----
+The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this
+document are to be interpreted as described in BCP 14 (RFC 2119,
+RFC 8174) when, and only when, they appear in all capitals.
 
-## 1. Goals
+## Intention
 
-| Goal | Detail |
-|------|--------|
-| Self-contained | Single Go binary; no Python Beancount at runtime; embedded CUE |
-| Drop-in language | Parse and interpret real `.beancount` journals with high fidelity |
-| Semantics bar **B** | Same balances/lots on **plugin-free** ledgers for supported features; document intentional divergences |
-| Ready to use | Enough reports for a normal person: month-end balances, activity, P&L, net worth, `check` |
-| Project-oriented | Git-like project root + conventional multi-ledger layout |
-| Editor-ready | Same project truth in Helix via `contapila lsp` (check, account goto, account/commodity completion, minimal hover) |
+Job: Load a conventional multi-ledger Project from plain-text journals. Run `check`. Answer balances, journal, P&L, and net worth from the CLI and from read-only local HTML (`web`, `desktop`, `build`). Expose the same Project truth through `lsp`. Book inventory at merged average-cost even when that disagrees with upstream Beancount.
 
-### Non-goals (MVP)
+Non-goals (this project):
 
-- Python plugin compatibility
-- Full BQL / `bean-query` parity
-- Fava editor / write-back
-- Multi-user auth / remote multi-tenant hosting
-- Tooling flag-compatibility with upstream Beancount CLIs
-- Second/temporary parser before modernc grammar lands
-- Full CUE language server (cuepls remains separate; contapila may only surface project-load errors on `contapila.cue` if free)
-- Separate `contapila-lsp` binary
+1. Python Beancount at runtime.
+2. User-loadable plugin code (shared objects, code the `plugin` directive fetches).
+3. HTTP write-back of journals.
+4. Multi-user accounts and remote multi-tenant hosting (a later platform project may own that).
+5. `bean-*` flag compatibility.
+6. A second binary.
+7. FIFO, LIFO, STRICT multi-lot booking.
+8. A CUE language server (cuepls stays separate).
 
----
+Later work is the closed list at the end of this document. It is not in scope now.
 
-## 2. Compatibility
+Inherited C (cite the file):
 
-### 2.1 Contract
+| Binding | Cite |
+|---------|------|
+| Language Go 1.27 | `go.mod` |
+| One Cobra program | `cmd/contapila/main.go` |
+| Project marker `contapila.cue`; ledgers `<root>/*/main.beancount` | `pkg/project/project.go` |
+| Embedded CUE prelude | `internal/config/prelude.cue` |
+| Average-cost inventory | `internal/booking/booking.go` |
+| Desktop wrap eletrocromo, App.ID `br.tec.lew.contapila` | `cmd/contapila/desktop.go` |
+| First-party modules | `internal/plugin/plugin.go` |
+| Commands: `status`, `check`, `balances`, `journal`, `pnl`, `networth`, `account`, `parse`, `ingest`, `dump`, `web`, `build`, `desktop`, `lsp` | `cmd/contapila/main.go` |
+| No database | this tree |
+| Advertised hosts: linux, darwin | `README.md` |
 
-- **In scope:** syntax + loader + booking + validation for the MVP directive set, without plugins.
-- **Tooling:** poetic license (Cobra command names/flags need not match `bean-*`).
-- **Plugins:** none. Unknown/unsupported constructs: **warn + skip** via `log/slog` where safe; **error** when continuing would corrupt inventory or lie about balances.
+## Technique
 
-### 2.2 Intentional divergence: booking default
+| ID | Input | Rule | Output |
+|----|-------|------|--------|
+| TEC-01 | A local process with no person accounts | Address the Project root and Ledger directory names. One process owns one Project. A Ledger is one economic subject (a person; a business). | One Project and its named Ledgers |
+| TEC-02 | Journals, `contapila.cue`, and optional `<ledger>/docs/by-account` on disk | Walk up for the nearest marker. Discover one-level `*/main.beancount`. Resolve `include` against the including file. CLI and `web` reload from disk. `lsp` overlays open buffers. | Project, isolated Ledgers, shared PriceDB |
+| TEC-03 | The same Ledger APIs the CLI uses | Render HTML on the server. Deliver those pages three ways: loopback HTTP, a dedicated app window, a static HTML tree. HTTP MUST NOT write journals. | HTML reports |
+| TEC-04 | `web` against `desktop` | `web` uses no credentials. The app-window host issues a one-shot token and owns the loopback bind. A missing window host fails closed. | Local-only access |
+| TEC-05 | argv | Run the frozen command set. When both stdin and stdout are not TTYs and argv matches the implicit-desktop table, rewrite to `desktop`. Discovery uses `-C` when set, else the process working directory. There is no `--config`. | One command runs |
+| TEC-06 | A command result | Print a `RunE` error on stderr and exit 1. `check` fails on errors. `check` succeeds when only warnings exist. Reports print human text on stdout. `lsp` uses stdout for the protocol only. | Unix exit status and one stdout shape |
+| TEC-07 | An Operator write | Change journal bytes only through `ingest` (span surgery; upsert by `ingest_id`; append when that key is absent). `build` writes the `--out` directory. `dump` prints JSON on stdout. | Updated journal file, site tree, JSON |
+| TEC-08 | Postings | Keep one merged average-cost Position per Account and commodity. An increase MUST carry a cost basis (braces win over `@` and `@@`). A reduction without braces books at the current average. A Transaction that does not balance MUST have exactly one empty residual posting. Oversell warns and MUST NOT invent units. Net worth uses PriceDB only. | Positions and diagnostics |
+| TEC-09 | Embedded prelude, Operator `contapila.cue`, host-injected ledger and price-pair facts | Unify in CUE to one frozen RuntimeConfig. Transactions, pads, balances, and price time series stay out of that unify. First-party modules are gated by `plugins.<id>`. | RuntimeConfig |
 
-Upstream Beancount is lot-centric; average-cost is not its comfortable default.
+## Tooling
 
-Contapila defaults to **merged average-cost inventory** (model A below), aimed at real use (e.g. Receita Federal / preço médio for equities). Files that never set a booking policy may **disagree** with Beancount on inventories and gains. This is documented product policy, not an accident.
+| TEC | Tool | Relation | We do not | Cite |
+|-----|------|----------|-----------|------|
+| TEC-01 | — | none | A user table, OIDC, Backstage sessions | none |
+| TEC-02 | Project discovery in this repo | implement | A database | `path:pkg/project` |
+| TEC-02 | modernc Beancount grammar | wrap | A hand parser, Python Beancount, gobean | `path:internal/parser` |
+| TEC-02 | `math/big.Rat` | adopt | `float64` for money | `stdlib:math/big` |
+| TEC-03 | templ, daisyUI, tailgopher | adopt | An SPA as the page model | org:templ |
+| TEC-03 | Pages in this repo | implement | A second page model beside templ | `path:internal/web` |
+| TEC-03 | vendored uPlot | wrap | A second chart series API | `path:internal/web/static/vendor/uplot` |
+| TEC-04 | eletrocromo | wrap | Embed Chromium. Fall back to the system browser | `lewtec/eletrocromo` |
+| TEC-05 | Cobra | adopt | `bean-*` flag clones | `path:cmd/contapila` |
+| TEC-05 | `go.lsp.dev/protocol` + `jsonrpc2` | wrap | glsp, gopls `internal` | `path:internal/lsp` |
+| TEC-05 | dslipak/pdf, excelize | wrap | A third PDF/XLSX stack | `path:internal/dump` |
+| TEC-06 | Cobra, `log/slog` | adopt | A second error facade | `path:cmd/contapila` |
+| TEC-07 | Span surgery + temp/rename in this repo | implement | HTTP write-back | `path:internal/ingest` |
+| TEC-08 | Booking in this repo | implement | Beancount lots, gobean ledger | `path:internal/booking` |
+| TEC-09 | CUE | adopt | A Go “who wins” merge | `path:internal/config` |
+| TEC-09 | First-party module registry | implement | User-loadable plugin code | `path:internal/plugin` |
 
-When / if `option "booking_method"` (or CUE equivalent) appears, honor it only for methods actually implemented; unsupported method → clear load/`check` error.
+| Cell | Pick | C or D | Implements | Cite if C |
+|------|------|--------|------------|-----------|
+| Language | Go 1.27 | C | TEC-02…TEC-09 | `go.mod` |
+| Runtime | One OS process | C | TEC-01, TEC-05 | `cmd/contapila/main.go` |
+| Persistence | Plain-text files | C | TEC-02 | `pkg/project/project.go` |
+| UI | Server-rendered HTML | C | TEC-03 | `internal/web` |
+| Packaging | One binary via goreleaser | C | TEC-05 | `mise.toml` |
+| Identity | None | C | TEC-01 | none |
+| Host OS | linux, darwin | C | TEC-04 | `README.md` |
 
----
+## Terminology
 
-## 3. Product surface (MVP)
+| Concept | Approved | Banned |
+|---------|----------|--------|
+| The program | contapila | the binary, the tool, the engine (as a product name) |
+| Person at the desk | Operator | user, customer, client |
+| Marker directory | Project | workspace, repo, books (as the root) |
+| One economic subject’s books | Ledger | book, company file, entrypoint |
+| Named account | Account | bucket, category (as the type) |
+| Currency / ticker | Commodity | currency (as the type name), asset class (as the type) |
+| Booked inventory | Position | lot, lot list |
+| Journal movement | Transaction | entry (as the type), txn in prose |
+| One Transaction line | Posting | leg (except residual posting) |
+| Frozen CUE snapshot | RuntimeConfig | config object, settings blob |
+| First-party in-binary module | Module | user plugin, Python plugin |
+| CUE map of Module flags | `plugins` | plugin system |
+| Validation command | `check` | validate, verify, lint |
+| Market conversion store | PriceDB | price cache, FX table |
+| Read-only HTML on a port | `web` | Fava, server (as the command) |
+| HTML in an app window | `desktop` | Electron, Wails |
+| Static HTML export | `build` | generate, render site (as the command) |
+| Language server command | `lsp` | contapila-lsp |
+| Journal writer | `ingest` | import, merge (as the command) |
+| Document tree dump | `dump` | extract (as the command) |
 
-### 3.1 CLI (Cobra)
+## Types
 
-Illustrative commands (names may be refined at implement time):
+### Stored model (app)
 
-| Command | Behavior |
-|---------|----------|
-| `contapila check [ledger]` | Validate; all ledgers if name omitted |
-| `contapila balances [ledger]` | Balances as-of date |
-| `contapila journal [ledger]` | Period journal / activity |
-| `contapila pnl [ledger]` | Income vs expenses for a period |
-| `contapila networth [ledger]` | Net worth as-of (shared prices) |
-| `contapila ingest --file path [-- CMD …]` | Merge JSONL directives into a beancount file (upsert by `id` → `ingest_id`) |
-| `contapila dump <dialect> <path>` | Dump PDF/XLSX element tree as compact JSON (`dump` + dialect subcommand `$format-$lib-v$n`; `--password` for encrypted files; for stdlib-only extract scripts → ingest) |
-| `contapila web [ledger]` | Read-only HTTP UI (headless; owns bind via `--addr`) |
-| `contapila desktop [ledger]` | Same UI via **eletrocromo** (Helium `--app` window; library owns loopback bind + token auth) |
-| `contapila lsp` | Language server over stdio (Helix dogfood; see §3.4) |
+| Entity | Kind | Identity authority | A/B rels `(min,max)` | Root | Invariant IDs |
+|--------|------|--------------------|----------------------|------|---------------|
+| Project | entity | Directory of the nearest `contapila.cue` | contains Ledger `(0,*)`; owns Commodity `(0,*)`; owns PricePoint `(0,*)` | yes | INV-01, INV-07, INV-08, INV-09 |
+| Ledger | entity | Directory name under that Project. One economic subject (a person; a business). | owned by Project `(1,1)`; contains Account `(0,*)`; contains Transaction `(0,*)`; contains Document `(0,*)` | yes (inventory) | INV-02, INV-05, INV-06, INV-10 |
+| Account | entity | `open` name inside that Ledger | owned by Ledger `(1,1)` | no | INV-03, INV-09 |
+| Commodity | entity | Currency code, Project-shared (CUE ⊔ journal) | owned by Project `(1,1)` | no | INV-09 |
+| Transaction | entity | `ingest_id` metadata when present; otherwise file path + source byte span | owned by Ledger `(1,1)`; contains Posting `(1,*)` | no | INV-04 |
+| Posting | weak | (`Transaction`, line) | owned by Transaction `(1,1)` | no | INV-04 |
+| Document | entity | Path under that Ledger (`docs/by-account`; explicit `document` directive) | owned by Ledger `(1,1)` | no | INV-07 |
+| PricePoint | weak | (`base`, `quote`, date); last write wins | owned by Project `(1,1)` | no | INV-06 |
 
-Ledger argument is the **directory name** under the project root (see §4). Project root is always from `-C` / process cwd (walk up for `contapila.cue`); neither `web` nor `desktop` takes a project path positional.
+Values (no identity): Amount (`Rat` + Commodity), Position (`account`, commodity → units, total cost, cost commodity), RuntimeConfig, Diagnostic, LedgerLink (declared on Project; `check` does not reconcile), ModuleFlag (`plugins.<id>` on RuntimeConfig; IDs are compile-time).
 
-### 3.2 Web server
+Ban: a Person table. A second Commodity list in Go beside CUE. Invented `ledgers` keys in `contapila.cue`.
 
-- **Read-only** viewer over the same `*Ledger` APIs as the CLI.
-- **templ** components (server-rendered HTML).
-- **`web`:** default bind `127.0.0.1:8765` (`--addr`); no app-window shell. No multi-user auth story (local tool).
-- **`desktop`:** same HTTP handler as `web`; no `--addr`. Bind, one-shot token auth, and window lifetime are owned by **[eletrocromo](https://github.com/lewtec/eletrocromo)** (`App.ID` = `br.tec.lew.contapila`). Never fall back to the system browser or to `web --addr` if Helium is missing.
-- **Live reload** (watch ledger includes + prices + config): nice-to-have, not blocking first server slice.
-- Out of MVP: in-browser edit, multi-user, write-back.
+| Rel | A role | B role | A `(min,max)` | B `(min,max)` | Identifying? | Owner | Ban |
+|-----|--------|--------|---------------|---------------|--------------|-------|-----|
+| contains | Project | Ledger | `(0,*)` | `(1,1)` | no | host inject from `*/main.beancount` | user-authored `ledgers` keys |
+| prices | Project | Commodity | `(0,*)` | `(1,1)` | no | RuntimeConfig ⊔ journal | per-Ledger precision |
+| quotes | Project | PricePoint | `(0,*)` | `(1,1)` | yes | PriceDB | cost-basis rows in PriceDB |
+| holds | Ledger | Account | `(0,*)` | `(1,1)` | no | that Ledger’s `open` | shared Account chart |
+| books | Ledger | Transaction | `(0,*)` | `(1,1)` | no | that Ledger’s stream | merged multi-Ledger Transaction |
+| files | Ledger | Document | `(0,*)` | `(1,1)` | no | that Ledger | Project-global docs |
+| contains | Transaction | Posting | `(1,*)` | `(1,1)` | yes | Posting key includes Transaction | standalone Posting id |
 
-#### 3.2.1 Desktop auto-launch (QoL)
+### Commands (cli)
 
-**Intent:** double-click / “Open with contapila” opens the project UI without a wrapper script; typing in a real terminal stays CLI-first.
+| Command | Type it mutates | Transition | Bad input |
+|---------|-----------------|------------|-----------|
+| `status` | none | Read Project | Not a Project → stderr, exit 1 |
+| `check` | none | Read Ledger | Hard diagnostics → print, exit 1 |
+| `balances` | none | Read Ledger | Unknown Ledger, bad `--as-of` → stderr, exit 1 |
+| `journal` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
+| `pnl` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
+| `networth` | none | Read Ledger | Unknown Ledger, bad `--as-of` → stderr, exit 1 |
+| `account` | none | Read Account | Unknown Ledger, unknown flags → stderr, exit 1 |
+| `parse` | none | Read one file | Parse fail → stderr, exit 1 |
+| `ingest` | journal file (Transactions) | Upsert by `ingest_id`; append when absent | Missing `--file`, parse fail → stderr, exit 1; file unchanged |
+| `dump` | none | Read a source document → JSON stdout | Missing dialect/path, extract fail → stderr, exit 1 |
+| `web` | none | Serve HTML | Bind fail → stderr, exit 1 |
+| `build` | files under `--out` (not journals) | Write static HTML | Fail → stderr, exit 1 |
+| `desktop` | none | Same handler in an app window | Helium / ensure / `Run` fail → stderr, exit 1 |
+| `lsp` | none on disk | Overlay buffers in memory | Setup fail → stderr, exit 1 |
 
-| Mode | When | Behavior |
-|------|------|----------|
-| Explicit | `contapila desktop [ledger]` | Always eletrocromo, regardless of TTY |
-| Implicit rewrite | **Both** stdin and stdout are **not** TTYs, and argv is bare or a single project path | Rewrite to `desktop` (see below) |
-| CLI default | Either stdin or stdout is a TTY, or argv is a real subcommand / other shape | Normal Cobra (help, `status`, `web`, …) |
+When a command takes `[ledger]` and the Operator names none, the command runs for every Ledger. Zero Ledgers on `check`, reports, `web`, `desktop`: error, exit 1.
 
-**Terminology:** “not a TTY” = process not attached to an interactive terminal on that fd (`isatty` / `term.IsTerminal`). Dual stdin+stdout check reduces false positives from pipes/CI (`contapila \| …`, redirected stdout).
+## Invariants
 
-**Implicit rewrite mapping:**
+| ID | Predicate | On | Forbidden bypass |
+|----|-----------|----|------------------|
+| INV-01 | The nearest `contapila.cue` walking up is the Project | Project | `--config`. A second root in one process |
+| INV-02 | Inventories never merge across Ledgers | Ledger | A combined-books report that books together |
+| INV-03 | At most one `open` per Account name in a Ledger | Account | A second `open` ignored |
+| INV-04 | A Transaction that does not balance MUST have exactly one empty residual posting | Transaction | An implicit gains Account |
+| INV-05 | One merged average-cost Position per (Account, commodity) | Ledger | Lot rows. FIFO. LIFO. STRICT |
+| INV-06 | Net worth uses PriceDB only. A missing price is 0 plus a warning. Scope is Assets and Liabilities. Units keep their sign | Ledger | Cost-basis fallback. A second sign flip |
+| INV-07 | HTTP and `lsp` do not write journal bytes | Project | In-browser save |
+| INV-08 | Operator `contapila.cue` cannot invent `ledgers` keys | Project | Listing Ledgers by hand |
+| INV-09 | Commodity policy is Project-shared. Account `open` / `close` are per Ledger | Project, Ledger | Per-Ledger Commodity precision |
+| INV-10 | `check` fails only on errors. Warnings print. The command succeeds | Ledger | Warnings-as-errors as the default |
 
-| User runs (not dual-TTY) | Becomes |
-|--------------------------|---------|
-| `contapila` (no positionals) | `desktop` with current `-C` / cwd |
+## Errors
+
+| Public operation | Bad input | One reaction |
+|------------------|-----------|--------------|
+| Any CLI except `lsp` | Not a Project, unknown Ledger, bad flags/date, Helium/`Run` fail | stderr, exit 1 |
+| `check` | Hard diagnostics | Print them, exit 1 |
+| `check` | Warnings only | Print them, exit 0 |
+| `ingest` | Absent `--file`. Unparseable input | stderr, exit 1; file unchanged |
+| `dump` | Absent dialect. Absent path. Extract fail | stderr, exit 1 |
+| `lsp` setup | stdio / server fail | stderr, exit 1; stdout unused |
+| `textDocument/definition` | No `open` | Empty result |
+| `textDocument/completion` | Position is not a completion slot. No snapshot | Empty list |
+| `textDocument/hover` | Unknown non-Account token | Empty hover |
+| `textDocument/hover` | Unknown Account | Thin “not opened” line |
+| `textDocument/publishDiagnostics` | Parse fail | Publish parse diagnostics now. Keep last-good index and `check` diagnostics |
+| GET `/l/{ledger}/…` | Unknown Ledger. Bad `?time=` | 400 |
+| GET `/l/{ledger}/{page}` | Unknown page | 404 |
+| GET `/l/{ledger}/account/…` | Bad path encoding | 400 |
+| GET `/l/{ledger}/account/…` | Empty Account path | 404 |
+| GET `/docfile/…` | Path outside that Ledger’s `docs/` | 404 |
+| GET any HTML | Project load fail | 500 |
+| `web` bind | Address in use | stderr, exit 1 |
+| Ledger open / `check` | Unopened Account used | warn, allow |
+| Ledger open / `check` | Posting after `close` | error |
+| Ledger open / `check` | Duplicate `open` | error |
+| Ledger open / `check` | Unbalanced Transaction, no residual posting | error |
+| Ledger open / `check` | Failed `balance` assertion | error |
+| Ledger open / `check` | Oversell | warn; skip inventing inventory |
+| Ledger open / `check` | Explicit reduce cost ≠ current average beyond tolerance | error |
+| Ledger open / `check` | Amount with number and no Commodity (not residual) | error |
+| Ledger open / `check` | Invalid `interest_rate` on `open` | error |
+| Ledger open / `check` | Unknown `option` | warn |
+| Ledger open / `check` | `include` literal path missing | error |
+| Ledger open / `check` | `include` glob, zero matches | warn |
+| Ledger open / `check` | Include cycle | error |
+| Ledger open / `check` | Double-include same realpath | skip (dedupe) |
+| Ledger open / `check` | Missing `operating_currency` (inferred) | warn |
+| Ledger open / `check` | Price missing for market conversion | warn; value 0 |
+| Ledger open / `check` | `prices.beancount` empty/missing | warn |
+| Ledger open / `check` | Unknown directive | warn and skip |
+| Ledger open / `check` | Unknown `plugin "id"` | warn and skip |
+| Ledger open / `check` | CUE unify failure | error |
+| Ledger open / `check` | `closing: TRUE` with no inferable Commodity | error |
+| Ledger open / `check` | `closing: TRUE` when `close` already exists | warn; skip synthetic `close`; still assert `balance 0` |
+
+## Actors
+
+| Actor | Obligations |
+|-------|-------------|
+| Operator | Keep journals as text. Run contapila on a local machine. Treat each Ledger as one economic subject |
+
+## Capabilities
+
+| ID | Actor | Sea-level goal |
+|----|--------|----------------|
+| CAP-01 | Operator | Open a Project |
+| CAP-02 | Operator | Check the Project’s Ledgers |
+| CAP-03 | Operator | Read balances, journal, P&L, net worth, and one Account |
+| CAP-04 | Operator | Ingest directives into a journal file |
+| CAP-05 | Operator | Dump a PDF/XLSX to a JSON tree |
+| CAP-06 | Operator | Read the same reports as HTML (`web`, `desktop`, `build`) |
+| CAP-07 | Operator | Edit journals in an editor via `lsp` |
+
+## Public contract
+
+### Project layout
+
+Start at `-C` when set. Otherwise start at the process working directory. Walk up. The nearest `contapila.cue` is the Project root. An empty marker file is valid. Absence is not a Project.
+
+Ledgers are exactly `<root>/*/main.beancount`. The Ledger name is the directory name. A directory without `main.beancount` is ignored. Recursive `**/main.beancount` is not a Ledger. A root-level `main.beancount` is not a Ledger.
+
+`project_journals` in the prelude defaults to `prices.beancount` (`role: "prices"`, missing warn) and `indexes.beancount` (`role: "stream"`, missing ignore). Role `prices` fills PriceDB. Role `stream` is injected into every Ledger stream. The Operator MAY replace the whole list in `contapila.cue`.
+
+Include paths are relative to the including file’s directory. Absolute paths are allowed. File identity for cycle and dedupe is the realpath.
+
+On Project open the host injects a closed `ledgers` map. Operator `contapila.cue` MUST NOT add keys under `ledgers`.
+
+### CLI flags
+
+Global: `-C` / `--directory` (start directory for discovery). `-v` / `--verbose` (debug `slog` on stderr).
+
+Reports: `--as-of YYYY-MM-DD` on `balances` and `networth` (empty means latest). `--time` (Fava-style period) on period reports. `--from` and `--to` (inclusive `YYYY-MM-DD`). The Operator MUST NOT pass `--time` together with `--from` / `--to`.
+
+`ingest --file` is required. The file is created on success when missing.
+
+`dump --password` unlocks an encrypted PDF/XLSX. The password MUST NOT appear in the JSON.
+
+`web --addr` defaults to `127.0.0.1:8765`. `desktop` has no `--addr`.
+
+`build -o` / `--out` defaults to `site`. `--jobs` `0` means `GOMAXPROCS`.
+
+Implicit rewrite to `desktop` (TEC-05):
+
+| argv when stdin and stdout are not TTYs | Becomes |
+|------------------------------------------|---------|
+| `contapila` | `desktop` at `-C` / cwd |
 | `contapila /path/to/project` | work dir = that directory → `desktop` |
-| `contapila /path/to/contapila.cue` | work dir = **parent** of the cue file → `desktop` |
-| `contapila -C /path` (no positionals) | `desktop` (`-C` already set) |
-| `contapila status` / `web` / two+ args / unknown junk | **no** rewrite — normal Cobra |
+| `contapila /path/to/contapila.cue` | work dir = parent of the file → `desktop` |
+| `contapila -C /path` | `desktop` |
+| A real subcommand, two+ args, unknown junk | No rewrite |
 
-Ledger is **not** accepted on the implicit bare path; only via `desktop [ledger]` or `web [ledger]`.
+A rewrite failure prints on stderr and exits 1. It MUST NOT fall through to help.
 
-**Project marker:** `contapila.cue` (same walk-up discovery as the rest of the CLI).
+### HTTP
 
-**Failures** (missing marker, bad project, Helium/ensure/`App.Run` error): message on **stderr**, exit **1**. No silent fall-through to help on the implicit path (help is useless without a terminal).
+GET only for product pages. Routes:
 
-**Layout (v1):** wiring lives in `cmd/contapila`; extract `internal/desktop` only if it grows. Tests: pure helpers for auto-launch gate + path→work-dir; **no** Helium window in contapila CI (eletrocromo’s own tests cover host launch).
+- `/`
+- `/l/{ledger}/` → check
+- `/l/{ledger}/{page}` for registered pages (`check`, `balances`, `journal`, `pnl`, `networth`, `documents`, `prices`, debug `plugins` / `config`, plus enabled Module pages)
+- `/l/{ledger}/account/{account}`
+- `/l/{ledger}/commodity/{commodity}`
+- `/l/{ledger}/query/{name}`
+- `/docfile/{ledger}/docs/…` (that Ledger’s `docs/` only)
+- `/static/…`
 
-**Dependency:** `github.com/lewtec/eletrocromo`.
+`web` reloads Project state from disk on every request. `build` writes extensioned `.html` files and MUST NOT write journals.
 
-### 3.3 Reports
+### LSP
 
-| Report | Question |
-|--------|----------|
-| Balances as-of | What is in each account on date D? |
-| Journal / activity | What moved in period [from, to]? |
-| P&L | Income vs expenses for the period (by account type prefix) |
-| Net worth | Assets − liabilities in operating currency as-of D |
-| Check | Opens/closes, balance assertions, booking errors, unbalanced txns |
+Same binary. stdio. One Project per process (first resolved `contapila.cue` wins). Open buffers overlay disk. Closed files are read from disk on the next recompute.
 
-### 3.4 Language server (LSP)
+Dogfood cut: `publishDiagnostics` (parse immediately; `check` after a successful parse, atomic snapshot swap), `definition` (Account → that Ledger’s `open`), `completion` (Account, Commodity, date slots), `hover` (Account `open` facts; Commodity policy). No live balances on hover.
 
-Status: **specified; first dogfood cut not yet shipped.** Same binary, stdio LSP. Dogfood target: **Helix**. Example projects may ship `.helix/languages` (or equivalent) pointing at `contapila lsp`.
+Cancel in-flight slow work when a newer edit arrives. A broken parse MUST NOT extract symbols from the partial tree.
 
-#### 3.4.1 First dogfood cut (definition of done)
+### Directives
 
-| Capability | Behavior |
-|------------|----------|
-| `textDocument/publishDiagnostics` | **Two channels** — see §3.4.3 |
-| `textDocument/definition` | Account use → that ledger’s `open`; missing → editor “no definition” / status feedback (no fake jump to first posting) |
-| `textDocument/completion` | Accounts + commodities only where the grammar expects an account or commodity slot |
-| `textDocument/hover` | **Minimal** — account: `open` date + currencies/meta; commodity: CUE policy already on the loaded project (precision, class, …). No live balances/lots |
-
-**Out of first dogfood cut:** commodity goto, references, rename, formatting, code actions/fixits, semantic tokens, workspace symbols, rich/Fava-ish hover, full CUE IDE features.
-
-Later phases may add the rest of a normal language server surface; v1 stops at the table above.
-
-#### 3.4.2 Project model (LSP)
-
-| Rule | Behavior |
-|------|----------|
-| Unit of truth | **Whole contapila project** (all ledgers + shared journals + CUE), not a single buffer |
-| Root discovery | **Same as CLI**: walk up from the document path for `contapila.cue`; nearest wins |
-| Multi-project | **First resolved root wins** for the server process; no multi-session map |
-| Open buffers | LSP text overlays **win** over disk on every recompute |
-| Closed files | Re-read from disk each recompute turn (debounce/save). **fsnotify optional** — may wake debounce; absence is fine (next turn still refreshes) |
-| Account symbols | **Ledger of the current file** only (inventory isolation) |
-| Commodity symbols | **Project-shared** (prices/indexes/root journals still commodity-aware) |
-| Non-ledger `.beancount` | No fake ledger account chart; commodities still resolve; parse + project load as applicable |
-| `contapila.cue` | **Not** a CUE language server target. Config changes still invalidate project state when noticed. Surfacing unify/load errors that already point at the cue file is allowed if cheap |
-| Open ledger scope | Opening any file that belongs to ledger L → **ingest whole L** (main + includes + stream/prices as engine already does). **Publish diagnostics for all files of open ledgers**, not only the focused buffer |
-
-No re-open model for accounts: definition is the single `open`.
-
-#### 3.4.3 Recompute: two-tier + snapshot swap
-
-```text
-didChange / didSave / optional fsnotify wake
-        │
-        ├─ fast: parse dirty buffer(s) → publish parse/syntax diagnostics immediately
-        │
-        └─ if dirty: debounce and/or save
-                │
-                ├─ parse fails → keep last-good account/commodity indexes + last-good check diags
-                │                 (completion/goto/hover still use last-good index)
-                │
-                └─ parse succeeds → background full project perception (overlays + disk)
-                                   rebuild indexes + run check (ctx-cancellable)
-                                   atomic swap: indexes + semantic/check diagnostics
-```
-
-| Rule | Behavior |
-|------|----------|
-| Triggers | **Debounce and save**, only when something actually changed (dirty) |
-| Overlap | **Cancel + restart** via `context.Context` (newer edit/save cancels in-flight slow run) |
-| Index / check publish | Only after parse **passes**; atomic swap of the live snapshot |
-| Parse publish | Immediate (does not wait for successful full check) |
-| Partial trees | **No** best-effort symbol extraction from broken parses — last-good index only |
-
-#### 3.4.4 Completion and navigation detail
-
-- **Completion contexts:** only syntactic positions where an **account** or **commodity** is expected (posting account, `open`/`close`/`balance`/`pad`/`document` account fields, amount commodity, `price` commodities, `commodity` directive, etc.). Not narration / free text.
-- **Account completion:** opens from the **current file’s ledger** (last-good index).
-- **Commodity completion:** project commodity set (last-good index), including when editing `prices.beancount` and other shared journals.
-- **Goto:** account → `open` in that ledger’s graph; no definition → client-visible error, not a degraded first-mention jump.
-- **Hover:** index/config facts only (see §3.4.1); must not force a full booking pass on every hover.
-
-#### 3.4.5 Locations and ranges
-
-- Prefer real ranges from existing AST spans (`Meta.StartByte` / `EndByte`) and `grammar.LineIndex` (`LineColumnAt`).
-- LSP positions require protocol encoding conversion (tree-sitter / line index are **byte** offsets; LSP commonly **UTF-16**).
-- Line-only diagnostics only as fallback when span is unknown (synthesized nodes, legacy diags without bytes).
-
-#### 3.4.6 Architecture seams (required for parity)
-
-| Seam | Intent |
-|------|--------|
-| FS-shaped loader dependency | Project open / include load take an FS-like reader. **CLI** = disk; **LSP** = overlay FS (buffer text first, else disk). One load/check path for both |
-| Surfaces | LSP is another consumer of project/`Ledger` APIs — same check truth as `contapila check` |
-| Context | Thread `context.Context` through load/check far enough that cancel aborts in-flight LSP work without publishing stale results |
-
-Not: temp-dir materialization of overlays; not a forked LSP-only parse/check that drifts from CLI.
-
-#### 3.4.7 Protocol stack (library choice)
-
-| Choice | Detail |
-|--------|--------|
-| Modules | [`go.lsp.dev/protocol`](https://pkg.go.dev/go.lsp.dev/protocol) + [`go.lsp.dev/jsonrpc2`](https://pkg.go.dev/go.lsp.dev/jsonrpc2) (LSP **3.18**, generated types) |
-| Server API | Embed `protocol.UnimplementedServer`; serve with `protocol.NewServer`; use typed `Client` for `publishDiagnostics` and window messages |
-| Not | Full SDKs (e.g. tliron/glsp, TobiasYin/go-lsp) as primary stack; gopls `internal/*` (unimportable); hand-rolled Content-Length framing |
-| Toolchain | These modules require **Go 1.26+** — bump the contapila module when implementing LSP |
-| Isolation | LSP imports live under `internal/lsp` only; engine/loader stay free of protocol types |
-| Stdio | Wrap `os.Stdin` / `os.Stdout` as a `jsonrpc2.Stream` (stdout is protocol-only) |
-
-**Logging / user feedback**
-
-| Channel | Use |
-|---------|-----|
-| stdout | LSP protocol only |
-| stderr `log/slog` | Operator / debug (same family as CLI; respect `--verbose` if shared) |
-| `window/logMessage` | Soft user-relevant warnings that are not diagnostics |
-| `window/showMessage` | Rare hard failures (e.g. project open broken) |
-| diagnostics / request results | Product truth (check errors; missing definition → empty result / client “no definition”, not a fake status-bar API) |
-
-There is no portable LSP “set status bar text”; do not design around editor-private chrome.
-
-**Testing**
-
-| Layer | Method |
-|-------|--------|
-| Regression | In-memory `jsonrpc2.Stream` (pipe) client ↔ `NewServer`; assert completion, definition, hover, diagnostics on fixtures |
-| Unit | Index / goto / hover helpers without RPC where possible |
-| Acceptance | Helix dogfood + example `.helix` config (§3.4.8) |
-
-#### 3.4.8 Client packaging
-
-- Document / ship Helix `language-server` config for Beancount (and related journal paths as needed) invoking `contapila lsp`.
-- Prefer embedding example config under testdata or docs so dogfood is one clone away.
-
----
-
-## 4. Project layout
-
-### 4.1 Root discovery
-
-- Walk **upward from the process CWD** looking for `contapila.cue` (same idea as git finding `.git`).
-- Nearest file wins; its directory is the **project root**.
-- If none found → error (`not a contapila project`).
-- **No `--config` flag.**
-
-### 4.2 Convention
-
-```text
-<root>/
-  contapila.cue           # required project marker; may be empty
-  prices.beancount        # shared prices (empty/missing → warn)
-  indexes.beancount       # shared index series for autointerest (optional; auto-injected)
-  personal/
-    main.beancount        # ledger name = "personal"
-  empresa/
-    main.beancount        # ledger name = "empresa"
-  scratch/                # no main.beancount → ignore
-```
-
-| Rule | Behavior |
-|------|----------|
-| Config marker | `contapila.cue` at project root; **empty file is valid** (prelude supplies defaults) |
-| Ledgers | Exactly one level: `<root>/*/main.beancount` |
-| Ledger name | **Directory name** |
-| Dir without `main.beancount` | **Ignore** |
-| Recursive `**/main.beancount` | **No** |
-| Root-level `main.beancount` | Not an entrypoint |
-| Zero ledgers found | Error when running check/web/reports |
-| Shared root journals | CUE `project_journals` (prelude defaults: `prices.beancount` + `indexes.beancount`) |
-| `role: "prices"` | Load into shared PriceDB; missing → **warn** by default |
-| `role: "stream"` | Auto-inject into every ledger stream (no `include` required); missing → ignore by default |
-| Includes | Paths relative to the **including file's directory**; globs allowed |
-| Optional root commodities | `<root>/commodities.beancount` — often `include`d from ledgers (not in default `project_journals`) |
-
-**Price DB:** for a given (base, quote, date), **last write wins** when loading prices journals (and if the same day appears twice).
-
-**`project_journals` (prelude):** list of `{path, role, missing}` relative to the project root. Override the whole list in `contapila.cue` to add/remove auto-imports. Explicit ledger `include` of the same realpath is not double-loaded for `stream` roles.
-
-Ledgers may still `include "../prices.beancount"` / `include "../commodities.beancount"` for journal-visible copies; PriceDB still comes from `role: "prices"` journals.
-
-### 4.3 Isolation and sharing
-
-| Concern | Scope |
-|---------|--------|
-| Inventory, transactions, pads, balance assertions, accounts (`open`/`close`) | **Per ledger** (isolated) |
-| Commodity policy (precision, tolerance, class) | **Shared** (project CUE) |
-| Market `price` directives | **Shared** (`project_journals` role `prices` → one PriceDB for all ledgers) |
-| Index series (`custom "index"`) | **Shared** (`project_journals` role `stream` auto-injected into each ledger) |
-
-Multiple entrypoints are **named parallel ledgers**, never merged into one inventory.
-
-### 4.4 Account documents (`<ledger>/docs/by-account`)
-
-Documents are **per ledger** (same isolation as inventory). Layout:
-
-```text
-<root>/<ledger>/docs/by-account/<seg>/<seg>/…/<filename>
-```
-
-Account components become **subdirectories** (`:` → `/`):
-
-Example: ledger `personal`, account `Assets:BR:Alfa:ContaCorrente` →  
-`personal/docs/by-account/Assets/BR/Alfa/ContaCorrente/`.
-
-**Filenames** start with a calendar date prefix, then an optional separator and
-rest of the name. The prefix is **`yyyy`**, **`yyyymm`**, or **`yyyymmdd`**
-(contiguous digits only; must be followed by a non-digit or end of name).
-Omitted month or day defaults to **01**. Invalid calendars (e.g. month 13) and
-other digit lengths (5 or 7 digits, etc.) are rejected with an error diagnostic;
-those files are skipped.
-
-```text
-20240301_statement.txt   # 2024-03-01
-20230810-INV-001.pdf     # 2023-08-10
-202403_month.txt         # 2024-03-01 (day defaults to 01)
-2024_annual.pdf          # 2024-01-01 (month and day default to 01)
-```
-
-On ledger open the host walks **`<that-ledger>/docs/by-account/**`** and synthesizes
-`document` directives (date from filename prefix, account from path). Explicit
-`document` lines in that ledger’s journal merge in; same path prefers the explicit
-directive. Account web UI lists documents and serves files under `/docfile/<ledger>/docs/…`.
-
-Metadata `document: "…"` on transactions/postings is **stored** on the journal AST
-and expanded into the ledger’s document list at open (same merge rules as filesystem
-synth; path prefers explicit `document` directive). Not injected into CUE.
-
-### 4.5 Ledgers in CUE (discovered) and inter-ledger links
-
-On project open the host **looks up** `<root>/*/main.beancount` and injects a
-generated CUE fragment (workspaced-style host data):
-
-```cue
-ledgers: close({
-  personal: {name: "personal", main: "<abs>/personal/main.beancount"}
-  acme:     {name: "acme",     main: "<abs>/acme/main.beancount"}
-  // …
-})
-```
-
-Types live in the embedded **prelude**:
-
-| Type | Meaning |
-|------|---------|
-| `#Ledger` | `{name: #LedgerID, main: string}` — one discovered ledger |
-| `#LedgerID` | Directory-name shape: `^[A-Za-z][A-Za-z0-9_-]*$` |
-| `#LedgerName` | `or([for n, _ in ledgers {n}])` — **keys of the injected map only** |
-| `#LedgerRef` / `#LedgerLink` | Cross-ledger endpoints using `#LedgerName` |
-
-User `contapila.cue` does **not** list ledgers; inventing keys under `ledgers` fails (struct is `close`d). Links:
-
-```cue
-links: [{
-  name: "acme-profit-distribution"
-  from: {ledger: "acme", account: "Equity:DistribuicaoLucros"}
-  to:   {ledger: "personal", account: "Income:Ativo:BR:DistribuicaoLucros:Acme"}
-}]
-```
-
-**MVP:** CUE validates ledger **names** against discovery; `check` does **not** reconcile balances yet.
-
----
-
-## 5. Architecture
-
-### 5.1 Public API shape
-
-- Open project from CWD → project handle (root, config, PriceDB, ledger names).
-- Open/load each named ledger → `*Ledger`.
-- Surfaces (CLI, HTTP, LSP) call only project/`Ledger` methods — no parsing in handlers.
-- Project/loader accept an **FS-shaped** dependency for file reads (disk default; LSP overlays).
-
-Suggested capabilities on `*Ledger`:
-
-- `Check() error` (hard errors fail; warnings via slog)
-- `Balances(asOf)`
-- `Journal(from, to)`
-- `PnL(from, to)`
-- `NetWorth(asOf)` — uses shared PriceDB + operating currency rules
-
-### 5.2 Pipeline (per ledger)
-
-```text
-resolve project root (contapila.cue)
-load prices.beancount → PriceDB          # once per project
-for each ledger name:
-  parse main.beancount + include graph   # tree-sitter (deferred)
-  split config-ish directives vs stream
-  encode config facts → CUE
-  unify: prelude & contapila.cue & ledgerFacts
-  decode RuntimeConfig
-  apply stream: tags/meta (none in MVP), booking, pads, assertions
-  reports
-```
-
-Internal stages are separate packages; the public surface stays a deep module (single entry, hidden stages).
-
-### 5.3 Parser bootstrap
-
-- **Wait** for Beancount grammar via [modernc / ccgo-tree-sitter](https://github.com/modernc-tree-sitter/ccgo-tree-sitter).
-- No temporary hand parser, no Python subprocess, no alternate long-term cgo binding as the product path.
-- Design freezes the AST/config/booking contracts so the grammar drops into one adapter.
-
-### 5.4 Numeric types
-
-- Engine amounts and costs: **`math/big.Rat`** (never `float64` for money).
-- Display/tolerance from commodity policy (§7).
-
-### 5.5 Language server placement
-
-- Command: **`contapila lsp`** (stdio) in the main module — not a second binary.
-- Package boundary: dedicated LSP adapter (protocol, overlays, debounce, publish) over the same open/load/check pipeline as CLI.
-- Wire stack: **`go.lsp.dev/protocol` + `go.lsp.dev/jsonrpc2`** (§3.4.7); not glsp-as-framework.
-- Full feature matrix and recompute rules: **§3.4**.
-
----
-
-## 6. CUE config plane
-
-### 6.1 Runtime
-
-- **Embed** CUE (`cuelang.org/go`), workspaced-style — no `cue` CLI required for normal use.
-- Shipped **prelude** (schema, defaults, asset-class short-circuits) unified with user `contapila.cue` and **ledger-derived config facts**.
-- **CUE decides** conflicts on the config plane (unification failure → load error). Do not implement ad hoc “who wins” tables in Go for config.
-
-### 6.2 What goes into CUE
-
-| In CUE (config plane) | Not in CUE |
-|-----------------------|------------|
-| Options (e.g. operating currency) | Transactions / postings |
-| Commodities + precision/tolerance/class | Full `price` time series (volume) |
-| Price **pair inventory** (`price_pairs` inject) | Individual price points / rates |
-| Per-ledger account open/close facts | `balance`, `pad` |
-| Project overlays in `contapila.cue` | `note`, `event`, journal stream |
-| Prelude defaults | Include graph resolution (Go first) |
-| (nothing for txn meta) | Txn/posting `key_value` metadata (Go journal only) |
-
-### 6.3 Dual definition
-
-- Commodities (and policy) may be declared in CUE and/or `commodity` directives; facts are encoded and **unified in CUE**.
-- Accounts are **per ledger**: from that ledger’s `open`/`close` (and only that ledger’s facts in the per-ledger unify).
-- Transactions are **never** executed or stored as CUE.
-
-### 6.4 Minimal user file
-
-```cue
-// contapila.cue — valid empty project marker
-// Optional overlays, e.g.:
-// commodities: { BRL: {class: "fiat"}, BTC: {class: "crypto"} }
-```
-
-### 6.5 Defaults (prelude)
-
-- Default **precision: 5** decimal places.
-- Asset classes (illustrative; exact prelude schema at implement time) override precision (e.g. fiat → 2, crypto → 8).
-- Default **tolerance**: half ULP of commodity `precision` (CUE `#Commodity` ⊔ journal commodity meta).
-  Optional `tolerance` field overrides. Beancount `inferred_tolerance_*` options are **not** read.
-- Undeclared commodities in journals: usable with prelude defaults (precision 5) unless stricter policy is added later.
-
----
-
-## 7. Booking and inventory (model A)
-
-### 7.1 Inventory model
-
-- Per **account + commodity**: a **single merged average-cost** position (not multi-lot history).
-- Lot theatre (FIFO/LIFO/STRICT multi-lot) is out of MVP unless explicitly reintroduced later.
-
-### 7.2 Buys (increases)
-
-- Inventory increases need a cost basis: **explicit cost** `{...}`, or **`@` / `@@` price** when braces are omitted.
-- `@` → unit cost; `@@` → unit cost = total / units (same commodity as the price).
-- `{...}` wins over `@`/`@@` when both are present.
-- **Existing lot without braces:** if the account already holds that commodity with a cost basis, new units are booked at the **current average** (e.g. more USD into a costed USD cash account).
-- New units merge into the average cost of the position.
-
-### 7.3 Sells (reductions) — Shape 4
-
-- Cost braces may be **omitted** on a reduction; engine books cost at **current average**.
-- Prefer **`@@` total proceeds** for broker-style fills; support `@` unit price as well.
-- Multi-stock sells: **one posting per commodity**; sugar is per line, not one average for the whole txn.
-- **FX cash spend:** reducing a currency held at a *foreign* cost (e.g. USD with BRL average cost) to pay for legs that need that currency in face terms — stocks `@ … USD`, **USD expenses**, residual cash drain — weights the cash leg in **face currency (USD)** for balancing, while still reducing the FX lot’s foreign cost basis. Residual cash on a costed FX account also reduces inventory (not bare balance only). Pure FX conversion to BRL + gains still weights by cost basis.
-
-Example:
-
-```beancount
-2024-03-10 * "Sell PETR4 + VALE3"
-  Assets:Broker:PETR4  -40 PETR4 @@ 1400.00 BRL
-  Assets:Broker:VALE3  -20 VALE3 @@ 1400.00 BRL
-  Assets:Cash           2800.00 BRL
-  Income:Gains
-```
-
-### 7.3a Booking order (same calendar day)
-
-Directives are applied in order of:
-
-1. **Date** ascending  
-2. **Type rank** (Beancount-style): `open` → `pad` → `balance` → txn/note/event/… → `document` → `close`  
-3. **Source line** when available  
-
-So an `open` and a transaction on the same day book correctly even if includes put the txn earlier in the raw stream. A transaction **before** the open **date** is still an error.
-
-### 7.3b Autointerest (indexed / fixed assets)
-
-Built-in expander (not a plugin). On `open` with **`interest_rate`** (or alias **`interest-rate`**):
-
-- Parse expression (spaces allowed): `115% CDI`, `IPCA + 10% aa`, `10% aa`, …  
-  Daily growth uses `α × index_return + plus_daily` where `plus_daily = (1+r)^(1/n)−1` (`aa`→365, `am`→30).
-- Counterpart income account: `Assets:…` → `Income:Passivo:…` (string replace); synth `open` if missing.
-- **Materialize on `balance`:** insert **`pad` day-before** from that income account to the asset (skip if user already wrote a pad). Bank balance is ground truth.
-- **Materialize on `close`:** inject **`pad` + `balance 0` CUR** (per open currency) before close so residual interest/principal zeros via Income:Passivo. Runs again **after** `closing: TRUE` autoclose (synthetic balance 0 / close).
-- **Projection** (graphs / estimates): apply the curve using `custom "index" "CDI"|"IPCA" <daily_return>` in the stream; pure fixed also samples month-ends; horizon through `time.Now()`; **stops on `close`**.
-- Index series: stream journals from `project_journals` (default `indexes.beancount`) are auto-injected; extra `custom "index"` may also appear via includes. No `fixes.beancount` write-back.
-
-CUE `#Account` documents `interest_rate` and unifies hyphen alias onto snake_case when opens are injected.
-
-### 7.4 Residual leg (no magic)
-
-- At most **one** posting with **missing amount** absorbs the remainder (typically gains).
-- That residual absorbs **every** unbalanced commodity: booked form expands to one amount per residual commodity on the residual account (source still has a single empty leg).
-- **No** implicit default gains account; **no** auto-inserted source legs.
-- Unbalanced transaction without an empty residual posting → **error**.
-- Explicit `{cost}` on a sell that is not the current average (beyond tolerance) → **error**.
-- Selling more units than inventory → **warn** (do not invent inventory; check still passes).
-
----
-
-## 8. Operating currency and prices
-
-### 8.1 Operating currency
-
-1. Prefer explicit option / CUE option for `operating_currency`.
-2. If missing: **warn**, then after includes are resolved, walk directives and take the commodity from the **first transaction that carries a posting amount commodity**.
-3. If still none: currency-denominated reports error at report time.
-
-### 8.2 Shared PriceDB
-
-- Built from project `prices.beancount`.
-- All ledgers consult the same DB for conversion / net worth.
-
-### 8.3 Price lookup for as-of date D
-
-Market conversion (net worth, charts, P&L when op currency is set) uses **PriceDB only**:
-
-1. Direct pair `base→quote` on or before D (walk back: last price ≤ D).
-2. Else inverse of `quote→base`.
-3. Else one intermediate hop (e.g. `SPDW→USD→BRL`), each leg direct or inverse, both ≤ D.
-4. If still missing: **warn**; market value is **0** (no cost-basis fallback).
-5. Do not silently use future prices for past as-of dates.
-
-Inventory cost basis (average cost, model A) remains for booking/gains; it is **not** used to value net worth.
-
-### 8.4 Net worth
-
-- Include **Assets** and **Liabilities** only (not Equity/Income/Expenses).
-- Convert positions to operating currency with §8.3 using **signed** unit balances
-  (Beancount: liabilities are usually credit → negative units; do **not** flip sign again).
-- Valuation is **market only**; unpriced positions show as 0 with a UI/CLI “no px” marker.
-
----
-
-## 9. Directives (MVP)
-
-| Directive | MVP | Plane |
-|-----------|-----|--------|
+| Directive | This version | Plane |
+|-----------|--------------|-------|
 | `option` | yes | → CUE |
-| `include` (+ globs) | yes | Go load |
+| `include` (globs) | yes | Go load |
 | `commodity` | yes | → CUE |
-| `open` / `close` | yes | → CUE (per ledger) |
-| `*` / `!` transactions, postings | yes | Go |
-| metadata on `open` / `commodity` | yes (stored; CUE `#Account` / `#Commodity` tandem) | Go + CUE |
-| metadata on `price` | yes (stored on PriceDB points) | Go |
-| metadata on `balance` | yes (journal stream only; **not** CUE) | Go |
-| metadata on `event` | yes (journal stream only; **not** CUE) | Go |
-| metadata on txn/posting | yes (journal stream only; **not** CUE) | Go |
-| org-mode `section` / headlines (`* …`) | structure only — silent; nested directives collected | Go |
-| posting `closing: TRUE` | yes — after residual fill, expands to `balance 0` + `close` next day for that account/commodity | Go |
+| `open` / `close` | yes | → CUE (per Ledger) |
+| `*` / `!` Transaction, Postings | yes | Go |
+| metadata on `open` / `commodity` | yes | Go + CUE |
+| metadata on `price`, `balance`, `event`, Transaction, Posting | yes | Go (not CUE, except `open` / `commodity`) |
+| org-mode `section` / headlines | structure only; silent | Go |
+| posting `closing: TRUE` | yes — after residual fill, `balance 0` + `close` next day | Go |
 | cost `{}`, price `@` / `@@` | yes | Go |
-| cost `{amount, date}` | yes — books cost; also injects `price` on that date | Go |
-| amount expressions (`+ - * /`, parens, unary `-`) | yes (grammar-complete) | Go |
+| cost `{amount, date}` | yes — books cost; injects `price` on that date | Go |
+| amount expressions | yes | Go |
 | empty residual posting | yes | Go |
-| `price` | yes (shared file → PriceDB; CUE `price_pairs` inventory only) | Go + CUE |
-| `balance` | yes | Go |
-| `pad` | yes | Go |
-| `note` | yes | Go (store/display) |
-| `event` | yes | Go (store/display) |
-| `document` | yes (store/display; also synthesized from `<ledger>/docs/by-account`) | Go |
-| `custom "index"` | yes — daily index return series for autointerest projection | Go |
-| `custom` (other types) | yes (stored; unused types ignored by booking) | Go |
-| `query` | yes — stored; web sidebar + detail (no BQL execution yet) | Go |
+| `price` | yes | Go PriceDB; CUE `price_pairs` inventory only |
+| `balance`, `pad`, `note`, `event`, `document`, `custom`, `query` | yes | Go (`query` stored, not executed) |
+| `custom "index"` | yes — autointerest projection | Go |
+| `plugin "id"` | names a first-party Module for that Ledger open | Go; MUST NOT mutate `contapila.cue`; MUST NOT load outside code |
 | `pushtag` / `poptag` / `pushmeta` / `popmeta` | no | — |
-| `plugin` | no | — |
-| unknown | warn + skip | — |
 
----
+### Booking (TEC-08)
 
-## 10. Diagnostics severity
+Apply directives by date ascending, then type rank (`open` → `pad` → `balance` → Transaction / note / event → `document` → `close`), then source line.
 
-Use **`log/slog`** for warnings. `check` fails only on **errors**.
+Increases: `{...}` wins over `@` / `@@`. `@` is unit cost. `@@` is total / units. When the Account already holds that commodity with a cost basis and braces are omitted, new units book at the current average. New units merge into that average.
 
-| Event | Severity |
-|-------|----------|
-| Unopened account used | **warn** + allow |
-| Posting after `close` | **error** |
-| Posting `closing: TRUE` with no inferable commodity (unbooked / empty residual) | **error** |
-| Posting `closing: TRUE` but `close` already written | **warn** (skip synthetic close; still assert `balance 0`) |
-| Duplicate `open` same account | **error** |
-| Unbalanced txn, no residual leg | **error** |
-| Failed `balance` assertion | **error** |
-| Over-sell (no inventory / not enough units) | **warn** (skip inventing inventory) |
-| Bad average cost on reduce | **error** |
-| Amount with number but no commodity | **error** (not residual) |
-| Invalid `interest_rate` / `interest-rate` expression on open | **error** |
-| Unknown `option` | **warn** |
-| `include` literal path missing | **error** |
-| `include` glob, zero matches | **warn** |
-| Include cycle | **error** |
-| Double-include same realpath | skip (dedupe); optional single warn |
-| Missing `operating_currency` (inferred) | **warn** |
-| Price missing for market conversion (value 0) | **warn** |
-| `prices.beancount` empty/missing | **warn** |
-| Unsupported / unknown directive | **warn** + skip |
-| CUE config unify failure | **error** |
+Reductions: omitted braces book at the current average. Prefer `@@` total proceeds. One Posting per commodity.
 
----
+FX cash spend: reducing a currency held at a foreign cost, to pay legs that need that currency in face terms, weights the cash Posting in the face commodity for balancing, and still reduces the foreign cost basis. Residual cash on a costed FX Account reduces inventory. Pure conversion to the operating currency plus gains weights by cost basis.
 
-## 11. Includes
+Autointerest: on `open` with `interest_rate` (alias `interest-rate`), parse the expression, counterpart `Assets:…` → `Income:Passivo:…`, materialize a `pad` the day before `balance` (skip when a pad exists), and on `close` inject `pad` + `balance 0` before close. Projection uses `custom "index"` through `time.Now()` and stops on `close`.
 
-- Relative paths resolved against the **directory of the file containing the `include`**.
-- Absolute paths allowed.
-- Globs supported; zero matches → warn.
-- Cycles → error.
-- File identity for cycle/dedupe: realpath.
+### Operating currency and prices
 
----
+Prefer explicit `operating_currency` in CUE / `option`. When missing: warn, then take the commodity from the first Transaction that carries a posting amount commodity. When still none: currency-denominated reports error at report time.
 
-## 12. Verification strategy
+Price lookup for as-of date D (PriceDB only):
 
-| Phase | Method |
-|-------|--------|
-| Early | **Dogfood** on real multi-ledger projects |
-| Ongoing | **Golden corpus** of fixtures (inputs + expected balances/errors/net worth) checked into the repo |
-| Optional later | Python Beancount oracle for selected fixtures — not required for definition of done |
+1. Direct pair `base→quote` with date ≤ D.
+2. Inverse of `quote→base`.
+3. One intermediate hop. Resolve each leg with the stored pair. When that pair is missing, use the inverse. Both legs ≤ D.
+4. Else warn; market value is 0.
 
-Golden fixtures should emphasize average-cost stock buys/partial sells, pads, includes, shared prices, multi-ledger isolation, and residual gains legs — not only STRICT lot puzzles.
+Do not use a future price for a past as-of. Do not use Position cost as market value.
 
----
+### Documents
 
-## 13. Implementation order (when unblocked)
+Walk `<ledger>/docs/by-account/**`. Account components are directories (`:` → `/`). Filename prefix is one of `yyyy`, `yyyymm`, `yyyymmdd` (contiguous digits, then a non-digit or end of name). Omitted month or day defaults to `01`. Invalid calendars and other digit lengths are an error diagnostic; those files are skipped. Explicit `document` directives merge in; the same path prefers the explicit directive. Transaction / posting metadata `document:` expands into the Ledger document list at open.
 
-1. Repo scaffold: Go module, Cobra, embed CUE prelude, project root discovery + layout scan.
-2. Config plane: prelude schema, empty `contapila.cue`, ledger config fact encoding (mock AST ok).
-3. Parser adapter behind `Parse` once modernc grammar is available.
-4. Loader (includes, streams) + booking model A + `check`.
-5. PriceDB + reports (balances, journal, P&L, net worth).
-6. CLI commands.
-7. Read-only web server; live reload later.
-8. Golden corpus expansion alongside dogfood.
-9. **LSP dogfood (§3.4):** bump Go **1.26+** if needed → add `go.lsp.dev/protocol` + `jsonrpc2` → FS overlay seam + `context` on load/check → `contapila lsp` (`UnimplementedServer` + `NewServer`) → parse diags, snapshot indexes, account goto, account/commodity completion, minimal hover → in-memory RPC regression tests + Helix example config.
-10. **Desktop shell (§3.2.1):** `contapila desktop` + not-a-TTY implicit rewrite via eletrocromo (same web handler).
+### Config plane (TEC-09)
 
----
+Embed CUE. Unify prelude, Operator `contapila.cue`, and host-injected facts. Unify failure is a load error.
 
-## 14. Open at implement time (non-blocking)
+In CUE: options, Commodity policy, `price_pairs` inventory, per-Ledger `open` / `close` facts, `plugins`, `links`, `project_journals`.
 
-- Exact CUE prelude schema field names and class set.
-- Exact Cobra flag set (dates, output formats).
-- HTTP routes and templ component structure.
-- Whether `contapila init` scaffolds root + empty cue + sample ledger dirs.
-- Tolerance combination rules when a transaction touches multiple commodities.
-- Optional `option "booking_method"` surface once more methods exist.
-- LSP debounce duration default; exact Go FS interface (`io/fs.FS` vs small project-local API).
-- How aggressively to clear vs retain check diagnostics for ledgers with no open buffers.
-- Exact `go.lsp.dev/*` module versions at implement time (track latest stable 3.18 stack).
+Not in CUE: Transactions, Postings, `balance`, `pad`, `note`, `event`, price time series, include resolution, Transaction metadata.
 
----
+Default Commodity precision is 5. Default tolerance is half ULP of precision. An optional `tolerance` field overrides. Beancount `inferred_tolerance_*` options are not read. Undeclared commodities use prelude defaults.
 
-## 15. Summary one-liner
+A journal `plugin "id"` that names a known Module enables that Module for that Ledger open. It MUST NOT write `contapila.cue`. An unknown id warns and skips.
 
-**Contapila** = conventional multi-ledger Beancount project (`contapila.cue` + `*/main.beancount` + `prices.beancount`) with embedded CUE policy, average-cost inventory, and a single Go binary for check/reports/read-only web/**desktop (eletrocromo + Helium)**/**Helix LSP** — semantics-first, plugins never, tree-sitter via modernc.
+## Quality
+
+| Concern | Measure, or why it cannot happen |
+|---------|----------------------------------|
+| Security | `web` binds `127.0.0.1:8765` by default. `/docfile` serves only `<ledger>/docs/**`. Desktop: eletrocromo token and library-owned bind. Missing Helium fails closed. HTTP does not write journals. |
+| Identity / auth | This project has no person accounts. A Ledger directory is the handle for one economic subject. `web` has no credentials. Multi-user belongs to a later platform project. |
+| Persistence | Journals and `contapila.cue` on disk are the books. CLI and `web` reload from disk. `lsp` overlays open buffers. Disk wins for closed files. No database. |
+| Exit contract | `RunE` error → exit 1. `check` exits 1 only on errors. `lsp` stdout is protocol only. |
+| Untrusted input | Journals, ingest JSONL, dump files, and URL paths are untrusted. Fail closed on path escape, CUE unify failure, and booking constructs that would lie about balances. Unknown directives warn and skip when safe. |
+
+## Security
+
+In scope: loopback bind, desktop one-shot token, `/docfile` confinement, no journal writes from HTTP, fail-closed desktop host.
+
+Why person-auth cannot happen: this project is a local single-Operator program. A platform project may add it later.
+
+Residual risk: any local process can call `web` on the loopback port. Desktop token auth does not apply to `web`.
+
+## Success
+
+- [ ] Two Ledgers in one Project keep separate inventories for the same Account name.
+- [ ] A file that never sets a booking method books average-cost, even when Beancount would use lots.
+- [ ] HTTP GET cannot change journal bytes.
+- [ ] `contapila web` serves on loopback without credentials.
+- [ ] `desktop` without Helium exits 1 and does not open a system browser.
+- [ ] `ingest` with the same `ingest_id` replaces the prior directive and leaves the rest of the file intact.
+- [ ] `check` with only warnings exits 0.
+- [ ] An unbalanced Transaction without a residual empty posting fails `check`.
+- [ ] Oversell warns and does not create units.
+- [ ] Operator `contapila.cue` that adds a `ledgers` key fails unify.
+- [ ] `lsp` definition on an Account with no `open` returns empty.
+- [ ] Net worth of an unpriced Position is 0 with a warning.
+
+## Later work
+
+1. BQL / `bean-query` execution (`query` directive is stored and shown only).
+2. `contapila init` (copy an embedded fixture directory).
+3. `option "booking_method"` / FIFO / LIFO / STRICT lots.
+4. `check` reconciling LedgerLink balances.
+5. In-browser journal edit / write-back.
+6. Full CUE language server.
+7. LSP beyond the dogfood cut: Commodity goto, references, rename, format, code actions, semantic tokens, workspace symbols, rich hover, required `fsnotify`.
+8. Advertising Windows and other unadvertised hosts as supported.
+9. A platform / multi-user product (different repo).
+
+## Assumptions
+
+| ID | Fact | If false |
+|----|------|----------|
+| AS-01 | The modernc Beancount grammar accepts the directive set in this document | Parser wrap fails; stop and change the grammar, not a hand parser |
+| AS-02 | eletrocromo ensure can install Helium on advertised hosts | `desktop` fails closed; do not open the system browser |
+
+## Decision history
+
+- Average-cost is the inventory law. Rejected: Beancount lot default as this product’s default.
+- First-party Modules stay in this binary. Rejected: user-loadable plugin code. Retracted: “plugins never”.
+- Config unify is CUE. Rejected: YAML plus a Go merge table.
+- Desktop window is eletrocromo. Rejected: system-browser fallback.
+- Booking is this repo. Rejected: gobean ledger, Python Beancount at runtime.
+- Genre is app + cli. Rejected: `pkg/*` as a supported import API.
