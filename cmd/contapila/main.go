@@ -50,10 +50,6 @@ var (
 )
 
 func main() {
-	// Text handler on stderr so engine/project slog.Warn (and Info) stay
-	// operator-visible before App.Setup applies --verbose.
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
-
 	// Not-a-TTY bare launch / project path → desktop (SPEC §3.2.1).
 	applyDesktopRewrite()
 

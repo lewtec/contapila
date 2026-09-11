@@ -17,11 +17,10 @@ import (
 var dumpPassword string
 
 // ErrMissingDumpDialect is returned when `contapila dump` is run without a dialect subcommand.
-var ErrMissingDumpDialect = errors.New("missing dialect subcommand (see contapila dump --help)")
+var ErrMissingDumpDialect = errors.New("missing dialect subcommand")
 
 type dumpCmd struct {
 	cmdFlags
-	Help     cmd.Flag      `short:"h" long:"help" help:"show help"`
 	Password cmd.StringArg `short:"p" long:"password" help:"password for encrypted PDF or XLSX"`
 	PDF      *dumpPDFCmd   `cmd:"pdf-dslipak-v1"`
 	XLSX     *dumpXLSXCmd  `cmd:"xlsx-excelize-v1"`
@@ -45,14 +44,6 @@ Pipe into a language-stdlib script, then into contapila ingest as JSONL directiv
 
 func (c *dumpCmd) Run(context.Context) error {
 	if err := c.apply(); err != nil {
-		return err
-	}
-	if c.Help.Value() {
-		text, err := cmd.Usage[dumpCmd]("contapila dump")
-		if err != nil {
-			return err
-		}
-		_, err = fmt.Fprint(os.Stdout, text)
 		return err
 	}
 	return ErrMissingDumpDialect
