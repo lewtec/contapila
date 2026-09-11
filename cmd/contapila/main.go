@@ -98,9 +98,56 @@ func applyParsed(r *root) error {
 }
 
 // dirFlag is -C/--directory. Embedded on the root (flags before the command)
-// and on each command (flags after the command).
+// and on each command (flags after the command). Parse applies workDir
+// immediately so a later ledgerArg can discover the project.
 type dirFlag struct {
-	Directory cmd.StringArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)"`
+	Directory directoryArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)"`
+}
+
+// directoryArg is -C: resolve and store the project search start directory.
+type directoryArg struct {
+	path string
+}
+
+func (d *directoryArg) Parse(s string) error {
+	if err := applyDirectory(s); err != nil {
+		return err
+	}
+	d.path = workDir
+	return nil
+}
+
+func (d directoryArg) Value() string { return d.path }
+
+// ledgerArg is a ledger directory name. Parse loads the project and checks
+// the name exists; Open books that ledger from a handle.
+type ledgerArg struct {
+	name string
+}
+
+func (a *ledgerArg) Parse(s string) error {
+	if s == "" {
+		return fmt.Errorf("%w: ledger", cmd.ErrInvalidArgument)
+	}
+	cwd, err := projectCwd()
+	if err != nil {
+		return err
+	}
+	p, err := project.OpenProject(context.Background(), cwd)
+	if err != nil {
+		return err
+	}
+	if !projectHasLedger(p, s) {
+		return fmt.Errorf("%w %q", engine.ErrUnknownLedger, s)
+	}
+	a.name = s
+	return nil
+}
+
+func (a ledgerArg) Value() string { return a.name }
+
+func (a ledgerArg) Open(ctx context.Context, h *engine.Handle) (*engine.Ledger, error) {
+	return h.Ledger(ctx, a.name)
 }
 
 // cmdFlags is the per-command copy of -C and -v (x/cmd does not inherit parent flags).
@@ -222,7 +269,7 @@ func withLedgers(ctx context.Context, names []string, fn func(*engine.Ledger) er
 	return nil
 }
 
-func optionalName(a *cmd.StringArg) []string {
+func optionalName(a *ledgerArg) []string {
 	if a == nil {
 		return nil
 	}
@@ -311,7 +358,7 @@ func (c *statusCmd) Run(ctx context.Context) error {
 
 type checkCmd struct {
 	cmdFlags
-	Ledger *cmd.StringArg
+	Ledger *ledgerArg
 }
 
 func (checkCmd) Description() string { return "Validate ledger(s)" }
@@ -335,7 +382,7 @@ func (c *checkCmd) Run(ctx context.Context) error {
 type balancesCmd struct {
 	cmdFlags
 	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD"`
-	Ledger *cmd.StringArg
+	Ledger *ledgerArg
 }
 
 func (balancesCmd) Description() string { return "Balances as-of" }
@@ -424,7 +471,7 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 type journalCmd struct {
 	cmdFlags
 	timeFlags
-	Ledger *cmd.StringArg
+	Ledger *ledgerArg
 }
 
 func (journalCmd) Description() string { return "Journal" }
@@ -467,7 +514,7 @@ func (c *journalCmd) Run(ctx context.Context) error {
 type pnlCmd struct {
 	cmdFlags
 	timeFlags
-	Ledger *cmd.StringArg
+	Ledger *ledgerArg
 }
 
 func (pnlCmd) Description() string { return "P&L for a Fava-style period" }
@@ -508,7 +555,7 @@ func (c *pnlCmd) Run(ctx context.Context) error {
 type networthCmd struct {
 	cmdFlags
 	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD"`
-	Ledger *cmd.StringArg
+	Ledger *ledgerArg
 }
 
 func (networthCmd) Description() string { return "Net worth" }
@@ -556,7 +603,7 @@ func (c *networthCmd) Run(ctx context.Context) error {
 type accountCmd struct {
 	cmdFlags
 	timeFlags
-	Ledger  cmd.StringArg
+	Ledger  ledgerArg
 	Account cmd.StringArg
 }
 
@@ -584,7 +631,7 @@ func (c *accountCmd) Run(ctx context.Context) error {
 		return err
 	}
 	printDiags(h.Diags)
-	l, err := h.Ledger(ctx, c.Ledger.Value())
+	l, err := c.Ledger.Open(ctx, h)
 	if err != nil {
 		return err
 	}
@@ -768,7 +815,7 @@ func (c *ingestCmd) Run(ctx context.Context) error {
 type webCmd struct {
 	cmdFlags
 	Addr   cmd.StringArg `long:"addr" help:"listen address (host:port)" default:"127.0.0.1:8765"`
-	Ledger *cmd.StringArg
+	Ledger *ledgerArg
 }
 
 func (webCmd) Description() string { return "Read-only web UI" }

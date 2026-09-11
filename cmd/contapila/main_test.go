@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/pkg/version"
 )
 
@@ -169,6 +170,17 @@ func TestVersionFlag(t *testing.T) {
 	}
 }
 
+func TestUnknownLedger(t *testing.T) {
+	dir := exampleDir(t)
+	_, _, err := runCLI(t, "-C", dir, "check", "nope")
+	if err == nil {
+		t.Fatal("expected error for unknown ledger")
+	}
+	if !errors.Is(err, engine.ErrUnknownLedger) {
+		t.Errorf("err=%v want engine.ErrUnknownLedger", err)
+	}
+}
+
 func TestDirectoryFlagMissing(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "no-such-project-root")
 	_, errOut, err := runCLI(t, "-C", missing, "status")
@@ -178,8 +190,8 @@ func TestDirectoryFlagMissing(t *testing.T) {
 	if !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("err=%v want fs.ErrNotExist; stderr=%q", err, errOut)
 	}
-	// Message should identify the -C flag (wrapped as "-C <path>: …")
-	if !strings.HasPrefix(err.Error(), "-C ") && !strings.Contains(errOut, "-C") {
-		t.Errorf("error should mention -C; err=%v stderr=%q", err, errOut)
+	// Message should identify the -C / --directory flag.
+	if !strings.Contains(err.Error(), "-C") && !strings.Contains(err.Error(), "--directory") && !strings.Contains(errOut, "-C") {
+		t.Errorf("error should mention -C/--directory; err=%v stderr=%q", err, errOut)
 	}
 }

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,7 +11,6 @@ import (
 	"syscall"
 
 	"github.com/lewtec/eletrocromo"
-	"github.com/lewtec/lewkit/x/cmd"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
@@ -23,12 +20,9 @@ import (
 // eletrocromoAppID is the reverse-domain Helium profile for contapila desktop.
 const eletrocromoAppID = "br.tec.lew.contapila"
 
-// ErrUnknownDesktopLedger is returned when desktop is given a ledger name not in the project.
-var ErrUnknownDesktopLedger = errors.New("unknown ledger")
-
 type desktopCmd struct {
 	cmdFlags
-	Ledger *cmd.StringArg
+	Ledger *ledgerArg
 }
 
 func (desktopCmd) Description() string {
@@ -64,11 +58,7 @@ func (c *desktopCmd) Run(ctx context.Context) error {
 	// matches the deep-link path that `web [ledger]` only prints.
 	handler := http.Handler(s.Handler())
 	if c.Ledger != nil {
-		name := c.Ledger.Value()
-		if !projectHasLedger(h.Project, name) {
-			return fmt.Errorf("%w %q", ErrUnknownDesktopLedger, name)
-		}
-		handler = rootDeepLinkHandler(handler, name)
+		handler = rootDeepLinkHandler(handler, c.Ledger.Value())
 	}
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
