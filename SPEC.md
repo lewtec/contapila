@@ -1,6 +1,6 @@
 # Contapila Specification
 
-This document constrains contapila: a local one-binary Beancount-class bookkeeper with average-cost inventory, a multi-ledger project, and read-only HTML plus a Cobra CLI.
+This document constrains contapila: a local one-binary Beancount-class bookkeeper with average-cost inventory, a multi-ledger project, and read-only HTML plus a lewkit `x/cmd` CLI.
 
 Status: draft
 Genre: app + cli
@@ -31,7 +31,7 @@ Inherited C (cite the file):
 | Binding | Cite |
 |---------|------|
 | Language Go 1.27 | `go.mod` |
-| One Cobra program | `cmd/contapila/main.go` |
+| One lewkit `x/cmd` program | `cmd/contapila/main.go` |
 | Project marker `contapila.cue`; ledgers `<root>/*/main.beancount` | `pkg/project/project.go` |
 | Embedded CUE prelude | `internal/config/prelude.cue` |
 | Average-cost inventory | `internal/booking/booking.go` |
@@ -50,7 +50,7 @@ Inherited C (cite the file):
 | TEC-03 | The same Ledger APIs the CLI uses | Render HTML on the server. Deliver those pages three ways: loopback HTTP, a dedicated app window, a static HTML tree. HTTP MUST NOT write journals. | HTML reports |
 | TEC-04 | `web` against `desktop` | `web` uses no credentials. The app-window host issues a one-shot token and owns the loopback bind. A missing window host fails closed. | Local-only access |
 | TEC-05 | argv | Run the frozen command set. When both stdin and stdout are not TTYs and argv matches the implicit-desktop table, rewrite to `desktop`. Discovery uses `-C` when set, else the process working directory. There is no `--config`. | One command runs |
-| TEC-06 | A command result | Print a `RunE` error on stderr and exit 1. `check` fails on errors. `check` succeeds when only warnings exist. Reports print human text on stdout. `lsp` uses stdout for the protocol only. | Unix exit status and one stdout shape |
+| TEC-06 | A command result | Print a `Run` error on stderr and exit 1. `check` fails on errors. `check` succeeds when only warnings exist. Reports print human text on stdout. `lsp` uses stdout for the protocol only. | Unix exit status and one stdout shape |
 | TEC-07 | An Operator write | Change journal bytes only through `ingest` (span surgery; upsert by `ingest_id`; append when that key is absent). `build` writes the `--out` directory. `dump` prints JSON on stdout. | Updated journal file, site tree, JSON |
 | TEC-08 | Postings | Keep one merged average-cost Position per Account and commodity. An increase MUST carry a cost basis (braces win over `@` and `@@`). A reduction without braces books at the current average. A Transaction that does not balance MUST have exactly one empty residual posting. Oversell warns and MUST NOT invent units. Net worth uses PriceDB only. | Positions and diagnostics |
 | TEC-09 | Embedded prelude, Operator `contapila.cue`, host-injected ledger and price-pair facts | Unify in CUE to one frozen RuntimeConfig. Transactions, pads, balances, and price time series stay out of that unify. First-party modules are gated by `plugins.<id>`. | RuntimeConfig |
@@ -67,10 +67,10 @@ Inherited C (cite the file):
 | TEC-03 | Pages in this repo | implement | A second page model beside templ | `path:internal/web` |
 | TEC-03 | vendored uPlot | wrap | A second chart series API | `path:internal/web/static/vendor/uplot` |
 | TEC-04 | eletrocromo | wrap | Embed Chromium. Fall back to the system browser | `lewtec/eletrocromo` |
-| TEC-05 | Cobra | adopt | `bean-*` flag clones | `path:cmd/contapila` |
+| TEC-05 | lewkit `x/cmd` | adopt | `bean-*` flag clones | `path:cmd/contapila` |
 | TEC-05 | `go.lsp.dev/protocol` + `jsonrpc2` | wrap | glsp, gopls `internal` | `path:internal/lsp` |
 | TEC-05 | dslipak/pdf, excelize | wrap | A third PDF/XLSX stack | `path:internal/dump` |
-| TEC-06 | Cobra, `log/slog` | adopt | A second error facade | `path:cmd/contapila` |
+| TEC-06 | lewkit `x/cmd`, `log/slog` | adopt | A second error facade | `path:cmd/contapila` |
 | TEC-07 | Span surgery + temp/rename in this repo | implement | HTTP write-back | `path:internal/ingest` |
 | TEC-08 | Booking in this repo | implement | Beancount lots, gobean ledger | `path:internal/booking` |
 | TEC-09 | CUE | adopt | A Go “who wins” merge | `path:internal/config` |
@@ -373,7 +373,7 @@ A journal `plugin "id"` that names a known Module enables that Module for that L
 | Security | `web` binds `127.0.0.1:8765` by default. `/docfile` serves only `<ledger>/docs/**`. Desktop: eletrocromo token and library-owned bind. Missing Helium fails closed. HTTP does not write journals. |
 | Identity / auth | This project has no person accounts. A Ledger directory is the handle for one economic subject. `web` has no credentials. Multi-user belongs to a later platform project. |
 | Persistence | Journals and `contapila.cue` on disk are the books. CLI and `web` reload from disk. `lsp` overlays open buffers. Disk wins for closed files. No database. |
-| Exit contract | `RunE` error → exit 1. `check` exits 1 only on errors. `lsp` stdout is protocol only. |
+| Exit contract | `Run` error → exit 1. `check` exits 1 only on errors. `lsp` stdout is protocol only. |
 | Untrusted input | Journals, ingest JSONL, dump files, and URL paths are untrusted. Fail closed on path escape, CUE unify failure, and booking constructs that would lie about balances. Unknown directives warn and skip when safe. |
 
 ## Security

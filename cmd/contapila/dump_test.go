@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/lewtec/lewkit/x/cmd"
 )
 
 func TestDumpUnknownDialect(t *testing.T) {
@@ -13,9 +14,8 @@ func TestDumpUnknownDialect(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unknown dump subcommand")
 	}
-	msg := fmt.Sprintf("%v", err)
-	if !strings.Contains(msg, `unknown command "nope-v1"`) {
-		t.Fatalf("err=%v", err)
+	if !errors.Is(err, cmd.ErrUnknownCommand) {
+		t.Fatalf("err=%v want ErrUnknownCommand", err)
 	}
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,11 +13,11 @@ import (
 	"syscall"
 
 	"github.com/lewtec/eletrocromo"
+	"github.com/lewtec/lewkit/x/cmd"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
 	"github.com/mattn/go-isatty"
-	"github.com/spf13/cobra"
 )
 
 // eletrocromoAppID is the reverse-domain Helium profile for contapila desktop.
@@ -25,54 +26,60 @@ const eletrocromoAppID = "br.tec.lew.contapila"
 // ErrUnknownDesktopLedger is returned when desktop is given a ledger name not in the project.
 var ErrUnknownDesktopLedger = errors.New("unknown ledger")
 
-func desktopCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "desktop [ledger]",
-		Short: "Read-only UI in a Helium window (eletrocromo)",
-		Long: `Open the same read-only web UI as "contapila web" inside a Helium
+type desktopCmd struct {
+	cmdFlags
+	Ledger *cmd.StringArg
+}
+
+func (desktopCmd) Description() string {
+	return `Read-only UI in a Helium window (eletrocromo)
+
+Open the same read-only web UI as "contapila web" inside a Helium
 --app window via eletrocromo. The library owns loopback bind and token auth;
 there is no --addr flag.
 
 Optional [ledger] opens that ledger's check page (same path web prints as a
 deep-link). Project root is discovered from -C / the process working directory
-(walk up for contapila.cue), same as other commands.`,
-		Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cwd, err := projectCwd()
-			if err != nil {
-				return err
-			}
-			h, err := engine.Open(cmd.Context(), cwd)
-			if err != nil {
-				return err
-			}
-			s, err := web.New(h.Project, h.Prices)
-			if err != nil {
-				return err
-			}
-			// eletrocromo always launches "/?token=…"; when the user names a
-			// ledger, redirect that root hit to /l/<ledger>/check so desktop
-			// matches the deep-link path that `web [ledger]` only prints.
-			handler := http.Handler(s.Handler())
-			if len(args) == 1 {
-				name := args[0]
-				if !projectHasLedger(h.Project, name) {
-					return fmt.Errorf("%w %q", ErrUnknownDesktopLedger, name)
-				}
-				handler = rootDeepLinkHandler(handler, name)
-			}
+(walk up for contapila.cue), same as other commands.`
+}
 
-			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
-
-			app := eletrocromo.App{
-				ID:      eletrocromoAppID,
-				Handler: handler,
-				Context: ctx,
-			}
-			return app.Run()
-		},
+func (c *desktopCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
 	}
+	cwd, err := projectCwd()
+	if err != nil {
+		return err
+	}
+	h, err := engine.Open(ctx, cwd)
+	if err != nil {
+		return err
+	}
+	s, err := web.New(h.Project, h.Prices)
+	if err != nil {
+		return err
+	}
+	// eletrocromo always launches "/?token=…"; when the user names a
+	// ledger, redirect that root hit to /l/<ledger>/check so desktop
+	// matches the deep-link path that `web [ledger]` only prints.
+	handler := http.Handler(s.Handler())
+	if c.Ledger != nil {
+		name := c.Ledger.Value()
+		if !projectHasLedger(h.Project, name) {
+			return fmt.Errorf("%w %q", ErrUnknownDesktopLedger, name)
+		}
+		handler = rootDeepLinkHandler(handler, name)
+	}
+
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	app := eletrocromo.App{
+		ID:      eletrocromoAppID,
+		Handler: handler,
+		Context: ctx,
+	}
+	return app.Run()
 }
 
 // projectHasLedger reports whether name is a discovered ledger directory.
@@ -141,7 +148,7 @@ func planDesktopRewrite(stdinTTY, stdoutTTY bool, args []string) (newArgs []stri
 			flags = append(flags, a)
 		case a == "-C" || a == "--directory":
 			if i+1 >= len(args) {
-				// Incomplete flag — leave for cobra.
+				// Incomplete flag — leave for the parser.
 				return nil, "", false
 			}
 			flags = append(flags, a, args[i+1])

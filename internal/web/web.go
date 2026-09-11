@@ -56,7 +56,7 @@ type Server struct {
 }
 
 // Listen serves the web UI until ctx is canceled or the process receives
-// SIGINT/SIGTERM. Callers should pass cmd.Context() from cobra.
+// SIGINT/SIGTERM. Callers should pass a cancellable context.
 func Listen(ctx context.Context, p *project.Project, pdb *prices.DB, defaultLedger string, addr string) error {
 	s, err := New(p, pdb)
 	if err != nil {

@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/lucasew/contapila-go/pkg/version"
 )
 
 // exampleDir is the multi-ledger fixture used for CLI smoke tests.
@@ -26,23 +28,16 @@ func exampleDir(t *testing.T) string {
 }
 
 // runCLI executes the CLI with args, capturing stdout/stderr. Resets package
-// globals bound by -C/--verbose between calls. Uses newRoot() (not main()) so
-// failures return instead of os.Exit.
+// globals bound by -C between calls. Uses execute() (not main()) so failures
+// return instead of os.Exit.
 func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 	workDir = ""
-	verbose = false
 	dumpPassword = ""
-	logLevel.Set(slog.LevelInfo)
 	t.Cleanup(func() {
 		workDir = ""
-		verbose = false
 		dumpPassword = ""
-		logLevel.Set(slog.LevelInfo)
 	})
-
-	root := newRoot()
-	root.SetArgs(args)
 
 	oldOut, oldErr := os.Stdout, os.Stderr
 	or, ow, pipeErr := os.Pipe()
@@ -56,9 +51,9 @@ func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	os.Stdout, os.Stderr = ow, ew
 
 	// Point slog at the pipe so --verbose noise does not leak into the runner.
-	slog.SetDefault(slog.New(slog.NewTextHandler(ew, &slog.HandlerOptions{Level: logLevel})))
+	slog.SetDefault(slog.New(slog.NewTextHandler(ew, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
-	execErr := root.Execute()
+	execErr := execute(t.Context(), args)
 
 	if err := ow.Close(); err != nil {
 		t.Logf("stdout writer close: %v", err)
@@ -149,6 +144,28 @@ func TestParseCommodities(t *testing.T) {
 	}
 	if !strings.Contains(out, "ast.Commodity") {
 		t.Errorf("parse expected commodity directives, got:\n%s", out)
+	}
+}
+
+func TestHelpListsCommands(t *testing.T) {
+	out, _, err := runCLI(t, "--help")
+	if err != nil {
+		t.Fatalf("help: %v\n%s", err, out)
+	}
+	for _, want := range []string{"status", "check", "dump", "web", "desktop", "--directory"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("help missing %q\n%s", want, out)
+		}
+	}
+}
+
+func TestVersionFlag(t *testing.T) {
+	out, _, err := runCLI(t, "--version")
+	if err != nil {
+		t.Fatalf("version: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(out); got != version.GetBuildID() {
+		t.Errorf("version=%q want %q", got, version.GetBuildID())
 	}
 }
 

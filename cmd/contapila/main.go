@@ -9,12 +9,15 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"text/tabwriter"
 	"time"
 
+	"github.com/lewtec/lewkit/x/cmd"
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/engine"
@@ -25,7 +28,6 @@ import (
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
 	"github.com/lucasew/contapila-go/pkg/version"
-	"github.com/spf13/cobra"
 
 	// First-party web pages (stream expanders are called from engine, not registered).
 	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
@@ -36,12 +38,6 @@ import (
 // workDir is the optional start directory for project discovery (global -C).
 // Empty means use the process working directory.
 var workDir string
-
-// verbose enables Debug-level slog output (--verbose). Default log level is Info.
-var verbose bool
-
-// logLevel is the live slog level (Info by default; Debug when --verbose).
-var logLevel = &slog.LevelVar{} // zero value is LevelInfo
 
 // CLI sentinel errors (wrap with context via fmt.Errorf %w).
 var (
@@ -55,57 +51,124 @@ var (
 
 func main() {
 	// Text handler on stderr so engine/project slog.Warn (and Info) stay
-	// operator-visible. Level Info by default; Debug with --verbose.
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
-
-	root := newRoot()
+	// operator-visible before App.Setup applies --verbose.
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	// Not-a-TTY bare launch / project path → desktop (SPEC §3.2.1).
-	// After flag registration so workDir is not wiped by StringVarP defaults;
-	// before Execute so "contapila /path" is not an unknown command.
 	applyDesktopRewrite()
 
-	if err := root.Execute(); err != nil {
+	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-// newRoot builds the cobra tree used by main and same-package CLI tests.
-func newRoot() *cobra.Command {
-	root := &cobra.Command{
-		Use:           "contapila",
-		Short:         "Contapila — Beancount-class ledger in Go",
-		Version:       version.GetBuildID(),
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		// Apply --verbose / -C before subcommands; discovery starts from -C.
-		PersistentPreRunE: applyPersistentFlags,
-	}
-	root.PersistentFlags().StringVarP(&workDir, "directory", "C", "", "run as if contapila started in this directory (project discovery)")
-	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable debug logging on stderr")
-	root.AddCommand(statusCmd(), checkCmd(), balancesCmd(), journalCmd(), pnlCmd(), networthCmd(), accountCmd(), parseCmd(), ingestCmd(), webCmd(), buildCmd(), desktopCmd(), lspCmd(), dumpCmd())
-	return root
+func run(args []string) error {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	return execute(ctx, args)
 }
 
-// applyPersistentFlags applies --verbose and resolves -C before subcommands.
-func applyPersistentFlags(_ *cobra.Command, _ []string) error {
-	if verbose {
-		logLevel.Set(slog.LevelDebug)
+// execute parses argv and runs the selected command. Tests call this instead
+// of main() so failures return instead of os.Exit.
+func execute(ctx context.Context, args []string) error {
+	app, err := cmd.Parse[cmd.App[root]](args...)
+	if err != nil {
+		return err
 	}
-	if workDir == "" {
+	if err := applyParsed(&app.Args); err != nil {
+		return err
+	}
+	if !app.Help() && app.WantVersion() {
+		_, err := fmt.Fprintln(os.Stdout, version.GetBuildID())
+		return err
+	}
+	return app.Run(ctx)
+}
+
+// applyParsed copies parent-level -C / dump --password so nested commands
+// still see flags that were written on the parent spec.
+func applyParsed(r *root) error {
+	if err := applyDirectory(r.Directory.Value()); err != nil {
+		return err
+	}
+	if d := r.Dump; d != nil {
+		dumpPassword = d.Password.Value()
+		if err := applyDirectory(d.Directory.Value()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// dirFlag is -C/--directory. Embedded on the root (flags before the command)
+// and on each command (flags after the command).
+type dirFlag struct {
+	Directory cmd.StringArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)"`
+}
+
+// cmdFlags is the per-command copy of -C and -v (x/cmd does not inherit parent flags).
+type cmdFlags struct {
+	dirFlag
+	Verbose cmd.Count `short:"v" long:"verbose" help:"log verbosity"`
+}
+
+func (f cmdFlags) apply() error {
+	if n := f.Verbose.Value(); n > 0 {
+		level := slog.LevelInfo - slog.Level(4*n)
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
+	}
+	return applyDirectory(f.Directory.Value())
+}
+
+type root struct {
+	dirFlag
+	Status   *statusCmd
+	Doctor   *statusCmd `cmd:"doctor"`
+	Check    *checkCmd
+	Balances *balancesCmd
+	Journal  *journalCmd
+	Pnl      *pnlCmd
+	Networth *networthCmd
+	Account  *accountCmd
+	Parse    *parseCmd
+	Ingest   *ingestCmd
+	Web      *webCmd
+	Build    *buildCmd
+	Desktop  *desktopCmd
+	Lsp      *lspCmd
+	Dump     *dumpCmd
+}
+
+func (root) Description() string {
+	return "Contapila — Beancount-class ledger in Go"
+}
+
+func (r *root) Run(context.Context) error {
+	text, err := cmd.Usage[cmd.App[root]]("contapila")
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprint(os.Stdout, text)
+	return err
+}
+
+// applyDirectory resolves -C and stores it in workDir. Empty dir is a no-op
+// so a later flag or the desktop rewrite can win.
+func applyDirectory(dir string) error {
+	if dir == "" {
 		return nil
 	}
-	abs, err := filepath.Abs(workDir)
+	abs, err := filepath.Abs(dir)
 	if err != nil {
-		return fmt.Errorf("-C %s: %w", workDir, err)
+		return fmt.Errorf("-C %s: %w", dir, err)
 	}
 	info, err := os.Stat(abs)
 	if err != nil {
-		return fmt.Errorf("-C %s: %w", workDir, err)
+		return fmt.Errorf("-C %s: %w", dir, err)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("-C %s: %w", workDir, ErrNotDirectory)
+		return fmt.Errorf("-C %s: %w", dir, ErrNotDirectory)
 	}
 	workDir = abs
 	return nil
@@ -130,7 +193,7 @@ func printDiags(ds diag.List) {
 	fmt.Fprintln(os.Stderr, ds.Format())
 }
 
-func withLedgers(ctx context.Context, args []string, fn func(*engine.Ledger) error) error {
+func withLedgers(ctx context.Context, names []string, fn func(*engine.Ledger) error) error {
 	cwd, err := projectCwd()
 	if err != nil {
 		return err
@@ -140,7 +203,6 @@ func withLedgers(ctx context.Context, args []string, fn func(*engine.Ledger) err
 		return err
 	}
 	printDiags(h.Diags)
-	names := args
 	if len(names) == 0 {
 		names = h.LedgerNames()
 		if len(names) == 0 {
@@ -164,235 +226,21 @@ func withLedgers(ctx context.Context, args []string, fn func(*engine.Ledger) err
 	return nil
 }
 
-func statusCmd() *cobra.Command {
-	return &cobra.Command{
-		Use: "status", Aliases: []string{"doctor"}, Short: "Show project status",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cwd, err := projectCwd()
-			if err != nil {
-				return err
-			}
-			p, err := project.OpenProject(cmd.Context(), cwd)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("Project root:      %s\n", p.Root)
-			fmt.Printf("contapila.cue:     %s\n", filepath.Join(p.Root, "contapila.cue"))
-			if len(p.Ledgers) == 0 {
-				return ErrZeroLedgers
-			}
-			fmt.Printf("Ledgers (%d):\n", len(p.Ledgers))
-			for _, l := range p.Ledgers {
-				fmt.Printf("  - %s (%s)\n", l.Name, l.MainPath)
-			}
-			if p.PricesPath != "" {
-				switch {
-				case p.PricesMissing:
-					fmt.Printf("Prices:            %s (missing)\n", p.PricesPath)
-				case p.PricesEmpty:
-					fmt.Printf("Prices:            %s (empty)\n", p.PricesPath)
-				default:
-					fmt.Printf("Prices:            %s\n", p.PricesPath)
-				}
-			}
-			if len(p.StreamJournals) > 0 {
-				fmt.Printf("Stream journals (%d):\n", len(p.StreamJournals))
-				for _, j := range p.StreamJournals {
-					fmt.Printf("  - %s\n", j.Path)
-				}
-			}
-			fmt.Println("CUE:               Unified OK")
-			return nil
-		},
+func optionalName(a *cmd.StringArg) []string {
+	if a == nil {
+		return nil
 	}
+	return []string{a.Value()}
 }
 
-func checkCmd() *cobra.Command {
-	return &cobra.Command{
-		Use: "check [ledger]", Short: "Validate ledger(s)", Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
-				fmt.Printf("== %s ==\n", l.Name)
-				ds := l.Check()
-				printDiags(ds)
-				if ds.HasErrors() {
-					return fmt.Errorf("%w for %s", ErrCheckFailed, l.Name)
-				}
-				fmt.Println("OK")
-				return nil
-			})
-		},
-	}
+type timeFlags struct {
+	Time cmd.StringArg `long:"time" help:"Fava-style period: 2024, 2024-03, 2024-Q1, month, month-1, year, 2020 - 2024-06"`
+	From cmd.StringArg `long:"from" help:"inclusive start YYYY-MM-DD (overrides --time start if set alone with --to)"`
+	To   cmd.StringArg `long:"to" help:"inclusive end YYYY-MM-DD"`
 }
 
-func balancesCmd() *cobra.Command {
-	var asOf string
-	c := &cobra.Command{
-		Use: "balances [ledger]", Short: "Balances as-of", Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := engine.ParseDate(asOf)
-			if err != nil {
-				return err
-			}
-			if t.IsZero() {
-				t = engine.AsOfLatest
-			}
-			// Single ledger: hierarchical tree. Multi-ledger: flat sorted table.
-			if len(args) == 1 {
-				return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
-					tree := l.BalancesTree(t)
-					fmt.Printf("== %s balances ==\n", l.Name)
-					for _, ln := range tree {
-						pad := strings.Repeat("  ", ln.Depth)
-						mark := "  "
-						if ln.IsRollup {
-							mark = "Σ "
-						}
-						name := cmp.Or(ln.Name, ln.Account)
-						amt := ""
-						if ln.Amount != nil {
-							amt = ln.Amount.FloatString(4)
-						}
-						fmt.Printf("%s%s%-28s %12s %s\n", pad, mark, name, amt, ln.Commodity)
-					}
-					return nil
-				})
-			}
-			type row struct {
-				ledger, account, amount, commodity string
-			}
-			var rows []row
-			err = withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
-				bals := l.BalancesAsOf(t)
-				var accts []string
-				for a := range bals {
-					accts = append(accts, a)
-				}
-				sort.Strings(accts)
-				for _, a := range accts {
-					var cs []string
-					for c := range bals[a] {
-						cs = append(cs, c)
-					}
-					sort.Strings(cs)
-					for _, c := range cs {
-						rows = append(rows, row{
-							ledger:    l.Name,
-							account:   a,
-							amount:    bals[a][c].FloatString(6),
-							commodity: c,
-						})
-					}
-				}
-				return nil
-			})
-			if err != nil {
-				return err
-			}
-			sort.Slice(rows, func(i, j int) bool {
-				if rows[i].account != rows[j].account {
-					return rows[i].account < rows[j].account
-				}
-				if rows[i].commodity != rows[j].commodity {
-					return rows[i].commodity < rows[j].commodity
-				}
-				return rows[i].ledger < rows[j].ledger
-			})
-			w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-			fmt.Fprintln(w, "LEDGER\tACCOUNT\tAMOUNT\tCOMMODITY")
-			for _, r := range rows {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ledger, r.account, r.amount, r.commodity)
-			}
-			return w.Flush()
-		},
-	}
-	c.Flags().StringVar(&asOf, "as-of", "", "YYYY-MM-DD")
-	return c
-}
-
-func journalCmd() *cobra.Command {
-	var timeFilter, from, to string
-	c := &cobra.Command{
-		Use: "journal [ledger]", Short: "Journal", Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			r, err := resolvePeriod(timeFilter, from, to)
-			if err != nil {
-				return err
-			}
-			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
-				fmt.Printf("== %s ==", l.Name)
-				if !r.Empty() {
-					fmt.Printf("  [%s]", r.Label())
-				}
-				fmt.Println()
-				for _, e := range l.Journal(r.Start, r.End) {
-					switch e.Kind {
-					case "txn":
-						fmt.Printf("%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
-						for _, p := range e.Postings {
-							if p.Units == nil || p.Units.Commodity == "" && p.Units.Number.Sign() == 0 {
-								fmt.Printf("  %s\n", p.Account)
-								continue
-							}
-							fmt.Printf("  %-40s %s %s\n", p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
-						}
-					case "note":
-						fmt.Printf("%s note %s %q\n", e.Date.Format("2006-01-02"), e.Account, e.Comment)
-					case "event":
-						fmt.Printf("%s event %q %q\n", e.Date.Format("2006-01-02"), e.Narration, e.Comment)
-					}
-				}
-				return nil
-			})
-		},
-	}
-	addTimeFlags(c, &timeFilter, &from, &to)
-	return c
-}
-
-func pnlCmd() *cobra.Command {
-	var timeFilter, from, to string
-	c := &cobra.Command{
-		Use: "pnl [ledger]", Short: "P&L for a Fava-style period", Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			r, err := resolvePeriod(timeFilter, from, to)
-			if err != nil {
-				return err
-			}
-			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
-				fmt.Printf("== %s ==", l.Name)
-				if !r.Empty() {
-					fmt.Printf("  [%s]", r.Label())
-				}
-				fmt.Println()
-				inc, exp := l.PnLTree(r.Start, r.End)
-				printPnLTree := func(title string, lines []engine.PnLLine) {
-					fmt.Println(title)
-					for _, ln := range lines {
-						pad := strings.Repeat("  ", ln.Depth)
-						mark := "  "
-						if ln.IsRollup {
-							mark = "Σ "
-						}
-						name := cmp.Or(ln.Name, ln.Account)
-						fmt.Printf("%s%s%-28s %s %s\n", pad, mark, name, ln.Amount.FloatString(2), ln.Commodity)
-					}
-				}
-				printPnLTree("Income:", inc)
-				printPnLTree("Expenses:", exp)
-				return nil
-			})
-		},
-	}
-	addTimeFlags(c, &timeFilter, &from, &to)
-	return c
-}
-
-// addTimeFlags registers Fava-style --time plus optional --from/--to overrides.
-func addTimeFlags(c *cobra.Command, timeFilter, from, to *string) {
-	c.Flags().StringVar(timeFilter, "time", "", "Fava-style period: 2024, 2024-03, 2024-Q1, month, month-1, year, 2020 - 2024-06")
-	c.Flags().StringVar(from, "from", "", "inclusive start YYYY-MM-DD (overrides --time start if set alone with --to)")
-	c.Flags().StringVar(to, "to", "", "inclusive end YYYY-MM-DD")
+func (t timeFlags) resolve() (period.Range, error) {
+	return resolvePeriod(t.Time.Value(), t.From.Value(), t.To.Value())
 }
 
 // resolvePeriod prefers --time; if empty, uses --from/--to; if both empty, all time.
@@ -418,141 +266,394 @@ func resolvePeriod(timeFilter, from, to string) (period.Range, error) {
 	return period.Range{Start: f, End: t, Raw: raw}, nil
 }
 
-func networthCmd() *cobra.Command {
-	var asOf string
-	c := &cobra.Command{
-		Use: "networth [ledger]", Short: "Net worth", Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			t, err := engine.ParseDate(asOf)
-			if err != nil {
-				return err
-			}
-			if t.IsZero() {
-				t = engine.AsOfLatest
-			}
-			return withLedgers(cmd.Context(), args, func(l *engine.Ledger) error {
-				lines, total, err := l.NetWorthTree(t)
-				if err != nil {
-					return err
-				}
-				fmt.Printf("== %s net worth (%s) ==\n", l.Name, l.OpCurrency)
-				for _, ln := range lines {
-					pad := strings.Repeat("  ", ln.Depth)
-					mark := "  "
-					if ln.IsRollup {
-						mark = "Σ "
-					}
-					name := cmp.Or(ln.Name, ln.Account)
-					flag := ""
-					if ln.Unpriced {
-						flag = " (no px)"
-					}
-					units := ""
-					if ln.Units != nil {
-						units = ln.Units.FloatString(4) + " " + ln.Commodity
-					}
-					fmt.Printf("%s%s%-28s %16s => %s %s%s\n",
-						pad, mark, name, units, ln.Value.FloatString(2), l.OpCurrency, flag)
-				}
-				fmt.Printf("TOTAL %s %s\n", total.FloatString(2), l.OpCurrency)
-				return nil
-			})
-		},
-	}
-	c.Flags().StringVar(&asOf, "as-of", "", "YYYY-MM-DD")
-	return c
+type statusCmd struct {
+	cmdFlags
 }
 
-func accountCmd() *cobra.Command {
-	var timeFilter, from, to string
-	c := &cobra.Command{
-		Use:   "account <ledger> <account>",
-		Short: "Show one account (balance, period change, journal)",
-		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			r, err := resolvePeriod(timeFilter, from, to)
-			if err != nil {
-				return err
-			}
-			cwd, err := projectCwd()
-			if err != nil {
-				return err
-			}
-			h, err := engine.Open(cmd.Context(), cwd)
-			if err != nil {
-				return err
-			}
-			printDiags(h.Diags)
-			l, err := h.Ledger(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			acct := args[1]
-			asOf := r.End
-			if asOf.IsZero() {
-				asOf = engine.AsOfLatest
-			}
-			fmt.Printf("== %s · %s ==", l.Name, acct)
-			if !r.Empty() {
-				fmt.Printf("  [%s]", r.Label())
-			}
-			fmt.Println()
-			fmt.Println("Balance:")
-			bals := l.AccountBalances(acct, asOf)
-			if len(bals) == 0 {
-				fmt.Println("  (zero)")
-			} else {
-				var cs []string
-				for c := range bals {
-					cs = append(cs, c)
+func (statusCmd) Description() string { return "Show project status" }
+
+func (c *statusCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	cwd, err := projectCwd()
+	if err != nil {
+		return err
+	}
+	p, err := project.OpenProject(ctx, cwd)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Project root:      %s\n", p.Root)
+	fmt.Printf("contapila.cue:     %s\n", filepath.Join(p.Root, "contapila.cue"))
+	if len(p.Ledgers) == 0 {
+		return ErrZeroLedgers
+	}
+	fmt.Printf("Ledgers (%d):\n", len(p.Ledgers))
+	for _, l := range p.Ledgers {
+		fmt.Printf("  - %s (%s)\n", l.Name, l.MainPath)
+	}
+	if p.PricesPath != "" {
+		switch {
+		case p.PricesMissing:
+			fmt.Printf("Prices:            %s (missing)\n", p.PricesPath)
+		case p.PricesEmpty:
+			fmt.Printf("Prices:            %s (empty)\n", p.PricesPath)
+		default:
+			fmt.Printf("Prices:            %s\n", p.PricesPath)
+		}
+	}
+	if len(p.StreamJournals) > 0 {
+		fmt.Printf("Stream journals (%d):\n", len(p.StreamJournals))
+		for _, j := range p.StreamJournals {
+			fmt.Printf("  - %s\n", j.Path)
+		}
+	}
+	fmt.Println("CUE:               Unified OK")
+	return nil
+}
+
+type checkCmd struct {
+	cmdFlags
+	Ledger *cmd.StringArg
+}
+
+func (checkCmd) Description() string { return "Validate ledger(s)" }
+
+func (c *checkCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
+		fmt.Printf("== %s ==\n", l.Name)
+		ds := l.Check()
+		printDiags(ds)
+		if ds.HasErrors() {
+			return fmt.Errorf("%w for %s", ErrCheckFailed, l.Name)
+		}
+		fmt.Println("OK")
+		return nil
+	})
+}
+
+type balancesCmd struct {
+	cmdFlags
+	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD"`
+	Ledger *cmd.StringArg
+}
+
+func (balancesCmd) Description() string { return "Balances as-of" }
+
+func (c *balancesCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	t, err := engine.ParseDate(c.AsOf.Value())
+	if err != nil {
+		return err
+	}
+	if t.IsZero() {
+		t = engine.AsOfLatest
+	}
+	args := optionalName(c.Ledger)
+	// Single ledger: hierarchical tree. Multi-ledger: flat sorted table.
+	if len(args) == 1 {
+		return withLedgers(ctx, args, func(l *engine.Ledger) error {
+			tree := l.BalancesTree(t)
+			fmt.Printf("== %s balances ==\n", l.Name)
+			for _, ln := range tree {
+				pad := strings.Repeat("  ", ln.Depth)
+				mark := "  "
+				if ln.IsRollup {
+					mark = "Σ "
 				}
-				sort.Strings(cs)
-				w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-				for _, c := range cs {
-					fmt.Fprintf(w, "  %s\t%s\n", bals[c].FloatString(6), c)
+				name := cmp.Or(ln.Name, ln.Account)
+				amt := ""
+				if ln.Amount != nil {
+					amt = ln.Amount.FloatString(4)
 				}
-				w.Flush()
-			}
-			fmt.Println("Change in period:")
-			act := l.AccountActivity(acct, r.Start, r.End)
-			if len(act) == 0 {
-				fmt.Println("  (none)")
-			} else {
-				var cs []string
-				for c := range act {
-					cs = append(cs, c)
-				}
-				sort.Strings(cs)
-				w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-				for _, c := range cs {
-					fmt.Fprintf(w, "  %s\t%s\n", act[c].FloatString(6), c)
-				}
-				w.Flush()
-			}
-			fmt.Println("Journal:")
-			for _, e := range l.JournalForAccount(acct, r.Start, r.End) {
-				if e.Kind != "txn" {
-					fmt.Printf("%s %s %s\n", e.Date.Format("2006-01-02"), e.Kind, e.Comment)
-					continue
-				}
-				fmt.Printf("%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
-				for _, p := range e.Postings {
-					mark := "  "
-					if p.Account == acct {
-						mark = "* "
-					}
-					if p.Units == nil {
-						fmt.Printf("%s%s\n", mark, p.Account)
-						continue
-					}
-					fmt.Printf("%s%-40s %s %s\n", mark, p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
-				}
+				fmt.Printf("%s%s%-28s %12s %s\n", pad, mark, name, amt, ln.Commodity)
 			}
 			return nil
-		},
+		})
 	}
-	addTimeFlags(c, &timeFilter, &from, &to)
-	return c
+	type row struct {
+		ledger, account, amount, commodity string
+	}
+	var rows []row
+	err = withLedgers(ctx, args, func(l *engine.Ledger) error {
+		bals := l.BalancesAsOf(t)
+		var accts []string
+		for a := range bals {
+			accts = append(accts, a)
+		}
+		sort.Strings(accts)
+		for _, a := range accts {
+			var cs []string
+			for c := range bals[a] {
+				cs = append(cs, c)
+			}
+			sort.Strings(cs)
+			for _, c := range cs {
+				rows = append(rows, row{
+					ledger:    l.Name,
+					account:   a,
+					amount:    bals[a][c].FloatString(6),
+					commodity: c,
+				})
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].account != rows[j].account {
+			return rows[i].account < rows[j].account
+		}
+		if rows[i].commodity != rows[j].commodity {
+			return rows[i].commodity < rows[j].commodity
+		}
+		return rows[i].ledger < rows[j].ledger
+	})
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(w, "LEDGER\tACCOUNT\tAMOUNT\tCOMMODITY")
+	for _, r := range rows {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ledger, r.account, r.amount, r.commodity)
+	}
+	return w.Flush()
+}
+
+type journalCmd struct {
+	cmdFlags
+	timeFlags
+	Ledger *cmd.StringArg
+}
+
+func (journalCmd) Description() string { return "Journal" }
+
+func (c *journalCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	r, err := c.resolve()
+	if err != nil {
+		return err
+	}
+	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
+		fmt.Printf("== %s ==", l.Name)
+		if !r.Empty() {
+			fmt.Printf("  [%s]", r.Label())
+		}
+		fmt.Println()
+		for _, e := range l.Journal(r.Start, r.End) {
+			switch e.Kind {
+			case "txn":
+				fmt.Printf("%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
+				for _, p := range e.Postings {
+					if p.Units == nil || p.Units.Commodity == "" && p.Units.Number.Sign() == 0 {
+						fmt.Printf("  %s\n", p.Account)
+						continue
+					}
+					fmt.Printf("  %-40s %s %s\n", p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
+				}
+			case "note":
+				fmt.Printf("%s note %s %q\n", e.Date.Format("2006-01-02"), e.Account, e.Comment)
+			case "event":
+				fmt.Printf("%s event %q %q\n", e.Date.Format("2006-01-02"), e.Narration, e.Comment)
+			}
+		}
+		return nil
+	})
+}
+
+type pnlCmd struct {
+	cmdFlags
+	timeFlags
+	Ledger *cmd.StringArg
+}
+
+func (pnlCmd) Description() string { return "P&L for a Fava-style period" }
+
+func (c *pnlCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	r, err := c.resolve()
+	if err != nil {
+		return err
+	}
+	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
+		fmt.Printf("== %s ==", l.Name)
+		if !r.Empty() {
+			fmt.Printf("  [%s]", r.Label())
+		}
+		fmt.Println()
+		inc, exp := l.PnLTree(r.Start, r.End)
+		printPnLTree := func(title string, lines []engine.PnLLine) {
+			fmt.Println(title)
+			for _, ln := range lines {
+				pad := strings.Repeat("  ", ln.Depth)
+				mark := "  "
+				if ln.IsRollup {
+					mark = "Σ "
+				}
+				name := cmp.Or(ln.Name, ln.Account)
+				fmt.Printf("%s%s%-28s %s %s\n", pad, mark, name, ln.Amount.FloatString(2), ln.Commodity)
+			}
+		}
+		printPnLTree("Income:", inc)
+		printPnLTree("Expenses:", exp)
+		return nil
+	})
+}
+
+type networthCmd struct {
+	cmdFlags
+	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD"`
+	Ledger *cmd.StringArg
+}
+
+func (networthCmd) Description() string { return "Net worth" }
+
+func (c *networthCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	t, err := engine.ParseDate(c.AsOf.Value())
+	if err != nil {
+		return err
+	}
+	if t.IsZero() {
+		t = engine.AsOfLatest
+	}
+	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
+		lines, total, err := l.NetWorthTree(t)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("== %s net worth (%s) ==\n", l.Name, l.OpCurrency)
+		for _, ln := range lines {
+			pad := strings.Repeat("  ", ln.Depth)
+			mark := "  "
+			if ln.IsRollup {
+				mark = "Σ "
+			}
+			name := cmp.Or(ln.Name, ln.Account)
+			flag := ""
+			if ln.Unpriced {
+				flag = " (no px)"
+			}
+			units := ""
+			if ln.Units != nil {
+				units = ln.Units.FloatString(4) + " " + ln.Commodity
+			}
+			fmt.Printf("%s%s%-28s %16s => %s %s%s\n",
+				pad, mark, name, units, ln.Value.FloatString(2), l.OpCurrency, flag)
+		}
+		fmt.Printf("TOTAL %s %s\n", total.FloatString(2), l.OpCurrency)
+		return nil
+	})
+}
+
+type accountCmd struct {
+	cmdFlags
+	timeFlags
+	Ledger  cmd.StringArg
+	Account cmd.StringArg
+}
+
+func (accountCmd) Description() string {
+	return "Show one account (balance, period change, journal)"
+}
+
+func (c *accountCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	if c.Ledger.Value() == "" || c.Account.Value() == "" {
+		return fmt.Errorf("%w: account <ledger> <account>", cmd.ErrMissingValue)
+	}
+	r, err := c.resolve()
+	if err != nil {
+		return err
+	}
+	cwd, err := projectCwd()
+	if err != nil {
+		return err
+	}
+	h, err := engine.Open(ctx, cwd)
+	if err != nil {
+		return err
+	}
+	printDiags(h.Diags)
+	l, err := h.Ledger(ctx, c.Ledger.Value())
+	if err != nil {
+		return err
+	}
+	acct := c.Account.Value()
+	asOf := r.End
+	if asOf.IsZero() {
+		asOf = engine.AsOfLatest
+	}
+	fmt.Printf("== %s · %s ==", l.Name, acct)
+	if !r.Empty() {
+		fmt.Printf("  [%s]", r.Label())
+	}
+	fmt.Println()
+	fmt.Println("Balance:")
+	bals := l.AccountBalances(acct, asOf)
+	if len(bals) == 0 {
+		fmt.Println("  (zero)")
+	} else {
+		var cs []string
+		for c := range bals {
+			cs = append(cs, c)
+		}
+		sort.Strings(cs)
+		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+		for _, c := range cs {
+			fmt.Fprintf(w, "  %s\t%s\n", bals[c].FloatString(6), c)
+		}
+		w.Flush()
+	}
+	fmt.Println("Change in period:")
+	act := l.AccountActivity(acct, r.Start, r.End)
+	if len(act) == 0 {
+		fmt.Println("  (none)")
+	} else {
+		var cs []string
+		for c := range act {
+			cs = append(cs, c)
+		}
+		sort.Strings(cs)
+		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+		for _, c := range cs {
+			fmt.Fprintf(w, "  %s\t%s\n", act[c].FloatString(6), c)
+		}
+		w.Flush()
+	}
+	fmt.Println("Journal:")
+	for _, e := range l.JournalForAccount(acct, r.Start, r.End) {
+		if e.Kind != "txn" {
+			fmt.Printf("%s %s %s\n", e.Date.Format("2006-01-02"), e.Kind, e.Comment)
+			continue
+		}
+		fmt.Printf("%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
+		for _, p := range e.Postings {
+			mark := "  "
+			if p.Account == acct {
+				mark = "* "
+			}
+			if p.Units == nil {
+				fmt.Printf("%s%s\n", mark, p.Account)
+				continue
+			}
+			fmt.Printf("%s%-40s %s %s\n", mark, p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
+		}
+	}
+	return nil
 }
 
 // formatPayeeNarration prints Beancount-style "Payee" "Narration" or a single string.
@@ -567,159 +668,172 @@ func formatPayeeNarration(payee, narration string) string {
 	}
 }
 
-func parseCmd() *cobra.Command {
-	return &cobra.Command{
-		Use: "parse <file>", Short: "Dump directives from a file", Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			src, err := os.ReadFile(args[0])
-			if err != nil {
-				return err
-			}
-			dirs, diags, err := parser.Parse(args[0], src)
-			printDiags(diags)
-			if err != nil {
-				return err
-			}
-			for _, d := range dirs {
-				fmt.Printf("%T date=%s\n", d, d.GetDate().Format("2006-01-02"))
-			}
-			return nil
-		},
+type parseCmd struct {
+	cmdFlags
+	File cmd.StringArg
+}
+
+func (parseCmd) Description() string { return "Dump directives from a file" }
+
+func (c *parseCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
 	}
+	if c.File.Value() == "" {
+		return fmt.Errorf("%w: parse <file>", cmd.ErrMissingValue)
+	}
+	src, err := os.ReadFile(c.File.Value())
+	if err != nil {
+		return err
+	}
+	dirs, diags, err := parser.Parse(c.File.Value(), src)
+	printDiags(diags)
+	if err != nil {
+		return err
+	}
+	for _, d := range dirs {
+		fmt.Printf("%T date=%s\n", d, d.GetDate().Format("2006-01-02"))
+	}
+	return nil
 }
 
 // ingestCmd: contapila ingest --file path [-- CMD args…]
 // JSONL directives on producer stdout (or contapila stdin if no --).
 // With --, contapila stdin is passed through to CMD.
-func ingestCmd() *cobra.Command {
-	var file string
-	c := &cobra.Command{
-		Use:   "ingest --file <path> [-- CMD [args…]]",
-		Short: "Merge JSONL directives into a beancount file",
-		Long: `Read a stream of JSONL directive objects and merge them into --file.
+type ingestCmd struct {
+	cmdFlags
+	File     cmd.StringArg   `long:"file" help:"target beancount file (created on success if missing)"`
+	Producer []cmd.StringArg `help:"producer command; JSONL on its stdout"`
+}
 
-Without --, JSONL is read from contapila stdin.
-With -- CMD args, runs CMD (stdin passed through) and reads JSONL from CMD stdout.
-Logs from CMD should go to stderr.
+func (ingestCmd) Description() string {
+	return `Merge JSONL directives into a beancount file
+
+Without extra args, JSONL is read from contapila stdin.
+With CMD args (after -- if they look like flags), runs CMD (stdin passed
+through) and reads JSONL from CMD stdout. Logs from CMD should go to stderr.
 
 Each JSON line is one directive (full AST-shaped fields). Optional "id" becomes
 metadata ingest_id for upsert; without id, lines are appended.
-Any error or non-zero CMD exit aborts with no write.`,
-		Args:                  cobra.ArbitraryArgs,
-		DisableFlagsInUseLine: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if file == "" {
-				return ErrFileRequired
-			}
-			var (
-				incoming []ast.Directive
-				err      error
-			)
-			// args after -- are the producer command
-			if len(args) > 0 {
-				ex := exec.Command(args[0], args[1:]...)
-				ex.Stdin = os.Stdin
-				ex.Stderr = os.Stderr
-				stdout, errPipe := ex.StdoutPipe()
-				if errPipe != nil {
-					return errPipe
-				}
-				if err := ex.Start(); err != nil {
-					return err
-				}
-				incoming, err = ingest.DecodeJSONL(stdout, os.Stderr)
-				waitErr := ex.Wait()
-				if err != nil {
-					return err
-				}
-				if waitErr != nil {
-					return fmt.Errorf("producer failed: %w", waitErr)
-				}
-			} else {
-				incoming, err = ingest.DecodeJSONL(os.Stdin, os.Stderr)
-				if err != nil {
-					return err
-				}
-			}
-
-			existing := ""
-			if b, rerr := os.ReadFile(file); rerr == nil {
-				existing = string(b)
-			} else if !errors.Is(rerr, fs.ErrNotExist) {
-				return rerr
-			}
-
-			out, err := ingest.Apply(existing, file, incoming)
-			if err != nil {
-				return err
-			}
-			return ingest.WriteFileAtomic(file, []byte(out))
-		},
-	}
-	c.Flags().StringVar(&file, "file", "", "target beancount file (created on success if missing)")
-	if err := c.MarkFlagRequired("file"); err != nil {
-		panic(fmt.Sprintf("MarkFlagRequired(file): %v", err))
-	}
-	return c
+Any error or non-zero CMD exit aborts with no write.`
 }
 
-func webCmd() *cobra.Command {
-	var addr string
-	c := &cobra.Command{
-		Use: "web [ledger]", Short: "Read-only web UI", Args: cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cwd, err := projectCwd()
-			if err != nil {
-				return err
-			}
-			h, err := engine.Open(cmd.Context(), cwd)
-			if err != nil {
-				return err
-			}
-			name := ""
-			if len(args) == 1 {
-				name = args[0]
-			}
-			return web.Listen(cmd.Context(), h.Project, h.Prices, name, addr)
-		},
+func (c *ingestCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
 	}
-	c.Flags().StringVar(&addr, "addr", "127.0.0.1:8765", "listen address (host:port)")
-	return c
+	if c.File.Value() == "" {
+		return ErrFileRequired
+	}
+	var (
+		incoming []ast.Directive
+		err      error
+	)
+	if args := cmd.Values(c.Producer); len(args) > 0 {
+		ex := exec.CommandContext(ctx, args[0], args[1:]...)
+		ex.Stdin = os.Stdin
+		ex.Stderr = os.Stderr
+		stdout, errPipe := ex.StdoutPipe()
+		if errPipe != nil {
+			return errPipe
+		}
+		if err := ex.Start(); err != nil {
+			return err
+		}
+		incoming, err = ingest.DecodeJSONL(stdout, os.Stderr)
+		waitErr := ex.Wait()
+		if err != nil {
+			return err
+		}
+		if waitErr != nil {
+			return fmt.Errorf("producer failed: %w", waitErr)
+		}
+	} else {
+		incoming, err = ingest.DecodeJSONL(os.Stdin, os.Stderr)
+		if err != nil {
+			return err
+		}
+	}
+
+	existing := ""
+	if b, rerr := os.ReadFile(c.File.Value()); rerr == nil {
+		existing = string(b)
+	} else if !errors.Is(rerr, fs.ErrNotExist) {
+		return rerr
+	}
+
+	out, err := ingest.Apply(existing, c.File.Value(), incoming)
+	if err != nil {
+		return err
+	}
+	return ingest.WriteFileAtomic(c.File.Value(), []byte(out))
 }
 
-func buildCmd() *cobra.Command {
-	var out string
-	var jobs int
-	c := &cobra.Command{
-		Use:   "build",
-		Short: "Write a static HTML site from the project (no time filters)",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cwd, err := projectCwd()
-			if err != nil {
-				return err
-			}
-			if err := web.Build(cmd.Context(), cwd, out, jobs); err != nil {
-				return err
-			}
-			// Phase detail is on stderr via slog; keep a one-line stdout summary.
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote static site to %s\n", out)
-			return nil
-		},
-	}
-	c.Flags().StringVarP(&out, "out", "o", "site", "output directory")
-	c.Flags().IntVarP(&jobs, "jobs", "j", 0, "parallel render workers (0 = GOMAXPROCS)")
-	return c
+type webCmd struct {
+	cmdFlags
+	Addr   cmd.StringArg `long:"addr" help:"listen address (host:port)" default:"127.0.0.1:8765"`
+	Ledger *cmd.StringArg
 }
 
-func lspCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "lsp",
-		Short: "Language server (stdio) for Helix and other LSP clients",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// Protocol on stdout; keep slog on stderr.
-			return lsp.RunStdio(cmd.Context())
-		},
+func (webCmd) Description() string { return "Read-only web UI" }
+
+func (c *webCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
 	}
+	cwd, err := projectCwd()
+	if err != nil {
+		return err
+	}
+	h, err := engine.Open(ctx, cwd)
+	if err != nil {
+		return err
+	}
+	name := ""
+	if c.Ledger != nil {
+		name = c.Ledger.Value()
+	}
+	return web.Listen(ctx, h.Project, h.Prices, name, c.Addr.Value())
+}
+
+type buildCmd struct {
+	cmdFlags
+	Out  cmd.StringArg   `short:"o" long:"out" help:"output directory" default:"site"`
+	Jobs cmd.IntArg[int] `short:"j" long:"jobs" help:"parallel render workers (0 = GOMAXPROCS)" default:"0"`
+}
+
+func (buildCmd) Description() string {
+	return "Write a static HTML site from the project (no time filters)"
+}
+
+func (c *buildCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	cwd, err := projectCwd()
+	if err != nil {
+		return err
+	}
+	if err := web.Build(ctx, cwd, c.Out.Value(), c.Jobs.Value()); err != nil {
+		return err
+	}
+	// Phase detail is on stderr via slog; keep a one-line stdout summary.
+	fmt.Printf("wrote static site to %s\n", c.Out.Value())
+	return nil
+}
+
+type lspCmd struct {
+	cmdFlags
+}
+
+func (lspCmd) Description() string {
+	return "Language server (stdio) for Helix and other LSP clients"
+}
+
+func (c *lspCmd) Run(ctx context.Context) error {
+	if err := c.apply(); err != nil {
+		return err
+	}
+	// Protocol on stdout; keep slog on stderr.
+	return lsp.RunStdio(ctx)
 }
