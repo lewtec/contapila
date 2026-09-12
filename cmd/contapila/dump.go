@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
@@ -11,9 +10,6 @@ import (
 	"github.com/lucasew/contapila-go/internal/dump/pdfdslipakv1"
 	"github.com/lucasew/contapila-go/internal/dump/xlsxexcelizev1"
 )
-
-// ErrMissingDumpDialect is returned when `contapila dump` is run without a dialect subcommand.
-var ErrMissingDumpDialect = errors.New("missing dialect subcommand")
 
 type dumpCmd struct {
 	Password cmd.StringArg `short:"p" long:"password" help:"password for encrypted PDF or XLSX" default:"" ctx:"password"`
@@ -35,10 +31,6 @@ Output is one compact JSON object on stdout:
   {"dialect":"…","source":"<path-as-given>","data":{"type":"…","children":[…]}}
 
 Pipe into a language-stdlib script, then into contapila ingest as JSONL directives.`
-}
-
-func (c *dumpCmd) Run(context.Context) error {
-	return ErrMissingDumpDialect
 }
 
 type dumpPDFCmd struct {

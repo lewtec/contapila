@@ -24,8 +24,8 @@ func TestDumpMissingDialect(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for bare dump")
 	}
-	if !errors.Is(err, ErrMissingDumpDialect) {
-		t.Fatalf("err=%v want ErrMissingDumpDialect", err)
+	if !errors.Is(err, cmd.ErrMissingCommand) {
+		t.Fatalf("err=%v want ErrMissingCommand", err)
 	}
 }
 

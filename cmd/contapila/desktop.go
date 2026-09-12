@@ -22,7 +22,7 @@ import (
 const eletrocromoAppID = "br.tec.lew.contapila"
 
 type desktopCmd struct {
-	Ledger *ledgerArg
+	Ledger *engine.LedgerArg
 }
 
 func (desktopCmd) Description() string {

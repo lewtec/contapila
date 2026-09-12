@@ -35,7 +35,6 @@ import (
 
 // CLI sentinel errors (wrap with context via fmt.Errorf %w).
 var (
-	ErrNotDirectory       = errors.New("not a directory")
 	ErrZeroLedgers        = errors.New("zero ledgers found")
 	ErrLedgersFailed      = errors.New("one or more ledgers failed")
 	ErrCheckFailed        = errors.New("check failed")
@@ -69,27 +68,8 @@ func execute(ctx context.Context, args []string) error {
 	return app.Run(ctx)
 }
 
-// ledgerArg is a ledger directory name. Open books it from a handle.
-type ledgerArg struct {
-	name string
-}
-
-func (a *ledgerArg) Parse(s string) error {
-	if s == "" {
-		return fmt.Errorf("%w: ledger", cmd.ErrInvalidArgument)
-	}
-	a.name = s
-	return nil
-}
-
-func (a ledgerArg) Value() string { return a.name }
-
-func (a ledgerArg) Open(ctx context.Context, h *engine.Handle) (*engine.Ledger, error) {
-	return h.Ledger(ctx, a.name)
-}
-
 type root struct {
-	Directory directoryArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)" default:"" env:"CONTAPILA_DIRECTORY" ctx:"directory"`
+	Directory project.DirArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)" default:"" env:"CONTAPILA_DIRECTORY" ctx:"directory"`
 	Version   *cmd.VersionCmd
 	Status    *statusCmd
 	Doctor    *statusCmd `cmd:"doctor"`
@@ -120,33 +100,6 @@ func (r *root) Run(context.Context) error {
 	_, err = fmt.Fprint(os.Stdout, text)
 	return err
 }
-
-// directoryArg is -C/--directory. Parse resolves and checks the path.
-type directoryArg struct {
-	path string
-}
-
-func (d *directoryArg) Parse(s string) error {
-	if s == "" {
-		d.path = ""
-		return nil
-	}
-	abs, err := filepath.Abs(s)
-	if err != nil {
-		return fmt.Errorf("-C %s: %w", s, err)
-	}
-	info, err := os.Stat(abs)
-	if err != nil {
-		return fmt.Errorf("-C %s: %w", s, err)
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("-C %s: %w", s, ErrNotDirectory)
-	}
-	d.path = abs
-	return nil
-}
-
-func (d directoryArg) Value() string { return d.path }
 
 // projectCwd is -C from the App context bag, else the process working directory.
 func projectCwd(ctx context.Context) (string, error) {
@@ -200,7 +153,7 @@ func withLedgers(ctx context.Context, names []string, fn func(*engine.Ledger) er
 	return nil
 }
 
-func optionalName(a *ledgerArg) []string {
+func optionalName(a *engine.LedgerArg) []string {
 	if a == nil {
 		return nil
 	}
@@ -285,7 +238,7 @@ func (c *statusCmd) Run(ctx context.Context) error {
 }
 
 type checkCmd struct {
-	Ledger *ledgerArg
+	Ledger *engine.LedgerArg
 }
 
 func (checkCmd) Description() string { return "Validate ledger(s)" }
@@ -305,7 +258,7 @@ func (c *checkCmd) Run(ctx context.Context) error {
 
 type balancesCmd struct {
 	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
-	Ledger *ledgerArg
+	Ledger *engine.LedgerArg
 }
 
 func (balancesCmd) Description() string { return "Balances as-of" }
@@ -391,7 +344,7 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 
 type journalCmd struct {
 	timeFlags
-	Ledger *ledgerArg
+	Ledger *engine.LedgerArg
 }
 
 func (journalCmd) Description() string { return "Journal" }
@@ -431,7 +384,7 @@ func (c *journalCmd) Run(ctx context.Context) error {
 
 type pnlCmd struct {
 	timeFlags
-	Ledger *ledgerArg
+	Ledger *engine.LedgerArg
 }
 
 func (pnlCmd) Description() string { return "P&L for a Fava-style period" }
@@ -469,7 +422,7 @@ func (c *pnlCmd) Run(ctx context.Context) error {
 
 type networthCmd struct {
 	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
-	Ledger *ledgerArg
+	Ledger *engine.LedgerArg
 }
 
 func (networthCmd) Description() string { return "Net worth" }
@@ -514,7 +467,7 @@ func (c *networthCmd) Run(ctx context.Context) error {
 
 type accountCmd struct {
 	timeFlags
-	Ledger  ledgerArg
+	Ledger  engine.LedgerArg
 	Account cmd.StringArg
 }
 
@@ -717,7 +670,7 @@ func (c *ingestCmd) Run(ctx context.Context) error {
 
 type webCmd struct {
 	Addr   cmd.AddrArg `long:"addr" help:"listen address (host:port)" default:"127.0.0.1:8765"`
-	Ledger *ledgerArg
+	Ledger *engine.LedgerArg
 }
 
 func (webCmd) Description() string { return "Read-only web UI" }
