@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lewtec/lewkit/x/release"
 	"github.com/lucasew/contapila-go/internal/engine"
-	"github.com/lucasew/contapila-go/pkg/version"
 )
 
 // exampleDir is the multi-ledger fixture used for CLI smoke tests.
@@ -151,7 +151,7 @@ func TestHelpListsCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("help: %v\n%s", err, out)
 	}
-	for _, want := range []string{"status", "check", "dump", "web", "desktop", "--directory"} {
+	for _, want := range []string{"status", "check", "dump", "web", "desktop", "version", "--directory"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("help missing %q\n%s", want, out)
 		}
@@ -163,8 +163,18 @@ func TestVersionFlag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("version: %v\n%s", err, out)
 	}
-	if got := strings.TrimSpace(out); got != version.GetBuildID() {
-		t.Errorf("version=%q want %q", got, version.GetBuildID())
+	if got := strings.TrimSpace(out); got != release.Version() {
+		t.Errorf("version=%q want %q", got, release.Version())
+	}
+}
+
+func TestVersionCommand(t *testing.T) {
+	out, _, err := runCLI(t, "version")
+	if err != nil {
+		t.Fatalf("version: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(out); got != release.Version() {
+		t.Errorf("version=%q want %q", got, release.Version())
 	}
 }
 

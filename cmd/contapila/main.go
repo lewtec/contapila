@@ -26,7 +26,6 @@ import (
 	"github.com/lucasew/contapila-go/internal/period"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
-	"github.com/lucasew/contapila-go/pkg/version"
 
 	// First-party web pages (stream expanders are called from engine, not registered).
 	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
@@ -71,10 +70,6 @@ func execute(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	if !app.Help() && app.WantVersion() {
-		_, err := fmt.Fprintln(os.Stdout, version.GetBuildID())
-		return err
-	}
 	return app.Run(ctx)
 }
 
@@ -104,6 +99,7 @@ func (a ledgerArg) Open(ctx context.Context, h *engine.Handle) (*engine.Ledger, 
 
 type root struct {
 	Directory cmd.StringArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)" default:"" ctx:"directory"`
+	Version   *cmd.VersionCmd
 	Status    *statusCmd
 	Doctor    *statusCmd `cmd:"doctor"`
 	Check     *checkCmd
@@ -742,7 +738,7 @@ func (c *ingestCmd) Run(ctx context.Context) error {
 }
 
 type webCmd struct {
-	Addr   cmd.StringArg `long:"addr" help:"listen address (host:port)" default:"127.0.0.1:8765"`
+	Addr   cmd.AddrArg `long:"addr" help:"listen address (host:port)" default:"127.0.0.1:8765"`
 	Ledger *ledgerArg
 }
 
