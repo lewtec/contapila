@@ -12,16 +12,11 @@ import (
 	"github.com/lucasew/contapila-go/internal/dump/xlsxexcelizev1"
 )
 
-// dumpPassword is set from `dump --password` when the flag sits on the parent
-// (before the dialect). Dialect commands also accept --password after the name.
-var dumpPassword string
-
 // ErrMissingDumpDialect is returned when `contapila dump` is run without a dialect subcommand.
 var ErrMissingDumpDialect = errors.New("missing dialect subcommand")
 
 type dumpCmd struct {
-	cmdFlags
-	Password cmd.StringArg `short:"p" long:"password" help:"password for encrypted PDF or XLSX"`
+	Password cmd.StringArg `short:"p" long:"password" help:"password for encrypted PDF or XLSX" default:"" ctx:"password"`
 	PDF      *dumpPDFCmd   `cmd:"pdf-dslipak-v1"`
 	XLSX     *dumpXLSXCmd  `cmd:"xlsx-excelize-v1"`
 }
@@ -42,48 +37,37 @@ Output is one compact JSON object on stdout:
 Pipe into a language-stdlib script, then into contapila ingest as JSONL directives.`
 }
 
-func (c *dumpCmd) Run(context.Context) error {
-	if err := c.apply(); err != nil {
+func (c *dumpCmd) Run(ctx context.Context) error {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	return ErrMissingDumpDialect
 }
 
 type dumpPDFCmd struct {
-	cmdFlags
-	Password cmd.StringArg `short:"p" long:"password" help:"password for encrypted PDF or XLSX"`
-	Path     cmd.StringArg
+	Path cmd.StringArg
 }
 
 func (dumpPDFCmd) Description() string { return "Dump with dialect " + pdfdslipakv1.Dialect }
 
-func (c *dumpPDFCmd) Run(context.Context) error {
-	if err := c.apply(); err != nil {
+func (c *dumpPDFCmd) Run(ctx context.Context) error {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
-	return runDump(pdfdslipakv1.Extract, c.Path.Value(), dumpPass(c.Password))
+	return runDump(pdfdslipakv1.Extract, c.Path.Value(), cmd.Get[string](ctx, "password"))
 }
 
 type dumpXLSXCmd struct {
-	cmdFlags
-	Password cmd.StringArg `short:"p" long:"password" help:"password for encrypted PDF or XLSX"`
-	Path     cmd.StringArg
+	Path cmd.StringArg
 }
 
 func (dumpXLSXCmd) Description() string { return "Dump with dialect " + xlsxexcelizev1.Dialect }
 
-func (c *dumpXLSXCmd) Run(context.Context) error {
-	if err := c.apply(); err != nil {
+func (c *dumpXLSXCmd) Run(ctx context.Context) error {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
-	return runDump(xlsxexcelizev1.Extract, c.Path.Value(), dumpPass(c.Password))
-}
-
-func dumpPass(local cmd.StringArg) string {
-	if v := local.Value(); v != "" {
-		return v
-	}
-	return dumpPassword
+	return runDump(xlsxexcelizev1.Extract, c.Path.Value(), cmd.Get[string](ctx, "password"))
 }
 
 func runDump(extract dump.Extractor, path, password string) error {

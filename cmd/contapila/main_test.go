@@ -34,10 +34,8 @@ func exampleDir(t *testing.T) string {
 func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 	workDir = ""
-	dumpPassword = ""
 	t.Cleanup(func() {
 		workDir = ""
-		dumpPassword = ""
 	})
 
 	oldOut, oldErr := os.Stdout, os.Stderr
@@ -178,6 +176,29 @@ func TestUnknownLedger(t *testing.T) {
 	}
 	if !errors.Is(err, engine.ErrUnknownLedger) {
 		t.Errorf("err=%v want engine.ErrUnknownLedger", err)
+	}
+}
+
+func TestDirectoryAfterCommand(t *testing.T) {
+	dir := exampleDir(t)
+	out, _, err := runCLI(t, "status", "-C", dir)
+	if err != nil {
+		t.Fatalf("status -C: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "Ledgers (4):") {
+		t.Errorf("status -C stdout:\n%s", out)
+	}
+}
+
+func TestDirectoryAfterLedger(t *testing.T) {
+	dir := exampleDir(t)
+	t.Chdir(t.TempDir())
+	out, _, err := runCLI(t, "check", "personal", "-C", dir)
+	if err != nil {
+		t.Fatalf("check personal -C: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "== personal ==") {
+		t.Errorf("missing personal header\n%s", out)
 	}
 }
 

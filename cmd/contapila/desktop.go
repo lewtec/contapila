@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,7 +22,6 @@ import (
 const eletrocromoAppID = "br.tec.lew.contapila"
 
 type desktopCmd struct {
-	cmdFlags
 	Ledger *ledgerArg
 }
 
@@ -38,7 +38,7 @@ deep-link). Project root is discovered from -C / the process working directory
 }
 
 func (c *desktopCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	cwd, err := projectCwd()
@@ -58,7 +58,11 @@ func (c *desktopCmd) Run(ctx context.Context) error {
 	// matches the deep-link path that `web [ledger]` only prints.
 	handler := http.Handler(s.Handler())
 	if c.Ledger != nil {
-		handler = rootDeepLinkHandler(handler, c.Ledger.Value())
+		name := c.Ledger.Value()
+		if !projectHasLedger(h.Project, name) {
+			return fmt.Errorf("%w %q", engine.ErrUnknownLedger, name)
+		}
+		handler = rootDeepLinkHandler(handler, name)
 	}
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)

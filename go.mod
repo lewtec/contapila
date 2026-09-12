@@ -8,8 +8,8 @@ require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
 	github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f
-	github.com/lewtec/lewkit v0.0.0-20260911022942-1e2a70fbd0d6
-	github.com/mattn/go-isatty v0.0.20
+	github.com/lewtec/lewkit v0.0.0-20260912142813-2456344335b9
+	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
 	github.com/xuri/excelize/v2 v2.11.0
@@ -61,10 +61,10 @@ require (
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
-	modernc.org/libc v1.67.6 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
+	modernc.org/libc v1.75.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.11.0 // indirect
+	modernc.org/memory v1.12.1 // indirect
 )
 
 replace github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar => github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260713221032-8673315d25fc

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -72,9 +71,6 @@ func execute(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := applyParsed(&app.Args); err != nil {
-		return err
-	}
 	if !app.Help() && app.WantVersion() {
 		_, err := fmt.Fprintln(os.Stdout, version.GetBuildID())
 		return err
@@ -82,45 +78,12 @@ func execute(ctx context.Context, args []string) error {
 	return app.Run(ctx)
 }
 
-// applyParsed copies parent-level -C / dump --password so nested commands
-// still see flags that were written on the parent spec.
-func applyParsed(r *root) error {
-	if err := applyDirectory(r.Directory.Value()); err != nil {
-		return err
-	}
-	if d := r.Dump; d != nil {
-		dumpPassword = d.Password.Value()
-		if err := applyDirectory(d.Directory.Value()); err != nil {
-			return err
-		}
-	}
-	return nil
+// applyCwd applies -C/--directory from the App context bag.
+func applyCwd(ctx context.Context) error {
+	return applyDirectory(cmd.Get[string](ctx, "directory"))
 }
 
-// dirFlag is -C/--directory. Embedded on the root (flags before the command)
-// and on each command (flags after the command). Parse applies workDir
-// immediately so a later ledgerArg can discover the project.
-type dirFlag struct {
-	Directory directoryArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)"`
-}
-
-// directoryArg is -C: resolve and store the project search start directory.
-type directoryArg struct {
-	path string
-}
-
-func (d *directoryArg) Parse(s string) error {
-	if err := applyDirectory(s); err != nil {
-		return err
-	}
-	d.path = workDir
-	return nil
-}
-
-func (d directoryArg) Value() string { return d.path }
-
-// ledgerArg is a ledger directory name. Parse loads the project and checks
-// the name exists; Open books that ledger from a handle.
+// ledgerArg is a ledger directory name. Open books it from a handle.
 type ledgerArg struct {
 	name string
 }
@@ -128,17 +91,6 @@ type ledgerArg struct {
 func (a *ledgerArg) Parse(s string) error {
 	if s == "" {
 		return fmt.Errorf("%w: ledger", cmd.ErrInvalidArgument)
-	}
-	cwd, err := projectCwd()
-	if err != nil {
-		return err
-	}
-	p, err := project.OpenProject(context.Background(), cwd)
-	if err != nil {
-		return err
-	}
-	if !projectHasLedger(p, s) {
-		return fmt.Errorf("%w %q", engine.ErrUnknownLedger, s)
 	}
 	a.name = s
 	return nil
@@ -150,37 +102,23 @@ func (a ledgerArg) Open(ctx context.Context, h *engine.Handle) (*engine.Ledger, 
 	return h.Ledger(ctx, a.name)
 }
 
-// cmdFlags is the per-command copy of -C and -v (x/cmd does not inherit parent flags).
-type cmdFlags struct {
-	dirFlag
-	Verbose cmd.Count `short:"v" long:"verbose" help:"log verbosity"`
-}
-
-func (f cmdFlags) apply() error {
-	if n := f.Verbose.Value(); n > 0 {
-		level := slog.LevelInfo - slog.Level(4*n)
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
-	}
-	return applyDirectory(f.Directory.Value())
-}
-
 type root struct {
-	dirFlag
-	Status   *statusCmd
-	Doctor   *statusCmd `cmd:"doctor"`
-	Check    *checkCmd
-	Balances *balancesCmd
-	Journal  *journalCmd
-	Pnl      *pnlCmd
-	Networth *networthCmd
-	Account  *accountCmd
-	Parse    *parseCmd
-	Ingest   *ingestCmd
-	Web      *webCmd
-	Build    *buildCmd
-	Desktop  *desktopCmd
-	Lsp      *lspCmd
-	Dump     *dumpCmd
+	Directory cmd.StringArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)" default:"" ctx:"directory"`
+	Status    *statusCmd
+	Doctor    *statusCmd `cmd:"doctor"`
+	Check     *checkCmd
+	Balances  *balancesCmd
+	Journal   *journalCmd
+	Pnl       *pnlCmd
+	Networth  *networthCmd
+	Account   *accountCmd
+	Parse     *parseCmd
+	Ingest    *ingestCmd
+	Web       *webCmd
+	Build     *buildCmd
+	Desktop   *desktopCmd
+	Lsp       *lspCmd
+	Dump      *dumpCmd
 }
 
 func (root) Description() string {
@@ -277,9 +215,9 @@ func optionalName(a *ledgerArg) []string {
 }
 
 type timeFlags struct {
-	Time cmd.StringArg `long:"time" help:"Fava-style period: 2024, 2024-03, 2024-Q1, month, month-1, year, 2020 - 2024-06"`
-	From cmd.StringArg `long:"from" help:"inclusive start YYYY-MM-DD (overrides --time start if set alone with --to)"`
-	To   cmd.StringArg `long:"to" help:"inclusive end YYYY-MM-DD"`
+	Time cmd.StringArg `long:"time" help:"Fava-style period: 2024, 2024-03, 2024-Q1, month, month-1, year, 2020 - 2024-06" default:""`
+	From cmd.StringArg `long:"from" help:"inclusive start YYYY-MM-DD (overrides --time start if set alone with --to)" default:""`
+	To   cmd.StringArg `long:"to" help:"inclusive end YYYY-MM-DD" default:""`
 }
 
 func (t timeFlags) resolve() (period.Range, error) {
@@ -310,13 +248,12 @@ func resolvePeriod(timeFilter, from, to string) (period.Range, error) {
 }
 
 type statusCmd struct {
-	cmdFlags
 }
 
 func (statusCmd) Description() string { return "Show project status" }
 
 func (c *statusCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	cwd, err := projectCwd()
@@ -357,14 +294,13 @@ func (c *statusCmd) Run(ctx context.Context) error {
 }
 
 type checkCmd struct {
-	cmdFlags
 	Ledger *ledgerArg
 }
 
 func (checkCmd) Description() string { return "Validate ledger(s)" }
 
 func (c *checkCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
@@ -380,15 +316,14 @@ func (c *checkCmd) Run(ctx context.Context) error {
 }
 
 type balancesCmd struct {
-	cmdFlags
-	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD"`
+	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
 	Ledger *ledgerArg
 }
 
 func (balancesCmd) Description() string { return "Balances as-of" }
 
 func (c *balancesCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	t, err := engine.ParseDate(c.AsOf.Value())
@@ -469,7 +404,6 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 }
 
 type journalCmd struct {
-	cmdFlags
 	timeFlags
 	Ledger *ledgerArg
 }
@@ -477,7 +411,7 @@ type journalCmd struct {
 func (journalCmd) Description() string { return "Journal" }
 
 func (c *journalCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	r, err := c.resolve()
@@ -512,7 +446,6 @@ func (c *journalCmd) Run(ctx context.Context) error {
 }
 
 type pnlCmd struct {
-	cmdFlags
 	timeFlags
 	Ledger *ledgerArg
 }
@@ -520,7 +453,7 @@ type pnlCmd struct {
 func (pnlCmd) Description() string { return "P&L for a Fava-style period" }
 
 func (c *pnlCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	r, err := c.resolve()
@@ -553,15 +486,14 @@ func (c *pnlCmd) Run(ctx context.Context) error {
 }
 
 type networthCmd struct {
-	cmdFlags
-	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD"`
+	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
 	Ledger *ledgerArg
 }
 
 func (networthCmd) Description() string { return "Net worth" }
 
 func (c *networthCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	t, err := engine.ParseDate(c.AsOf.Value())
@@ -601,7 +533,6 @@ func (c *networthCmd) Run(ctx context.Context) error {
 }
 
 type accountCmd struct {
-	cmdFlags
 	timeFlags
 	Ledger  ledgerArg
 	Account cmd.StringArg
@@ -612,7 +543,7 @@ func (accountCmd) Description() string {
 }
 
 func (c *accountCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	if c.Ledger.Value() == "" || c.Account.Value() == "" {
@@ -712,14 +643,13 @@ func formatPayeeNarration(payee, narration string) string {
 }
 
 type parseCmd struct {
-	cmdFlags
 	File cmd.StringArg
 }
 
 func (parseCmd) Description() string { return "Dump directives from a file" }
 
 func (c *parseCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	if c.File.Value() == "" {
@@ -744,7 +674,6 @@ func (c *parseCmd) Run(ctx context.Context) error {
 // JSONL directives on producer stdout (or contapila stdin if no --).
 // With --, contapila stdin is passed through to CMD.
 type ingestCmd struct {
-	cmdFlags
 	File     cmd.StringArg   `long:"file" help:"target beancount file (created on success if missing)"`
 	Producer []cmd.StringArg `help:"producer command; JSONL on its stdout"`
 }
@@ -762,7 +691,7 @@ Any error or non-zero CMD exit aborts with no write.`
 }
 
 func (c *ingestCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	if c.File.Value() == "" {
@@ -813,7 +742,6 @@ func (c *ingestCmd) Run(ctx context.Context) error {
 }
 
 type webCmd struct {
-	cmdFlags
 	Addr   cmd.StringArg `long:"addr" help:"listen address (host:port)" default:"127.0.0.1:8765"`
 	Ledger *ledgerArg
 }
@@ -821,7 +749,7 @@ type webCmd struct {
 func (webCmd) Description() string { return "Read-only web UI" }
 
 func (c *webCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	cwd, err := projectCwd()
@@ -840,7 +768,6 @@ func (c *webCmd) Run(ctx context.Context) error {
 }
 
 type buildCmd struct {
-	cmdFlags
 	Out  cmd.StringArg   `short:"o" long:"out" help:"output directory" default:"site"`
 	Jobs cmd.IntArg[int] `short:"j" long:"jobs" help:"parallel render workers (0 = GOMAXPROCS)" default:"0"`
 }
@@ -850,7 +777,7 @@ func (buildCmd) Description() string {
 }
 
 func (c *buildCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	cwd, err := projectCwd()
@@ -866,7 +793,6 @@ func (c *buildCmd) Run(ctx context.Context) error {
 }
 
 type lspCmd struct {
-	cmdFlags
 }
 
 func (lspCmd) Description() string {
@@ -874,7 +800,7 @@ func (lspCmd) Description() string {
 }
 
 func (c *lspCmd) Run(ctx context.Context) error {
-	if err := c.apply(); err != nil {
+	if err := applyCwd(ctx); err != nil {
 		return err
 	}
 	// Protocol on stdout; keep slog on stderr.
