@@ -1,26 +1,26 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"fmt"
+	"os"
 
+	"github.com/lewtec/lewkit/x/cmd"
 	"github.com/lucasew/contapila-go/internal/dump"
 	"github.com/lucasew/contapila-go/internal/dump/pdfdslipakv1"
 	"github.com/lucasew/contapila-go/internal/dump/xlsxexcelizev1"
-	"github.com/spf13/cobra"
 )
 
-// dumpPassword is bound on the dump parent and inherited by dialect subcommands.
-var dumpPassword string
+type dumpCmd struct {
+	Password cmd.StringArg `short:"p" long:"password" help:"password for encrypted PDF or XLSX" default:"" ctx:"password"`
+	PDF      *dumpPDFCmd   `cmd:"pdf-dslipak-v1"`
+	XLSX     *dumpXLSXCmd  `cmd:"xlsx-excelize-v1"`
+}
 
-// ErrMissingDumpDialect is returned when `contapila dump` is run without a dialect subcommand.
-var ErrMissingDumpDialect = errors.New("missing dialect subcommand (see contapila dump --help)")
+func (dumpCmd) Description() string {
+	return `Dump a source document as a versioned JSON element tree
 
-func dumpCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "dump",
-		Short: "Dump a source document as a versioned JSON element tree",
-		Long: `Dump PDF or spreadsheet structure as compact JSON for stdlib-only extract scripts.
+Dump PDF or spreadsheet structure as compact JSON for stdlib-only extract scripts.
 
 Each dialect is a subcommand ($format-$lib-v$n), also present in the JSON envelope.
 
@@ -30,36 +30,41 @@ Output is one compact JSON object on stdout:
 
   {"dialect":"…","source":"<path-as-given>","data":{"type":"…","children":[…]}}
 
-Pipe into a language-stdlib script, then into contapila ingest as JSONL directives.`,
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return ErrMissingDumpDialect
-		},
-	}
-	cmd.PersistentFlags().StringVarP(&dumpPassword, "password", "p", "", "password for encrypted PDF or XLSX")
-	cmd.AddCommand(
-		dumpDialectCmd(pdfdslipakv1.Dialect, pdfdslipakv1.Extract),
-		dumpDialectCmd(xlsxexcelizev1.Dialect, xlsxexcelizev1.Extract),
-	)
-	return cmd
+Pipe into a language-stdlib script, then into contapila ingest as JSONL directives.`
 }
 
-func dumpDialectCmd(dialect string, extract dump.Extractor) *cobra.Command {
-	return &cobra.Command{
-		Use:   dialect + " <path>",
-		Short: "Dump with dialect " + dialect,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			data, err := extract(args[0], dump.Options{Password: dumpPassword})
-			if err != nil {
-				return err
-			}
-			out, err := dump.MarshalCompact(data)
-			if err != nil {
-				return fmt.Errorf("marshal json: %w", err)
-			}
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), string(out))
-			return err
-		},
+type dumpPDFCmd struct {
+	Path cmd.StringArg
+}
+
+func (dumpPDFCmd) Description() string { return "Dump with dialect " + pdfdslipakv1.Dialect }
+
+func (c *dumpPDFCmd) Run(ctx context.Context) error {
+	return runDump(pdfdslipakv1.Extract, c.Path.Value(), cmd.Get[string](ctx, "password"))
+}
+
+type dumpXLSXCmd struct {
+	Path cmd.StringArg
+}
+
+func (dumpXLSXCmd) Description() string { return "Dump with dialect " + xlsxexcelizev1.Dialect }
+
+func (c *dumpXLSXCmd) Run(ctx context.Context) error {
+	return runDump(xlsxexcelizev1.Extract, c.Path.Value(), cmd.Get[string](ctx, "password"))
+}
+
+func runDump(extract dump.Extractor, path, password string) error {
+	if path == "" {
+		return fmt.Errorf("%w: dump <dialect> <path>", cmd.ErrMissingValue)
 	}
+	data, err := extract(path, dump.Options{Password: password})
+	if err != nil {
+		return err
+	}
+	out, err := dump.MarshalCompact(data)
+	if err != nil {
+		return fmt.Errorf("marshal json: %w", err)
+	}
+	_, err = fmt.Fprintln(os.Stdout, string(out))
+	return err
 }

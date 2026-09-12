@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lewtec/lewkit/x/release"
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/engine"
-	"github.com/lucasew/contapila-go/pkg/version"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -91,7 +91,7 @@ func (s *Server) Initialize(ctx context.Context, params *protocol.InitializePara
 	}
 	syncKind := protocol.TextDocumentSyncKindFull
 	trueVal := protocol.Boolean(true)
-	ver := version.GetBuildID()
+	ver := release.Version()
 	return &protocol.InitializeResult{
 		Capabilities: protocol.ServerCapabilities{
 			TextDocumentSync:   syncKind,
