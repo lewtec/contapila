@@ -23,7 +23,7 @@ func TestPlanDesktopRewrite_TTY(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			_, _, ok := planDesktopRewrite(tc.stdinTTY, tc.stdoutTTY, nil)
+			_, ok := planDesktopRewrite(tc.stdinTTY, tc.stdoutTTY, nil)
 			if ok {
 				t.Fatal("expected no rewrite when any fd is a TTY")
 			}
@@ -55,11 +55,10 @@ func TestPlanDesktopRewrite_NotTTY(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		args        []string
-		wantOK      bool
-		wantArgs    []string
-		wantWorkDir string // empty = no override
+		name     string
+		args     []string
+		wantOK   bool
+		wantArgs []string
 	}{
 		{
 			name:     "zero args",
@@ -80,25 +79,22 @@ func TestPlanDesktopRewrite_NotTTY(t *testing.T) {
 			wantArgs: []string{"-C", dir, "--verbose", "desktop"},
 		},
 		{
-			name:        "project dir positional",
-			args:        []string{dir},
-			wantOK:      true,
-			wantArgs:    []string{"desktop"},
-			wantWorkDir: absDir,
+			name:     "project dir positional",
+			args:     []string{dir},
+			wantOK:   true,
+			wantArgs: []string{"-C", absDir, "desktop"},
 		},
 		{
-			name:        "cue file positional",
-			args:        []string{cue},
-			wantOK:      true,
-			wantArgs:    []string{"desktop"},
-			wantWorkDir: filepath.Dir(absCue),
+			name:     "cue file positional",
+			args:     []string{cue},
+			wantOK:   true,
+			wantArgs: []string{"-C", filepath.Dir(absCue), "desktop"},
 		},
 		{
-			name:        "flags then project path",
-			args:        []string{"-v", dir},
-			wantOK:      true,
-			wantArgs:    []string{"-v", "desktop"},
-			wantWorkDir: absDir,
+			name:     "flags then project path",
+			args:     []string{"-v", dir},
+			wantOK:   true,
+			wantArgs: []string{"-v", "-C", absDir, "desktop"},
 		},
 		{
 			name:   "real subcommand",
@@ -121,11 +117,10 @@ func TestPlanDesktopRewrite_NotTTY(t *testing.T) {
 			wantOK: false,
 		},
 		{
-			name:        "nested dir positional",
-			args:        []string{sub},
-			wantOK:      true,
-			wantArgs:    []string{"desktop"},
-			wantWorkDir: mustAbs(t, sub),
+			name:     "nested dir positional",
+			args:     []string{sub},
+			wantOK:   true,
+			wantArgs: []string{"-C", mustAbs(t, sub), "desktop"},
 		},
 		{
 			name:   "unknown flag",
@@ -142,18 +137,15 @@ func TestPlanDesktopRewrite_NotTTY(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			gotArgs, gotDir, ok := planDesktopRewrite(false, false, tc.args)
+			gotArgs, ok := planDesktopRewrite(false, false, tc.args)
 			if ok != tc.wantOK {
-				t.Fatalf("ok=%v want %v (args=%v dir=%q)", ok, tc.wantOK, gotArgs, gotDir)
+				t.Fatalf("ok=%v want %v (args=%v)", ok, tc.wantOK, gotArgs)
 			}
 			if !ok {
 				return
 			}
 			if !stringSlicesEqual(gotArgs, tc.wantArgs) {
 				t.Errorf("args=%v want %v", gotArgs, tc.wantArgs)
-			}
-			if gotDir != tc.wantWorkDir {
-				t.Errorf("workDir=%q want %q", gotDir, tc.wantWorkDir)
 			}
 		})
 	}

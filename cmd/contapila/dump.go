@@ -37,10 +37,7 @@ Output is one compact JSON object on stdout:
 Pipe into a language-stdlib script, then into contapila ingest as JSONL directives.`
 }
 
-func (c *dumpCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+func (c *dumpCmd) Run(context.Context) error {
 	return ErrMissingDumpDialect
 }
 
@@ -51,9 +48,6 @@ type dumpPDFCmd struct {
 func (dumpPDFCmd) Description() string { return "Dump with dialect " + pdfdslipakv1.Dialect }
 
 func (c *dumpPDFCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
 	return runDump(pdfdslipakv1.Extract, c.Path.Value(), cmd.Get[string](ctx, "password"))
 }
 
@@ -64,9 +58,6 @@ type dumpXLSXCmd struct {
 func (dumpXLSXCmd) Description() string { return "Dump with dialect " + xlsxexcelizev1.Dialect }
 
 func (c *dumpXLSXCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
 	return runDump(xlsxexcelizev1.Extract, c.Path.Value(), cmd.Get[string](ctx, "password"))
 }
 

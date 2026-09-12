@@ -33,10 +33,6 @@ import (
 	_ "github.com/lucasew/contapila-go/internal/plugins/queries"
 )
 
-// workDir is the optional start directory for project discovery (global -C).
-// Empty means use the process working directory.
-var workDir string
-
 // CLI sentinel errors (wrap with context via fmt.Errorf %w).
 var (
 	ErrNotDirectory       = errors.New("not a directory")
@@ -73,11 +69,6 @@ func execute(ctx context.Context, args []string) error {
 	return app.Run(ctx)
 }
 
-// applyCwd applies -C/--directory from the App context bag.
-func applyCwd(ctx context.Context) error {
-	return applyDirectory(cmd.Get[string](ctx, "directory"))
-}
-
 // ledgerArg is a ledger directory name. Open books it from a handle.
 type ledgerArg struct {
 	name string
@@ -98,7 +89,7 @@ func (a ledgerArg) Open(ctx context.Context, h *engine.Handle) (*engine.Ledger, 
 }
 
 type root struct {
-	Directory cmd.StringArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)" default:"" ctx:"directory"`
+	Directory directoryArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)" default:"" env:"CONTAPILA_DIRECTORY" ctx:"directory"`
 	Version   *cmd.VersionCmd
 	Status    *statusCmd
 	Doctor    *statusCmd `cmd:"doctor"`
@@ -130,31 +121,37 @@ func (r *root) Run(context.Context) error {
 	return err
 }
 
-// applyDirectory resolves -C and stores it in workDir. Empty dir is a no-op
-// so a later flag or the desktop rewrite can win.
-func applyDirectory(dir string) error {
-	if dir == "" {
+// directoryArg is -C/--directory. Parse resolves and checks the path.
+type directoryArg struct {
+	path string
+}
+
+func (d *directoryArg) Parse(s string) error {
+	if s == "" {
+		d.path = ""
 		return nil
 	}
-	abs, err := filepath.Abs(dir)
+	abs, err := filepath.Abs(s)
 	if err != nil {
-		return fmt.Errorf("-C %s: %w", dir, err)
+		return fmt.Errorf("-C %s: %w", s, err)
 	}
 	info, err := os.Stat(abs)
 	if err != nil {
-		return fmt.Errorf("-C %s: %w", dir, err)
+		return fmt.Errorf("-C %s: %w", s, err)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("-C %s: %w", dir, ErrNotDirectory)
+		return fmt.Errorf("-C %s: %w", s, ErrNotDirectory)
 	}
-	workDir = abs
+	d.path = abs
 	return nil
 }
 
-// projectCwd returns the project search start directory: -C if set, else process CWD.
-func projectCwd() (string, error) {
-	if workDir != "" {
-		return workDir, nil
+func (d directoryArg) Value() string { return d.path }
+
+// projectCwd is -C from the App context bag, else the process working directory.
+func projectCwd(ctx context.Context) (string, error) {
+	if d := cmd.Get[string](ctx, "directory"); d != "" {
+		return d, nil
 	}
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -171,7 +168,7 @@ func printDiags(ds diag.List) {
 }
 
 func withLedgers(ctx context.Context, names []string, fn func(*engine.Ledger) error) error {
-	cwd, err := projectCwd()
+	cwd, err := projectCwd(ctx)
 	if err != nil {
 		return err
 	}
@@ -249,10 +246,8 @@ type statusCmd struct {
 func (statusCmd) Description() string { return "Show project status" }
 
 func (c *statusCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
-	cwd, err := projectCwd()
+
+	cwd, err := projectCwd(ctx)
 	if err != nil {
 		return err
 	}
@@ -296,9 +291,6 @@ type checkCmd struct {
 func (checkCmd) Description() string { return "Validate ledger(s)" }
 
 func (c *checkCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
 		fmt.Printf("== %s ==\n", l.Name)
 		ds := l.Check()
@@ -319,9 +311,7 @@ type balancesCmd struct {
 func (balancesCmd) Description() string { return "Balances as-of" }
 
 func (c *balancesCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	t, err := engine.ParseDate(c.AsOf.Value())
 	if err != nil {
 		return err
@@ -407,9 +397,7 @@ type journalCmd struct {
 func (journalCmd) Description() string { return "Journal" }
 
 func (c *journalCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	r, err := c.resolve()
 	if err != nil {
 		return err
@@ -449,9 +437,7 @@ type pnlCmd struct {
 func (pnlCmd) Description() string { return "P&L for a Fava-style period" }
 
 func (c *pnlCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	r, err := c.resolve()
 	if err != nil {
 		return err
@@ -489,9 +475,7 @@ type networthCmd struct {
 func (networthCmd) Description() string { return "Net worth" }
 
 func (c *networthCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	t, err := engine.ParseDate(c.AsOf.Value())
 	if err != nil {
 		return err
@@ -539,9 +523,7 @@ func (accountCmd) Description() string {
 }
 
 func (c *accountCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	if c.Ledger.Value() == "" || c.Account.Value() == "" {
 		return fmt.Errorf("%w: account <ledger> <account>", cmd.ErrMissingValue)
 	}
@@ -549,7 +531,7 @@ func (c *accountCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	cwd, err := projectCwd()
+	cwd, err := projectCwd(ctx)
 	if err != nil {
 		return err
 	}
@@ -645,9 +627,7 @@ type parseCmd struct {
 func (parseCmd) Description() string { return "Dump directives from a file" }
 
 func (c *parseCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	if c.File.Value() == "" {
 		return fmt.Errorf("%w: parse <file>", cmd.ErrMissingValue)
 	}
@@ -687,9 +667,7 @@ Any error or non-zero CMD exit aborts with no write.`
 }
 
 func (c *ingestCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	if c.File.Value() == "" {
 		return ErrFileRequired
 	}
@@ -745,10 +723,8 @@ type webCmd struct {
 func (webCmd) Description() string { return "Read-only web UI" }
 
 func (c *webCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
-	cwd, err := projectCwd()
+
+	cwd, err := projectCwd(ctx)
 	if err != nil {
 		return err
 	}
@@ -773,10 +749,8 @@ func (buildCmd) Description() string {
 }
 
 func (c *buildCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
-	cwd, err := projectCwd()
+
+	cwd, err := projectCwd(ctx)
 	if err != nil {
 		return err
 	}
@@ -796,9 +770,7 @@ func (lspCmd) Description() string {
 }
 
 func (c *lspCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
+
 	// Protocol on stdout; keep slog on stderr.
 	return lsp.RunStdio(ctx)
 }

@@ -33,10 +33,6 @@ func exampleDir(t *testing.T) string {
 // return instead of os.Exit.
 func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
-	workDir = ""
-	t.Cleanup(func() {
-		workDir = ""
-	})
 
 	oldOut, oldErr := os.Stdout, os.Stderr
 	or, ow, pipeErr := os.Pipe()
@@ -186,6 +182,18 @@ func TestUnknownLedger(t *testing.T) {
 	}
 	if !errors.Is(err, engine.ErrUnknownLedger) {
 		t.Errorf("err=%v want engine.ErrUnknownLedger", err)
+	}
+}
+
+func TestDirectoryEnv(t *testing.T) {
+	dir := exampleDir(t)
+	t.Setenv("CONTAPILA_DIRECTORY", dir)
+	out, _, err := runCLI(t, "status")
+	if err != nil {
+		t.Fatalf("status via CONTAPILA_DIRECTORY: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "Ledgers (4):") {
+		t.Errorf("status stdout:\n%s", out)
 	}
 }
 

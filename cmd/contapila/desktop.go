@@ -38,10 +38,7 @@ deep-link). Project root is discovered from -C / the process working directory
 }
 
 func (c *desktopCmd) Run(ctx context.Context) error {
-	if err := applyCwd(ctx); err != nil {
-		return err
-	}
-	cwd, err := projectCwd()
+	cwd, err := projectCwd(ctx)
 	if err != nil {
 		return err
 	}
@@ -109,28 +106,24 @@ func rootDeepLinkHandler(next http.Handler, ledger string) http.Handler {
 	})
 }
 
-// applyDesktopRewrite mutates os.Args (and workDir when a project path is given)
-// so bare not-a-TTY launches become "contapila desktop". See SPEC §3.2.1.
+// applyDesktopRewrite mutates os.Args so bare not-a-TTY launches become
+// "contapila desktop". A project path becomes -C so App owns it. See SPEC §3.2.1.
 func applyDesktopRewrite() {
 	stdinTTY := isatty.IsTerminal(os.Stdin.Fd()) || isatty.IsCygwinTerminal(os.Stdin.Fd())
 	stdoutTTY := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
-	newArgs, setDir, ok := planDesktopRewrite(stdinTTY, stdoutTTY, os.Args[1:])
+	newArgs, ok := planDesktopRewrite(stdinTTY, stdoutTTY, os.Args[1:])
 	if !ok {
 		return
-	}
-	if setDir != "" {
-		workDir = setDir
 	}
 	os.Args = append([]string{os.Args[0]}, newArgs...)
 }
 
 // planDesktopRewrite decides whether a not-a-TTY invocation should become desktop.
 // args is os.Args[1:] (no program name). When ok, newArgs is the rewritten argv
-// without the program name; setWorkDir is non-empty when the sole positional was
-// a project directory or contapila.cue path.
-func planDesktopRewrite(stdinTTY, stdoutTTY bool, args []string) (newArgs []string, setWorkDir string, ok bool) {
+// without the program name. A project directory or contapila.cue path becomes -C.
+func planDesktopRewrite(stdinTTY, stdoutTTY bool, args []string) (newArgs []string, ok bool) {
 	if stdinTTY || stdoutTTY {
-		return nil, "", false
+		return nil, false
 	}
 
 	var flags []string
@@ -143,7 +136,7 @@ func planDesktopRewrite(stdinTTY, stdoutTTY bool, args []string) (newArgs []stri
 		case a == "-C" || a == "--directory":
 			if i+1 >= len(args) {
 				// Incomplete flag — leave for the parser.
-				return nil, "", false
+				return nil, false
 			}
 			flags = append(flags, a, args[i+1])
 			i++
@@ -151,7 +144,7 @@ func planDesktopRewrite(stdinTTY, stdoutTTY bool, args []string) (newArgs []stri
 			flags = append(flags, a)
 		case strings.HasPrefix(a, "-"):
 			// Unknown global flag or other command flag — do not rewrite.
-			return nil, "", false
+			return nil, false
 		default:
 			positionals = append(positionals, a)
 		}
@@ -159,15 +152,15 @@ func planDesktopRewrite(stdinTTY, stdoutTTY bool, args []string) (newArgs []stri
 
 	switch len(positionals) {
 	case 0:
-		return append(flags, "desktop"), "", true
+		return append(flags, "desktop"), true
 	case 1:
 		dir, resolved := resolveProjectStartArg(positionals[0])
 		if !resolved {
-			return nil, "", false
+			return nil, false
 		}
-		return append(flags, "desktop"), dir, true
+		return append(flags, "-C", dir, "desktop"), true
 	default:
-		return nil, "", false
+		return nil, false
 	}
 }
 
