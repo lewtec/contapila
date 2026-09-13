@@ -11,7 +11,7 @@ require (
 	github.com/lewtec/lewkit v0.0.0-20260912191340-46b00a1a8663
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
-	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
+	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260907205036-8fdfa3f25c9a
 	github.com/xuri/excelize/v2 v2.11.0
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
