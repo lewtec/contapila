@@ -7,7 +7,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
-	github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f
+	github.com/lewtec/eletrocromo v0.0.0-20260827163720-2754a2cbe3fb
 	github.com/lewtec/lewkit v0.0.0-20260912191340-46b00a1a8663
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
