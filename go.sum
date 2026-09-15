@@ -16,6 +16,9 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.1.0 h1:eLKJA0d02Lf0mVpIDgYnqXcUn0GqVmEFny3VuID1U3M=
 github.com/andybalholm/brotli v1.1.0/go.mod h1:sms7XGricyQI9K10gOSf56VKKWS4oLer58Q+mhRPtnY=
+github.com/andybalholm/brotli v1.2.4/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
+github.com/bmatcuk/doublestar/v4 v4.10.0 h1:zU9WiOla1YA122oLM6i4EXvGW62DvKZVxIe6TYWexEs=
+github.com/bmatcuk/doublestar/v4 v4.10.0/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
 github.com/cli/browser v1.3.0 h1:LejqCrpWr+1pRqmEPDGnTZOjsMe7sehifLynZJuqJpo=
@@ -68,6 +71,8 @@ github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f h1:CtLIaYB7c/1L
 github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f/go.mod h1:fCt3ncDh9YzAN0mpBg+gDE3gjYgZX2fJ9L4Kkpgo5uQ=
 github.com/lewtec/lewkit v0.0.0-20260912191340-46b00a1a8663 h1:f0AAJyd7t4Tkfrq2XJWrbrJUEKY4OyLt7JTrHNtxvVs=
 github.com/lewtec/lewkit v0.0.0-20260912191340-46b00a1a8663/go.mod h1:Tr6uVT3wjWlc2kmXltByUd+Z9EAJm/pPZLT5sVL8u8c=
+github.com/lewtec/lewkit v0.0.0-20260915000354-b189b5f89e22 h1:RfpE0WrXBbmf8hekqnNpva+h4+YbG2G8n4p/6e8BHRA=
+github.com/lewtec/lewkit v0.0.0-20260915000354-b189b5f89e22/go.mod h1:SgA5LYP0TVm+aU9PYolKSDBGM9UREWHuWZ8jtZMarUM=
 github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0 h1:0aH6Uew/9eJSpMTlHo4X67ne/EIxg8kkqDGZf1YDO4A=
 github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0/go.mod h1:wNGs3imOPr9sco1Jyu3XkAdVwkc6vCLR2zc3Ba8asII=
 github.com/lib/pq v1.12.3 h1:tTWxr2YLKwIvK90ZXEw8GP7UFHtcbTtty8zsI+YjrfQ=
