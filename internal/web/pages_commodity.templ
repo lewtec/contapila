@@ -1,0 +1,58 @@
+package web
+
+templ CommodityPage(d pageData) {
+	@reportLayout(d) {
+		@chartPanel(d)
+		if len(d.CommodityMeta) > 0 {
+			<section class="mb-4">
+				@sectionTitle("Metadata")
+				@metaKVRows(d.CommodityMeta)
+			</section>
+		}
+		if len(d.CommodityPrices) > 0 {
+			<section class="mb-4">
+				@sectionTitleExtra("Prices") {
+					<a class="ml-2 font-normal normal-case tracking-normal link link-hover link-primary text-xs" href={ templ.SafeURL(ledgerURL(d.LedgerName, "prices", d.Time)) }>all pairs</a>
+				}
+				<div class="overflow-x-auto border border-base-300 max-h-64 overflow-y-auto">
+					<table class="table table-xs table-zebra">
+						<thead class="sticky top-0 bg-base-100">
+							<tr>
+								<th>Date</th>
+								<th class="text-right">Price</th>
+								<th>Meta</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, p := range d.CommodityPrices {
+								<tr>
+									<td class="font-mono tabular text-xs text-base-content/70">{ p.Date }</td>
+									<td class="text-right tabular text-xs font-medium font-mono">
+										@rateWithQuote(p.Rate, p.Quote, d.LedgerName, d.Time)
+									</td>
+									<td class="text-xs text-base-content/70">
+										@metaInline(p.Metadata)
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		}
+		<div class="grid gap-4 md:grid-cols-2 mb-4">
+			<section>
+				@sectionTitle("Balance by account")
+				@accountAmountRows(d.CommodityBalances, d.LedgerName, d.Time, "Zero / never held.")
+			</section>
+			<section>
+				@sectionTitle("Change in period")
+				@accountAmountRows(d.CommodityActivity, d.LedgerName, d.Time, "No activity.")
+			</section>
+		</div>
+		<section>
+			@sectionTitle("Journal")
+			@journalList(d)
+		</section>
+	}
+}

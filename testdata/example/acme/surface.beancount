@@ -1,0 +1,7 @@
+; note/event + skipped query/custom/document
+
+2023-08-01 note Assets:Receivable:Client:Orion "Net-30 terms"
+2024-01-01 event "fiscal-year" "Acme FY starts"
+2024-02-01 query "ar-aging" "SELECT account WHERE account ~ 'Receivable'"
+2024-02-01 custom "fava-option" "language" "pt_BR"
+2024-02-08 document Assets:Receivable:Client:Orion "acme/docs/by-account/Assets/Receivable/Client/Orion/20230810_INV-001.txt"

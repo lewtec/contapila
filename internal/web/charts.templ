@@ -1,0 +1,26 @@
+package web
+
+templ chartAssets() {
+	<link rel="stylesheet" href="/static/vendor/uplot/uplot.min.css"/>
+	<script src="/static/vendor/uplot/uplot.min.js" defer></script>
+	<script src="/static/charts.js" defer></script>
+}
+
+script bootChart(chartID string) {
+	document.addEventListener("DOMContentLoaded", function () {
+		if (window.contapilaChart) contapilaChart.boot(chartID);
+	});
+}
+
+templ chartPanel(d pageData) {
+	if d.ChartJSON != "" {
+		<section class="mb-3" aria-label={ chartAriaLabel(d) }>
+			if d.ChartTitle != "" {
+				@sectionTitle(d.ChartTitle)
+			}
+			<div id={ d.ChartID } class="contapila-chart w-full min-h-[12rem] border border-base-300 bg-base-100 overflow-hidden"></div>
+			@chartJSONScript(d.ChartID + "-data", d.ChartJSON)
+			@bootChart(d.ChartID)
+		</section>
+	}
+}

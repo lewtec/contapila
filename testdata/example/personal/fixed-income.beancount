@@ -1,0 +1,30 @@
+; Fixed income — account-per-maturity lots
+; CDB/LCA opens carry interest_rate (see accounts.beancount); CDI series in ../indexes.beancount.
+; Redeem residual still books realized yield to Income:Passivo:* (bank cash is ground truth).
+
+2023-09-01 * "BancoAlfa" "Buy CDB 20241201"
+  Assets:BR:Alfa:Investimento:CDB:20241201  10000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-01-20 * "BancoAlfa" "Buy LCA 20241115"
+  Assets:BR:Alfa:Investimento:LCA:20241115  4500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-08 * "BancoAlfa" "Buy CDB 20250601"
+  Assets:BR:Alfa:Investimento:CDB:20250601  8000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-11-16 * "BancoAlfa" "Redeem LCA 20241115"
+  Assets:BR:Alfa:Investimento:LCA:20241115  -4500.00 BRL
+  Assets:BR:Alfa:ContaCorrente  4680.00 BRL
+  Income:Passivo:BR:Alfa:Investimento:LCA:20241115
+
+2024-12-02 * "BancoAlfa" "Redeem CDB 20241201"
+  Assets:BR:Alfa:Investimento:CDB:20241201  -10000.00 BRL
+  Assets:BR:Alfa:ContaCorrente  10850.00 BRL
+  Income:Passivo:BR:Alfa:Investimento:CDB:20241201
+
+2025-06-02 * "BancoAlfa" "Redeem CDB 20250601"
+  Assets:BR:Alfa:Investimento:CDB:20250601  -8000.00 BRL
+  Assets:BR:Alfa:ContaCorrente  8520.00 BRL
+  Income:Passivo:BR:Alfa:Investimento:CDB:20250601

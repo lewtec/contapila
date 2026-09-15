@@ -1,0 +1,469 @@
+; Salary, freelance, dividends, yields
+
+2023-07-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2023-08-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2023-09-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2023-09-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1650.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2023-09-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  89.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2023-09-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  49.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2023-10-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2023-11-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2023-12-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2023-12-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1800.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2023-12-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  92.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2023-12-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  52.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2024-01-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-01-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  610.00 USD
+  Income:Ativo:US:Freelancer
+
+2024-02-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-02-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  17.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2024-02-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  14.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2024-03-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-03-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1350.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2024-03-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  83.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2024-03-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  43.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2024-04-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-04-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  640.00 USD
+  Income:Ativo:US:Freelancer
+
+2024-04-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  19.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2024-04-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  16.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2024-05-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-06-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-06-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1500.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2024-06-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  86.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2024-06-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  46.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2024-06-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  21.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2024-06-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  18.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2024-07-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-07-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  670.00 USD
+  Income:Ativo:US:Freelancer
+
+2024-08-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-08-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  23.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2024-08-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  20.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2024-09-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-09-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1650.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2024-09-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  89.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2024-09-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  49.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2024-10-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-10-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  700.00 USD
+  Income:Ativo:US:Freelancer
+
+2024-10-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  25.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2024-10-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  22.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2024-11-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-12-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  8500.00 BRL
+  Income:Ativo:BR:Salary
+
+2024-12-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1800.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2024-12-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  92.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2024-12-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  52.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2024-12-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  27.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2024-12-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  24.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2025-01-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-01-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  610.00 USD
+  Income:Ativo:US:Freelancer
+
+2025-02-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-02-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  17.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2025-02-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  14.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2025-03-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-03-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1350.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2025-03-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  83.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2025-03-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  43.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2025-04-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-04-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  640.00 USD
+  Income:Ativo:US:Freelancer
+
+2025-04-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  19.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2025-04-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  16.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2025-05-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-06-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-06-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1500.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2025-06-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  86.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2025-06-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  46.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2025-06-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  21.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2025-06-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  18.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2025-07-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-07-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  670.00 USD
+  Income:Ativo:US:Freelancer
+
+2025-08-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-08-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  23.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2025-08-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  20.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2025-09-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-09-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1650.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2025-09-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  89.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2025-09-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  49.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2025-10-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-10-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  700.00 USD
+  Income:Ativo:US:Freelancer
+
+2025-10-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  25.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2025-10-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  22.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2025-11-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-12-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2025-12-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1800.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2025-12-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  92.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2025-12-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  52.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2025-12-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  27.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2025-12-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  24.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2026-01-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2026-01-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  610.00 USD
+  Income:Ativo:US:Freelancer
+
+2026-02-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2026-02-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  17.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2026-02-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  14.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2026-03-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2026-03-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1350.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2026-03-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  83.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2026-03-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  43.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2026-04-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2026-04-20 * "Outlier Labs" "US freelance"
+  Assets:US:Delta:ContaCorrente  640.00 USD
+  Income:Ativo:US:Freelancer
+
+2026-04-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  19.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2026-04-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  16.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2026-05-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2026-06-05 * "Employer Norte SA" "Salary"
+  Assets:BR:Alfa:ContaCorrente  9500.00 BRL
+  Income:Ativo:BR:Salary
+
+2026-06-18 * "Studio Pixel" "Freelance BR"
+  Assets:BR:Alfa:ContaCorrente  1500.00 BRL
+  Income:Ativo:BR:Freelancer
+
+2026-06-12 * "Clearinghouse B3" "PETR4 JCP"
+  Assets:BR:Beta:ContaCorrente  86.00 BRL
+  Income:Passivo:BR:B3:Acao:PETR4:JCP
+
+2026-06-14 * "Clearinghouse B3" "WEGE3 dividend"
+  Assets:BR:Beta:ContaCorrente  46.00 BRL
+  Income:Passivo:BR:B3:Acao:WEGE3:Rendimento
+
+2026-06-28 * "BancoAlfa" "Poupanca yield"
+  Assets:BR:Alfa:Poupanca  21.00 BRL
+  Income:Passivo:BR:Alfa:Poupanca
+
+2026-06-27 * "CorretoraBeta" "Conta remunerada"
+  Assets:BR:Beta:ContaCorrente  18.00 BRL
+  Income:Passivo:BR:Beta:ContaRemunerada
+
+2024-05-08 * "BTC dust airdrop"
+  Assets:Cripto:Wallet  0.00015000 BTC {2.00 BRL}
+  Income:Ativo:Cripto:Airdrop
+
+2024-09-22 * "TransferAgent US" "SPDW dividend"
+  Assets:US:Delta:ContaCorrente  27.00 USD
+  Income:Passivo:US:Stock:SPDW:Rendimento
+
+2025-03-22 * "TransferAgent US" "SPDW dividend"
+  Assets:US:Delta:ContaCorrente  21.00 USD
+  Income:Passivo:US:Stock:SPDW:Rendimento
+
+2025-09-22 * "TransferAgent US" "SPDW dividend"
+  Assets:US:Delta:ContaCorrente  27.00 USD
+  Income:Passivo:US:Stock:SPDW:Rendimento
+
+2026-03-22 * "TransferAgent US" "SPDW dividend"
+  Assets:US:Delta:ContaCorrente  21.00 USD
+  Income:Passivo:US:Stock:SPDW:Rendimento

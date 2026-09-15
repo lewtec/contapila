@@ -1,0 +1,21 @@
+; acme — small shop AR/AP
+2023-07-01 open Equity:Aporte
+2023-07-01 open Equity:DistribuicaoLucros
+2023-07-01 open Assets:BR:Alfa:ContaCorrente BRL
+  institution: "BancoAlfa"
+  role: "operating"
+2023-07-01 open Assets:US:Wise:ContaCorrente USD
+2023-07-01 open Assets:Receivable:Client:Orion BRL
+2023-07-01 open Assets:Receivable:Client:Nimbus BRL
+2023-07-01 open Assets:Receivable:Client:Helix USD
+2023-07-01 open Assets:Pending:Clearing BRL
+2023-07-01 open Liabilities:Payable:Supplier:CloudHost BRL
+2023-07-01 open Liabilities:Payable:Supplier:Contador BRL
+2023-07-01 open Liabilities:Payable:Tax:DAS BRL
+2023-07-01 open Income:Sales:BR
+2023-07-01 open Income:Sales:US
+2023-07-01 open Expenses:Ops:Cloud
+2023-07-01 open Expenses:Ops:Contabilidade
+2023-07-01 open Expenses:Payroll:Contractor
+2023-07-01 open Expenses:Tax:DAS
+2023-07-01 open Expenses:BankFees

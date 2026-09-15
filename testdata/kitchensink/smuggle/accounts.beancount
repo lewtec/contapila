@@ -1,0 +1,13 @@
+2021-07-01 open Equity:Opening-Balances
+2021-07-01 open Assets:Cash:Stash
+2021-07-01 open Assets:Inventory:Cigarettes:Warehouse
+2021-07-01 open Assets:Inventory:Cigarettes:InTransit
+2021-07-01 open Assets:Inventory:Cigarettes:MonzaCache
+2021-07-01 open Liabilities:Payable:Supplier:Border
+2021-07-01 open Income:Sales:Street
+2021-07-01 open Income:Gains
+2021-07-01 open Expenses:Logistics:Fuel
+2021-07-01 open Expenses:Logistics:Fee
+2021-07-01 open Expenses:Loss:Confiscation
+2021-07-01 open Expenses:Living
+2021-07-01 open Expenses:Misc
