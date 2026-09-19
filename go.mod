@@ -67,7 +67,7 @@ require (
 	modernc.org/memory v1.12.1 // indirect
 )
 
-replace github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar => github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260713221032-8673315d25fc
+replace github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar => github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar 8fdfa3f25c9a
 
 tool (
 	github.com/a-h/templ/cmd/templ
