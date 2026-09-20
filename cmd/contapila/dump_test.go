@@ -1,70 +1,58 @@
 package main
 
 import (
-	"errors"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/lewtec/lewkit/x/cmd"
+	lewtest "github.com/lewtec/lewkit/x/test"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDumpUnknownDialect(t *testing.T) {
-	_, _, err := runCLI(t, "dump", "nope-v1", "x.pdf")
-	if err == nil {
-		t.Fatal("expected error for unknown dump subcommand")
-	}
-	if !errors.Is(err, cmd.ErrUnknownCommand) {
-		t.Fatalf("err=%v want ErrUnknownCommand", err)
-	}
+	err := cmd.ParseErr[cmd.App[root]](t, "dump", "nope-v1", "x.pdf")
+	require.ErrorIs(t, err, cmd.ErrUnknownCommand)
 }
 
 func TestDumpMissingDialect(t *testing.T) {
-	_, _, err := runCLI(t, "dump")
-	if err == nil {
-		t.Fatal("expected error for bare dump")
-	}
-	if !errors.Is(err, cmd.ErrMissingCommand) {
-		t.Fatalf("err=%v want ErrMissingCommand", err)
-	}
+	lewtest.DiscardSlog(t)
+	app := cmd.ParseOK[cmd.App[root]](t, "dump")
+	out := lewtest.Stdout(t, func() {
+		require.NoError(t, app.Run(t.Context()))
+	})
+	assert.Contains(t, out, "pdf-dslipak-v1")
+	assert.Contains(t, out, "xlsx-excelize-v1")
 }
 
 func TestDumpPDFFixture(t *testing.T) {
 	path := filepath.Join("..", "..", "internal", "dump", "pdfdslipakv1", "testdata", "sample.pdf")
-	stdout, _, err := runCLI(t, "dump", "pdf-dslipak-v1", path)
-	if err != nil {
-		t.Fatalf("dump: %v", err)
-	}
-	if !strings.Contains(stdout, `"dialect":"pdf-dslipak-v1"`) {
-		t.Fatalf("stdout: %s", stdout)
-	}
-	if !strings.Contains(stdout, `"type":"document"`) {
-		t.Fatalf("missing document node: %s", stdout)
-	}
+	lewtest.DiscardSlog(t)
+	app := cmd.ParseOK[cmd.App[root]](t, "dump", "pdf-dslipak-v1", path)
+	out := lewtest.Stdout(t, func() {
+		require.NoError(t, app.Run(t.Context()))
+	})
+	assert.Contains(t, out, `"dialect":"pdf-dslipak-v1"`)
+	assert.Contains(t, out, `"type":"document"`)
 }
 
 func TestDumpXLSXFixture(t *testing.T) {
 	path := filepath.Join("..", "..", "internal", "dump", "xlsxexcelizev1", "testdata", "sample.xlsx")
-	stdout, _, err := runCLI(t, "dump", "xlsx-excelize-v1", path)
-	if err != nil {
-		t.Fatalf("dump: %v", err)
-	}
-	if !strings.Contains(stdout, `"dialect":"xlsx-excelize-v1"`) {
-		t.Fatalf("stdout: %s", stdout)
-	}
-	if !strings.Contains(stdout, `"type":"workbook"`) {
-		t.Fatalf("missing workbook node: %s", stdout)
-	}
+	lewtest.DiscardSlog(t)
+	app := cmd.ParseOK[cmd.App[root]](t, "dump", "xlsx-excelize-v1", path)
+	out := lewtest.Stdout(t, func() {
+		require.NoError(t, app.Run(t.Context()))
+	})
+	assert.Contains(t, out, `"dialect":"xlsx-excelize-v1"`)
+	assert.Contains(t, out, `"type":"workbook"`)
 }
 
 func TestDumpPasswordFlagAccepted(t *testing.T) {
-	// Unencrypted fixture must still open when --password is set (wrong/extra password ignored if not encrypted).
 	path := filepath.Join("..", "..", "internal", "dump", "pdfdslipakv1", "testdata", "sample.pdf")
-	stdout, _, err := runCLI(t, "dump", "--password", "unused", "pdf-dslipak-v1", path)
-	if err != nil {
-		t.Fatalf("dump with --password on plain pdf: %v", err)
-	}
-	if !strings.Contains(stdout, `"dialect":"pdf-dslipak-v1"`) {
-		t.Fatalf("stdout: %s", stdout)
-	}
+	lewtest.DiscardSlog(t)
+	app := cmd.ParseOK[cmd.App[root]](t, "dump", "--password", "unused", "pdf-dslipak-v1", path)
+	out := lewtest.Stdout(t, func() {
+		require.NoError(t, app.Run(t.Context()))
+	})
+	assert.Contains(t, out, `"dialect":"pdf-dslipak-v1"`)
 }
