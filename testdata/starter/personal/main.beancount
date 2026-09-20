@@ -1,0 +1,37 @@
+option "operating_currency" "BRL"
+
+plugin "web_accounts"
+
+1860-01-01 commodity BRL
+
+2024-01-01 open Equity:Opening-Balances
+2024-01-01 open Assets:BR:Alfa:ContaCorrente BRL
+  institution: "BancoAlfa"
+  role: "checking"
+2024-01-01 open Assets:Cash:Carteira BRL
+2024-01-01 open Liabilities:BR:Alfa:Credito BRL
+2024-01-01 open Income:Ativo:BR:Salary
+2024-01-01 open Income:Ativo:BR:DistribuicaoLucros:Company
+2024-01-01 open Expenses:CustoFixo:Aluguel
+2024-01-01 open Expenses:CustoFixo:PJ
+2024-01-01 open Expenses:Prazeres:Alimentacao:Mercado
+
+2024-01-01 * "Opening: checking"
+  Assets:BR:Alfa:ContaCorrente  25000.00 BRL
+  Equity:Opening-Balances
+
+2024-01-01 * "Opening: cash"
+  Assets:Cash:Carteira  200.00 BRL
+  Equity:Opening-Balances
+
+2024-01-01 * "Opening: card"
+  Liabilities:BR:Alfa:Credito  -800.00 BRL
+  Equity:Opening-Balances
+
+2024-01-01 * "Aporte company"
+  Expenses:CustoFixo:PJ  20000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-28 * "Company" "Distribuicao de lucros"
+  Income:Ativo:BR:DistribuicaoLucros:Company
+  Assets:BR:Alfa:ContaCorrente  1000.00 BRL

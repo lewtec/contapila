@@ -2,6 +2,7 @@
 
 | Path | Role |
 |------|------|
+| **`starter/`** | What `contapila init` copies: personal + company, chart and opening balances in each `main.beancount`. CUE `links` bridge aporte and profit distribution. |
 | **`example/`** | Default dogfood: **depth over volume**. Multi-ledger, real-repo surface (includes, pad/balance/close, meta, docs). |
 | **`kitchensink/`** | Scale corpus (~1M txns). Untouched by example depth work. |
 | **`golden/`** | Reserved for expected snapshots. |

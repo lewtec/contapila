@@ -36,7 +36,15 @@ Otherwise use the binary above, or `go install` under [Development](#development
 
 ## Try the example
 
-Clone this repo (or copy [`testdata/example`](testdata/example)). The fixture is a multi-ledger project: personal books, a company ledger, grants, inventory — with shared prices and a CDI index series.
+`contapila init` copies a small starter Project into the current directory (empty except `.git`, or pass `--force`): personal and company ledgers, with the chart and opening balances in each `main.beancount`.
+
+```bash
+mkdir books && cd books
+contapila init
+contapila status
+```
+
+From this repo you can still point at [`testdata/example`](testdata/example):
 
 ```bash
 # from the repo root
@@ -128,6 +136,7 @@ Contapila took poetic license on tooling so the stack stays small: one binary, f
 
 | Command | Purpose |
 |---------|---------|
+| `init` | Copy a starter Project (personal + company) into the current directory (`--force` if not empty except `.git`) |
 | `status` | Project / ledger discovery |
 | `check [ledger]` | Validate (all ledgers if omitted) |
 | `balances [ledger]` | Balances as-of |
