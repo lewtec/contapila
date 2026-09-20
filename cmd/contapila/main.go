@@ -71,6 +71,7 @@ func execute(ctx context.Context, args []string) error {
 type root struct {
 	Directory project.DirArg `short:"C" long:"directory" help:"run as if contapila started in this directory (project discovery)" default:"" env:"CONTAPILA_DIRECTORY" ctx:"directory"`
 	Version   *cmd.VersionCmd
+	Init      *initCmd
 	Status    *statusCmd
 	Doctor    *statusCmd `cmd:"doctor"`
 	Check     *checkCmd

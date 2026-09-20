@@ -1,0 +1,24 @@
+option "operating_currency" "BRL"
+
+plugin "web_accounts"
+
+1860-01-01 commodity BRL
+
+2024-01-01 open Equity:Aporte
+2024-01-01 open Equity:DistribuicaoLucros
+2024-01-01 open Assets:BR:Alfa:ContaCorrente BRL
+  institution: "BancoAlfa"
+  role: "operating"
+2024-01-01 open Assets:Receivable:Client BRL
+2024-01-01 open Liabilities:Payable:Supplier BRL
+2024-01-01 open Income:Sales:BR
+2024-01-01 open Expenses:Ops:Cloud
+2024-01-01 open Expenses:Ops:Contabilidade
+
+2024-01-01 * "Capital contribution"
+  Assets:BR:Alfa:ContaCorrente  20000.00 BRL
+  Equity:Aporte
+
+2024-06-28 * "Owner" "Distribuicao de lucros"
+  Equity:DistribuicaoLucros  1000.00 BRL
+  Assets:BR:Alfa:ContaCorrente

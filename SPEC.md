@@ -37,7 +37,7 @@ Inherited C (cite the file):
 | Average-cost inventory | `internal/booking/booking.go` |
 | Desktop wrap eletrocromo, App.ID `br.tec.lew.contapila` | `cmd/contapila/desktop.go` |
 | First-party modules | `internal/plugin/plugin.go` |
-| Commands: `status`, `check`, `balances`, `journal`, `pnl`, `networth`, `account`, `parse`, `ingest`, `dump`, `web`, `build`, `desktop`, `lsp` | `cmd/contapila/main.go` |
+| Commands: `init`, `status`, `check`, `balances`, `journal`, `pnl`, `networth`, `account`, `parse`, `ingest`, `dump`, `web`, `build`, `desktop`, `lsp` | `cmd/contapila/main.go` |
 | No database | this tree |
 | Advertised hosts: linux, darwin | `README.md` |
 
@@ -51,7 +51,7 @@ Inherited C (cite the file):
 | TEC-04 | `web` against `desktop` | `web` uses no credentials. The app-window host issues a one-shot token and owns the loopback bind. A missing window host fails closed. | Local-only access |
 | TEC-05 | argv | Run the frozen command set. When both stdin and stdout are not TTYs and argv matches the implicit-desktop table, rewrite to `desktop`. Discovery uses `-C` when set, else the process working directory. There is no `--config`. | One command runs |
 | TEC-06 | A command result | Print a `Run` error on stderr and exit 1. `check` fails on errors. `check` succeeds when only warnings exist. Reports print human text on stdout. `lsp` uses stdout for the protocol only. | Unix exit status and one stdout shape |
-| TEC-07 | An Operator write | Change journal bytes only through `ingest` (span surgery; upsert by `ingest_id`; append when that key is absent). `build` writes the `--out` directory. `dump` prints JSON on stdout. | Updated journal file, site tree, JSON |
+| TEC-07 | An Operator write | Change journal bytes only through `ingest` (span surgery; upsert by `ingest_id`; append when that key is absent). `init` copies the embedded starter Project (personal + company) into `-C` / cwd. `build` writes the `--out` directory. `dump` prints JSON on stdout. | Updated journal file, starter tree, site tree, JSON |
 | TEC-08 | Postings | Keep one merged average-cost Position per Account and commodity. An increase MUST carry a cost basis (braces win over `@` and `@@`). A reduction without braces books at the current average. A Transaction that does not balance MUST have exactly one empty residual posting. Oversell warns and MUST NOT invent units. Net worth uses PriceDB only. | Positions and diagnostics |
 | TEC-09 | Embedded prelude, Operator `contapila.cue`, host-injected ledger and price-pair facts | Unify in CUE to one frozen RuntimeConfig. Transactions, pads, balances, and price time series stay out of that unify. First-party modules are gated by `plugins.<id>`. | RuntimeConfig |
 
@@ -72,6 +72,8 @@ Inherited C (cite the file):
 | TEC-05 | dslipak/pdf, excelize | wrap | A third PDF/XLSX stack | `path:internal/dump` |
 | TEC-06 | lewkit `x/cmd`, `log/slog` | adopt | A second error facade | `path:cmd/contapila` |
 | TEC-07 | Span surgery + temp/rename in this repo | implement | HTTP write-back | `path:internal/ingest` |
+| TEC-07 | Embedded example Project | implement | A second starter tree | `path:internal/initfs` |
+| TEC-07 | lewkit `x/fs`, `x/path` | adopt | A hand copy; `path/filepath` inside dest | org:lewkit |
 | TEC-08 | Booking in this repo | implement | Beancount lots, gobean ledger | `path:internal/booking` |
 | TEC-09 | CUE | adopt | A Go “who wins” merge | `path:internal/config` |
 | TEC-09 | First-party module registry | implement | User-loadable plugin code | `path:internal/plugin` |
@@ -102,6 +104,7 @@ Inherited C (cite the file):
 | Frozen CUE snapshot | RuntimeConfig | config object, settings blob |
 | First-party in-binary module | Module | user plugin, Python plugin |
 | CUE map of Module flags | `plugins` | plugin system |
+| Starter command | `init` | scaffold, bootstrap (as the command) |
 | Validation command | `check` | validate, verify, lint |
 | Market conversion store | PriceDB | price cache, FX table |
 | Read-only HTML on a port | `web` | Fava, server (as the command) |
@@ -144,6 +147,7 @@ Ban: a Person table. A second Commodity list in Go beside CUE. Invented `ledgers
 
 | Command | Type it mutates | Transition | Bad input |
 |---------|-----------------|------------|-----------|
+| `init` | files under `-C` / cwd (not an existing Project walk) | Copy the embedded starter Project | Directory has an entry other than `.git` and `--force` is absent → list those names on stderr, exit 1 |
 | `status` | none | Read Project | Not a Project → stderr, exit 1 |
 | `check` | none | Read Ledger | Hard diagnostics → print, exit 1 |
 | `balances` | none | Read Ledger | Unknown Ledger, bad `--as-of` → stderr, exit 1 |
@@ -183,6 +187,7 @@ When a command takes `[ledger]` and the Operator names none, the command runs fo
 | Any CLI except `lsp` | Not a Project, unknown Ledger, bad flags/date, Helium/`Run` fail | stderr, exit 1 |
 | `check` | Hard diagnostics | Print them, exit 1 |
 | `check` | Warnings only | Print them, exit 0 |
+| `init` | Directory not empty except `.git`, no `--force` | stderr lists the names found, exit 1; dest unchanged |
 | `ingest` | Absent `--file`. Unparseable input | stderr, exit 1; file unchanged |
 | `dump` | Absent dialect. Absent path. Extract fail | stderr, exit 1 |
 | `lsp` setup | stdio / server fail | stderr, exit 1; stdout unused |
@@ -238,6 +243,7 @@ When a command takes `[ledger]` and the Operator names none, the command runs fo
 | CAP-05 | Operator | Dump a PDF/XLSX to a JSON tree |
 | CAP-06 | Operator | Read the same reports as HTML (`web`, `desktop`, `build`) |
 | CAP-07 | Operator | Edit journals in an editor via `lsp` |
+| CAP-08 | Operator | Create a Project from the embedded starter (`init`) |
 
 ## Public contract
 
@@ -258,6 +264,8 @@ On Project open the host injects a closed `ledgers` map. Operator `contapila.cue
 Global: `-C` / `--directory` (start directory for discovery). `-v` / `--verbose` (debug `slog` on stderr).
 
 Reports: `--as-of YYYY-MM-DD` on `balances` and `networth` (empty means latest). `--time` (Fava-style period) on period reports. `--from` and `--to` (inclusive `YYYY-MM-DD`). The Operator MUST NOT pass `--time` together with `--from` / `--to`.
+
+`init` copies the embedded starter Project (personal and company Ledgers) into `-C` when set, else the process working directory. It does not walk up for an existing marker. Without `--force`, dest MUST be empty except for a `.git` entry. With `--force`, extra names stay; a name that already exists is an error. `.git` is the only ignored dest name.
 
 `ingest --file` is required. The file is created on success when missing.
 
@@ -402,14 +410,13 @@ Residual risk: any local process can call `web` on the loopback port. Desktop to
 ## Later work
 
 1. BQL / `bean-query` execution (`query` directive is stored and shown only).
-2. `contapila init` (copy an embedded fixture directory).
-3. `option "booking_method"` / FIFO / LIFO / STRICT lots.
-4. `check` reconciling LedgerLink balances.
-5. In-browser journal edit / write-back.
-6. Full CUE language server.
-7. LSP beyond the dogfood cut: Commodity goto, references, rename, format, code actions, semantic tokens, workspace symbols, rich hover, required `fsnotify`.
-8. Advertising Windows and other unadvertised hosts as supported.
-9. A platform / multi-user product (different repo).
+2. `option "booking_method"` / FIFO / LIFO / STRICT lots.
+3. `check` reconciling LedgerLink balances.
+4. In-browser journal edit / write-back.
+5. Full CUE language server.
+6. LSP beyond the dogfood cut: Commodity goto, references, rename, format, code actions, semantic tokens, workspace symbols, rich hover, required `fsnotify`.
+7. Advertising Windows and other unadvertised hosts as supported.
+8. A platform / multi-user product (different repo).
 
 ## Assumptions
 

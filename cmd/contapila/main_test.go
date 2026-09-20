@@ -78,7 +78,7 @@ func TestHelpListsCommands(t *testing.T) {
 	out := lewtest.Stdout(t, func() {
 		require.NoError(t, app.Run(t.Context()))
 	})
-	for _, want := range []string{"status", "check", "dump", "web", "desktop", "version", "--directory"} {
+	for _, want := range []string{"status", "check", "init", "dump", "web", "desktop", "version", "--directory"} {
 		assert.Contains(t, out, want)
 	}
 }
