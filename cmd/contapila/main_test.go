@@ -25,6 +25,17 @@ func exampleDir(t *testing.T) string {
 	return dir
 }
 
+func TestTreePadMark(t *testing.T) {
+	pad, mark := treePadMark(2, true)
+	if pad != "    " || mark != "Σ " {
+		t.Fatalf("rollup: pad=%q mark=%q", pad, mark)
+	}
+	pad, mark = treePadMark(0, false)
+	if pad != "" || mark != "  " {
+		t.Fatalf("leaf: pad=%q mark=%q", pad, mark)
+	}
+}
+
 func TestStatusExample(t *testing.T) {
 	lewtest.DiscardSlog(t)
 	app := cmd.ParseOK[cmd.App[root]](t, "-C", exampleDir(t), "status")
