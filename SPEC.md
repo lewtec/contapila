@@ -35,7 +35,7 @@ Inherited C (cite the file):
 | Project marker `contapila.cue`; ledgers `<root>/*/main.beancount` | `pkg/project/project.go` |
 | Embedded CUE prelude | `internal/config/prelude.cue` |
 | Average-cost inventory | `internal/booking/booking.go` |
-| Desktop wrap eletrocromo, App.ID `br.tec.lew.contapila` | `cmd/contapila/desktop.go` |
+| Desktop web view via lewkit `x/driver/webview`, profile `br.tec.lew.contapila` | `cmd/contapila/desktop.go` |
 | First-party modules | `internal/plugin/plugin.go` |
 | Commands: `init`, `status`, `check`, `balances`, `journal`, `pnl`, `networth`, `account`, `parse`, `ingest`, `dump`, `web`, `build`, `desktop`, `lsp` | `cmd/contapila/main.go` |
 | No database | this tree |
@@ -48,7 +48,7 @@ Inherited C (cite the file):
 | TEC-01 | A local process with no person accounts | Address the Project root and Ledger directory names. One process owns one Project. A Ledger is one economic subject (a person; a business). | One Project and its named Ledgers |
 | TEC-02 | Journals, `contapila.cue`, and optional `<ledger>/docs/by-account` on disk | Walk up for the nearest marker. Discover one-level `*/main.beancount`. Resolve `include` against the including file. CLI and `web` reload from disk. `lsp` overlays open buffers. | Project, isolated Ledgers, shared PriceDB |
 | TEC-03 | The same Ledger APIs the CLI uses | Render HTML on the server. Deliver those pages three ways: loopback HTTP, a dedicated app window, a static HTML tree. HTTP MUST NOT write journals. | HTML reports |
-| TEC-04 | `web` against `desktop` | `web` uses no credentials. The app-window host issues a one-shot token and owns the loopback bind. A missing window host fails closed. | Local-only access |
+| TEC-04 | `web` against `desktop` | `web` uses no credentials and binds loopback. `desktop` serves the same handler in the OS web view. Nothing listens. A missing web view fails closed. | Local-only access |
 | TEC-05 | argv | Run the frozen command set. When both stdin and stdout are not TTYs and argv matches the implicit-desktop table, rewrite to `desktop`. Discovery uses `-C` when set, else the process working directory. There is no `--config`. | One command runs |
 | TEC-06 | A command result | Print a `Run` error on stderr and exit 1. `check` fails on errors. `check` succeeds when only warnings exist. Reports print human text on stdout. `lsp` uses stdout for the protocol only. | Unix exit status and one stdout shape |
 | TEC-07 | An Operator write | Change journal bytes only through `ingest` (span surgery; upsert by `ingest_id`; append when that key is absent). `init` copies the embedded starter Project (personal + company) into `-C` / cwd. `build` writes the `--out` directory. `dump` prints JSON on stdout. | Updated journal file, starter tree, site tree, JSON |
@@ -66,7 +66,7 @@ Inherited C (cite the file):
 | TEC-03 | templ, daisyUI, tailgopher | adopt | An SPA as the page model | org:templ |
 | TEC-03 | Pages in this repo | implement | A second page model beside templ | `path:internal/web` |
 | TEC-03 | vendored uPlot | wrap | A second chart series API | `path:internal/web/static/vendor/uplot` |
-| TEC-04 | eletrocromo | wrap | Embed Chromium. Fall back to the system browser | `lewtec/eletrocromo` |
+| TEC-04 | lewkit `x/driver/webview` | adopt | Embed Chromium. Launch Helium or the system browser. Bind a port for `desktop` | org:lewkit |
 | TEC-05 | lewkit `x/cmd` | adopt | `bean-*` flag clones | `path:cmd/contapila` |
 | TEC-05 | `go.lsp.dev/protocol` + `jsonrpc2` | wrap | glsp, gopls `internal` | `path:internal/lsp` |
 | TEC-05 | dslipak/pdf, excelize | wrap | A third PDF/XLSX stack | `path:internal/dump` |
@@ -160,7 +160,7 @@ Ban: a Person table. A second Commodity list in Go beside CUE. Invented `ledgers
 | `dump` | none | Read a source document → JSON stdout | Missing dialect/path, extract fail → stderr, exit 1 |
 | `web` | none | Serve HTML | Bind fail → stderr, exit 1 |
 | `build` | files under `--out` (not journals) | Write static HTML | Fail → stderr, exit 1 |
-| `desktop` | none | Same handler in an app window | Helium / ensure / `Run` fail → stderr, exit 1 |
+| `desktop` | none | Same handler in an app window | Web view missing or `Open` fails → stderr, exit 1 |
 | `lsp` | none on disk | Overlay buffers in memory | Setup fail → stderr, exit 1 |
 
 When a command takes `[ledger]` and the Operator names none, the command runs for every Ledger. Zero Ledgers on `check`, reports, `web`, `desktop`: error, exit 1.
@@ -184,7 +184,7 @@ When a command takes `[ledger]` and the Operator names none, the command runs fo
 
 | Public operation | Bad input | One reaction |
 |------------------|-----------|--------------|
-| Any CLI except `lsp` | Not a Project, unknown Ledger, bad flags/date, Helium/`Run` fail | stderr, exit 1 |
+| Any CLI except `lsp` | Not a Project, unknown Ledger, bad flags/date, web view / `Open` fail | stderr, exit 1 |
 | `check` | Hard diagnostics | Print them, exit 1 |
 | `check` | Warnings only | Print them, exit 0 |
 | `init` | Directory not empty except `.git`, no `--force` | stderr lists the names found, exit 1; dest unchanged |
@@ -378,7 +378,7 @@ A journal `plugin "id"` that names a known Module enables that Module for that L
 
 | Concern | Measure, or why it cannot happen |
 |---------|----------------------------------|
-| Security | `web` binds `127.0.0.1:8765` by default. `/docfile` serves only `<ledger>/docs/**`. Desktop: eletrocromo token and library-owned bind. Missing Helium fails closed. HTTP does not write journals. |
+| Security | `web` binds `127.0.0.1:8765` by default. `/docfile` serves only `<ledger>/docs/**`. Desktop serves the handler in-process and does not listen. A missing web view fails closed. HTTP does not write journals. |
 | Identity / auth | This project has no person accounts. A Ledger directory is the handle for one economic subject. `web` has no credentials. Multi-user belongs to a later platform project. |
 | Persistence | Journals and `contapila.cue` on disk are the books. CLI and `web` reload from disk. `lsp` overlays open buffers. Disk wins for closed files. No database. |
 | Exit contract | `Run` error → exit 1. `check` exits 1 only on errors. `lsp` stdout is protocol only. |
@@ -386,11 +386,11 @@ A journal `plugin "id"` that names a known Module enables that Module for that L
 
 ## Security
 
-In scope: loopback bind, desktop one-shot token, `/docfile` confinement, no journal writes from HTTP, fail-closed desktop host.
+In scope: loopback bind for `web`, in-process desktop web view (no listen), `/docfile` confinement, no journal writes from HTTP, fail-closed desktop host.
 
 Why person-auth cannot happen: this project is a local single-Operator program. A platform project may add it later.
 
-Residual risk: any local process can call `web` on the loopback port. Desktop token auth does not apply to `web`.
+Residual risk: any local process can call `web` on the loopback port. `desktop` has no port.
 
 ## Success
 
@@ -398,7 +398,7 @@ Residual risk: any local process can call `web` on the loopback port. Desktop to
 - [ ] A file that never sets a booking method books average-cost, even when Beancount would use lots.
 - [ ] HTTP GET cannot change journal bytes.
 - [ ] `contapila web` serves on loopback without credentials.
-- [ ] `desktop` without Helium exits 1 and does not open a system browser.
+- [ ] `desktop` without a system web view exits 1 and does not open a browser.
 - [ ] `ingest` with the same `ingest_id` replaces the prior directive and leaves the rest of the file intact.
 - [ ] `check` with only warnings exits 0.
 - [ ] An unbalanced Transaction without a residual empty posting fails `check`.
@@ -423,13 +423,13 @@ Residual risk: any local process can call `web` on the loopback port. Desktop to
 | ID | Fact | If false |
 |----|------|----------|
 | AS-01 | The modernc Beancount grammar accepts the directive set in this document | Parser wrap fails; stop and change the grammar, not a hand parser |
-| AS-02 | eletrocromo ensure can install Helium on advertised hosts | `desktop` fails closed; do not open the system browser |
+| AS-02 | Advertised hosts have a system web view (WebKitGTK 6 on Linux, WebKit on macOS) | `desktop` fails closed; do not open a browser |
 
 ## Decision history
 
 - Average-cost is the inventory law. Rejected: Beancount lot default as this product’s default.
 - First-party Modules stay in this binary. Rejected: user-loadable plugin code. Retracted: “plugins never”.
 - Config unify is CUE. Rejected: YAML plus a Go merge table.
-- Desktop window is eletrocromo. Rejected: system-browser fallback.
+- Desktop window is the OS web view through lewkit. Rejected: eletrocromo/Helium, embedding Chromium, system-browser fallback.
 - Booking is this repo. Rejected: gobean ledger, Python Beancount at runtime.
 - Genre is app + cli. Rejected: `pkg/*` as a supported import API.

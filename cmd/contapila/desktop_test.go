@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/lucasew/contapila-go/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPlanDesktopRewrite_TTY(t *testing.T) {
@@ -215,7 +216,7 @@ func TestRootDeepLinkHandler(t *testing.T) {
 	})
 	h := rootDeepLinkHandler(next, "personal")
 
-	// Root + token query (eletrocromo launch URL) → ledger check, query kept.
+	// Root + query → ledger check, query kept.
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/?token=abc", nil)
 	h.ServeHTTP(rr, req)
@@ -250,6 +251,33 @@ func TestRootDeepLinkHandler(t *testing.T) {
 	if got := rr.Header().Get("Location"); got != "/l/a%2Fb/check" {
 		t.Fatalf("escaped Location=%q", got)
 	}
+}
+
+func TestWithAbsoluteLocation(t *testing.T) {
+	t.Parallel()
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/l/personal/check?time=2024", http.StatusFound)
+	})
+	h := withAbsoluteLocation(next)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "app://view1/?time=2024", nil)
+	h.ServeHTTP(rr, req)
+	require.Equal(t, "app://view1/l/personal/check?time=2024", rr.Header().Get("Location"))
+
+	// Relative locations stay relative when the request has no scheme.
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	h.ServeHTTP(rr, req)
+	require.Equal(t, "/l/personal/check?time=2024", rr.Header().Get("Location"))
+}
+
+func TestDesktopProfileDir(t *testing.T) {
+	base := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", base)
+	got, err := desktopProfileDir()
+	require.NoError(t, err)
+	require.Equal(t, filepath.Join(base, "contapila", desktopAppID), got)
 }
 
 func mustAbs(t *testing.T, p string) string {
