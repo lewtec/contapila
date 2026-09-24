@@ -90,6 +90,29 @@ func TestAccountSeriesUsesPadDate(t *testing.T) {
 	}
 }
 
+func TestTrimEmptyEdges(t *testing.T) {
+	if got := trimEmptyEdges([]int(nil), func(int) bool { return true }); got != nil {
+		t.Fatalf("nil input: %#v", got)
+	}
+	empty := []int{}
+	if got := trimEmptyEdges(empty, func(int) bool { return true }); len(got) != 0 || got == nil {
+		t.Fatalf("empty input: %#v", got)
+	}
+	if got := trimEmptyEdges([]int{0, 0}, func(n int) bool { return n == 0 }); got != nil {
+		t.Fatalf("all empty: %#v", got)
+	}
+	got := trimEmptyEdges([]int{0, 1, 0, 2, 0}, func(n int) bool { return n == 0 })
+	want := []int{1, 0, 2}
+	if len(got) != len(want) {
+		t.Fatalf("got %#v", got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %#v want %#v", got, want)
+		}
+	}
+}
+
 func TestTrimZeroEdgeSeries(t *testing.T) {
 	z := big.NewRat(0, 1)
 	n := big.NewRat(10, 1)
