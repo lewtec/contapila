@@ -161,20 +161,9 @@ func registerDocFile(r *Registry, s *Server) {
 		Pattern: "GET /docfile/{path...}",
 		Handle:  http.HandlerFunc(s.handleDocFile),
 		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
-			if sess == nil {
-				return nil, ErrSessionNil
-			}
-			names, err := sess.LedgerNames(ctx)
-			if err != nil {
-				return nil, err
-			}
 			seen := map[string]struct{}{}
-			var out []Instance
-			for _, name := range names {
-				l, err := sess.Ledger(ctx, name)
-				if err != nil {
-					return nil, err
-				}
+			out, err := expandEachLedger(ctx, sess, func(_ string, l *engine.Ledger) ([]Instance, error) {
+				var insts []Instance
 				for _, d := range l.Documents {
 					p := strings.Trim(strings.ReplaceAll(d.Path, "\\", "/"), "/")
 					p = strings.TrimPrefix(path.Clean("/"+p), "/")
@@ -186,8 +175,12 @@ func registerDocFile(r *Registry, s *Server) {
 						continue
 					}
 					seen[u] = struct{}{}
-					out = append(out, Instance{Path: u, Kind: KindDoc})
+					insts = append(insts, Instance{Path: u, Kind: KindDoc})
 				}
+				return insts, nil
+			})
+			if err != nil {
+				return nil, err
 			}
 			sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
 			return out, nil
@@ -205,16 +198,23 @@ func registerIndex(r *Registry, s *Server) {
 	})
 }
 
-// expandLedgerMapPages walks each project ledger, sorts keys of m(l), and
-// emits KindPage instances at pathFn(ledgerName, key).
-func expandLedgerMapPages[V any](ctx context.Context, sess *Session, m func(*engine.Ledger) map[string]V, pathFn func(ledger, key string) string) ([]Instance, error) {
+// ledgerNamesForExpand returns sorted ledger names after the shared nil checks.
+func ledgerNamesForExpand(ctx context.Context, sess *Session) ([]string, error) {
 	if ctx == nil {
 		return nil, ErrNilContext
 	}
 	if sess == nil {
 		return nil, ErrSessionNil
 	}
-	names, err := sess.LedgerNames(ctx)
+	return sess.LedgerNames(ctx)
+}
+
+// ledgerExpand emits static-build instances for one opened ledger.
+type ledgerExpand func(name string, l *engine.Ledger) ([]Instance, error)
+
+// expandEachLedger walks each project ledger and collects instances from fn.
+func expandEachLedger(ctx context.Context, sess *Session, fn ledgerExpand) ([]Instance, error) {
+	names, err := ledgerNamesForExpand(ctx, sess)
 	if err != nil {
 		return nil, err
 	}
@@ -224,17 +224,31 @@ func expandLedgerMapPages[V any](ctx context.Context, sess *Session, m func(*eng
 		if err != nil {
 			return nil, err
 		}
+		insts, err := fn(name, l)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, insts...)
+	}
+	return out, nil
+}
+
+// expandLedgerMapPages walks each project ledger, sorts keys of m(l), and
+// emits KindPage instances at pathFn(ledgerName, key).
+func expandLedgerMapPages[V any](ctx context.Context, sess *Session, m func(*engine.Ledger) map[string]V, pathFn func(ledger, key string) string) ([]Instance, error) {
+	return expandEachLedger(ctx, sess, func(name string, l *engine.Ledger) ([]Instance, error) {
 		mp := m(l)
 		keys := make([]string, 0, len(mp))
 		for k := range mp {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
+		out := make([]Instance, 0, len(keys))
 		for _, k := range keys {
 			out = append(out, Instance{Path: pathFn(name, k), Kind: KindPage})
 		}
-	}
-	return out, nil
+		return out, nil
+	})
 }
 
 func registerAccount(r *Registry, s *Server) {
@@ -266,23 +280,12 @@ func registerQuery(r *Registry, s *Server) {
 		Pattern: "GET /l/{ledger}/query/{name...}",
 		Handle:  http.HandlerFunc(s.handleQuery),
 		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
-			if sess == nil {
-				return nil, ErrSessionNil
-			}
-			names, err := sess.LedgerNames(ctx)
-			if err != nil {
-				return nil, err
-			}
-			var out []Instance
-			for _, name := range names {
-				l, err := sess.Ledger(ctx, name)
-				if err != nil {
-					return nil, err
-				}
+			return expandEachLedger(ctx, sess, func(name string, l *engine.Ledger) ([]Instance, error) {
 				if _, ok := s.resolvedPagesFor(ctx, sess, l).Lookup("queries"); !ok {
-					continue
+					return nil, nil
 				}
 				seen := map[string]struct{}{}
+				var out []Instance
 				for _, q := range l.Queries() {
 					if q.Name == "" {
 						continue
@@ -293,8 +296,8 @@ func registerQuery(r *Registry, s *Server) {
 					seen[q.Name] = struct{}{}
 					out = append(out, Instance{Path: PathQuery(name, q.Name), Kind: KindPage})
 				}
-			}
-			return out, nil
+				return out, nil
+			})
 		},
 	})
 }
@@ -304,24 +307,14 @@ func registerLedgerPage(r *Registry, s *Server) {
 		Pattern: "GET /l/{ledger}/{page}",
 		Handle:  http.HandlerFunc(s.handleLedgerPage),
 		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
-			if sess == nil {
-				return nil, ErrSessionNil
-			}
-			names, err := sess.LedgerNames(ctx)
-			if err != nil {
-				return nil, err
-			}
-			var out []Instance
-			for _, name := range names {
-				l, err := sess.Ledger(ctx, name)
-				if err != nil {
-					return nil, err
-				}
-				for _, page := range s.resolvedPagesFor(ctx, sess, l).BuildIDs() {
+			return expandEachLedger(ctx, sess, func(name string, l *engine.Ledger) ([]Instance, error) {
+				ids := s.resolvedPagesFor(ctx, sess, l).BuildIDs()
+				out := make([]Instance, 0, len(ids))
+				for _, page := range ids {
 					out = append(out, Instance{Path: PathLedger(name, page), Kind: KindPage})
 				}
-			}
-			return out, nil
+				return out, nil
+			})
 		},
 	})
 }
@@ -335,14 +328,11 @@ func registerLedgerRoot(r *Registry, s *Server) {
 			http.Redirect(w, req, "/l/"+req.PathValue("ledger")+"/check", http.StatusFound)
 		}),
 		Expand: func(ctx context.Context, sess *Session) ([]Instance, error) {
-			if sess == nil {
-				return nil, ErrSessionNil
-			}
-			names, err := sess.LedgerNames(ctx)
+			names, err := ledgerNamesForExpand(ctx, sess)
 			if err != nil {
 				return nil, err
 			}
-			var out []Instance
+			out := make([]Instance, 0, len(names))
 			for _, name := range names {
 				// Trailing slash matches the mux pattern; fileRel → l/{name}/index.html.
 				out = append(out, Instance{

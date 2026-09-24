@@ -140,6 +140,34 @@ func TestExpandLedgerMapPagesNilSession(t *testing.T) {
 	}
 }
 
+func TestExpandEachLedgerNilGuards(t *testing.T) {
+	_, err := expandEachLedger(t.Context(), nil, func(string, *engine.Ledger) ([]Instance, error) {
+		t.Fatal("fn should not run")
+		return nil, nil
+	})
+	if !errors.Is(err, ErrSessionNil) {
+		t.Fatalf("nil sess err=%v want ErrSessionNil", err)
+	}
+	_, err = expandEachLedger(nil, NewSession(exampleRoot(t)), func(string, *engine.Ledger) ([]Instance, error) {
+		t.Fatal("fn should not run")
+		return nil, nil
+	})
+	if !errors.Is(err, ErrNilContext) {
+		t.Fatalf("nil ctx err=%v want ErrNilContext", err)
+	}
+}
+
+func TestLedgerNamesForExpandNilGuards(t *testing.T) {
+	_, err := ledgerNamesForExpand(t.Context(), nil)
+	if !errors.Is(err, ErrSessionNil) {
+		t.Fatalf("nil sess err=%v want ErrSessionNil", err)
+	}
+	_, err = ledgerNamesForExpand(nil, NewSession(exampleRoot(t)))
+	if !errors.Is(err, ErrNilContext) {
+		t.Fatalf("nil ctx err=%v want ErrNilContext", err)
+	}
+}
+
 func TestFileRel(t *testing.T) {
 	tests := []struct {
 		inst Instance
