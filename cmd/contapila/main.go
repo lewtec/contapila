@@ -269,6 +269,16 @@ func (c *checkCmd) Run(ctx context.Context) error {
 	})
 }
 
+// treePadMark is the indent and rollup mark shared by CLI trees.
+func treePadMark(depth int, rollup bool) (pad, mark string) {
+	pad = strings.Repeat("  ", depth)
+	mark = "  "
+	if rollup {
+		mark = "Σ "
+	}
+	return pad, mark
+}
+
 type balancesCmd struct {
 	AsOf     cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
 	Account  []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
@@ -310,11 +320,7 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 			tree := engine.BalancesTreeFrom(engine.SelectAccounts(l.BalancesAsOf(t), filters))
 			fmt.Printf("== %s balances ==\n", l.Name)
 			for _, ln := range tree {
-				pad := strings.Repeat("  ", ln.Depth)
-				mark := "  "
-				if ln.IsRollup {
-					mark = "Σ "
-				}
+				pad, mark := treePadMark(ln.Depth, ln.IsRollup)
 				name := cmp.Or(ln.Name, ln.Account)
 				amt := ""
 				if ln.Amount != nil {
@@ -436,11 +442,7 @@ func (c *pnlCmd) Run(ctx context.Context) error {
 		printPnLTree := func(title string, lines []engine.PnLLine) {
 			fmt.Println(title)
 			for _, ln := range lines {
-				pad := strings.Repeat("  ", ln.Depth)
-				mark := "  "
-				if ln.IsRollup {
-					mark = "Σ "
-				}
+				pad, mark := treePadMark(ln.Depth, ln.IsRollup)
 				name := cmp.Or(ln.Name, ln.Account)
 				fmt.Printf("%s%s%-28s %s %s\n", pad, mark, name, ln.Amount.FloatString(2), ln.Commodity)
 			}
@@ -474,11 +476,7 @@ func (c *networthCmd) Run(ctx context.Context) error {
 		}
 		fmt.Printf("== %s net worth (%s) ==\n", l.Name, l.OpCurrency)
 		for _, ln := range lines {
-			pad := strings.Repeat("  ", ln.Depth)
-			mark := "  "
-			if ln.IsRollup {
-				mark = "Σ "
-			}
+			pad, mark := treePadMark(ln.Depth, ln.IsRollup)
 			name := cmp.Or(ln.Name, ln.Account)
 			flag := ""
 			if ln.Unpriced {
