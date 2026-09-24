@@ -378,23 +378,30 @@ func barEmpty(b BarPoint) bool {
 	return (b.Income == nil || b.Income.Sign() == 0) && (b.Expense == nil || b.Expense.Sign() == 0)
 }
 
-// trimEmptyEdgeBars removes zero-flow bins at the start and end of the series.
-// Interior empty bins are kept (gaps between active periods).
-func trimEmptyEdgeBars(bars []BarPoint) []BarPoint {
-	if len(bars) == 0 {
-		return bars
+// trimEmptyEdges drops leading and trailing elements for which empty is true.
+// Interior matches stay. A nil or empty input is returned as-is; an all-empty
+// input returns nil.
+func trimEmptyEdges[T any](xs []T, empty func(T) bool) []T {
+	if len(xs) == 0 {
+		return xs
 	}
-	lo, hi := 0, len(bars)-1
-	for lo <= hi && barEmpty(bars[lo]) {
+	lo, hi := 0, len(xs)-1
+	for lo <= hi && empty(xs[lo]) {
 		lo++
 	}
-	for hi >= lo && barEmpty(bars[hi]) {
+	for hi >= lo && empty(xs[hi]) {
 		hi--
 	}
 	if lo > hi {
 		return nil
 	}
-	return bars[lo : hi+1]
+	return xs[lo : hi+1]
+}
+
+// trimEmptyEdgeBars removes zero-flow bins at the start and end of the series.
+// Interior empty bins are kept (gaps between active periods).
+func trimEmptyEdgeBars(bars []BarPoint) []BarPoint {
+	return trimEmptyEdges(bars, barEmpty)
 }
 
 func seriesPointEmpty(p SeriesPoint) bool {
@@ -404,20 +411,7 @@ func seriesPointEmpty(p SeriesPoint) bool {
 // trimZeroEdgeSeries drops leading/trailing zero net-worth samples.
 // Interior zeros (temporary wipeouts) are kept.
 func trimZeroEdgeSeries(pts []SeriesPoint) []SeriesPoint {
-	if len(pts) == 0 {
-		return pts
-	}
-	lo, hi := 0, len(pts)-1
-	for lo <= hi && seriesPointEmpty(pts[lo]) {
-		lo++
-	}
-	for hi >= lo && seriesPointEmpty(pts[hi]) {
-		hi--
-	}
-	if lo > hi {
-		return nil
-	}
-	return pts[lo : hi+1]
+	return trimEmptyEdges(pts, seriesPointEmpty)
 }
 
 func binLabel(b period.Range, kind period.BinKind) string {
