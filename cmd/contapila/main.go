@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/lewtec/lewkit/x/cmd"
+	"github.com/lewtec/lewkit/x/thread"
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/engine"
@@ -46,16 +47,16 @@ func main() {
 	// Not-a-TTY bare launch / project path → desktop (SPEC §3.2.1).
 	applyDesktopRewrite()
 
-	if err := run(os.Args[1:]); err != nil {
+	// thread.Run keeps the process main thread free for the macOS web view.
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	err := thread.Run(ctx, func(ctx context.Context) error {
+		return execute(ctx, os.Args[1:])
+	})
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-func run(args []string) error {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
-	return execute(ctx, args)
 }
 
 // execute parses argv and runs the selected command. Tests call this instead

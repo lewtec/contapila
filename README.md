@@ -109,7 +109,7 @@ After you have run the commands above, this is what you were looking at.
 
 **Booking.** Default inventory is **merged average-cost**. That matches common “preço médio” use and **can disagree** with upstream Beancount on files that never set a booking method. Documented product policy, not a silent bug (SPEC §2.2).
 
-**Reports.** CLI and web share the same engine: check, balances, journal, P&L, net worth, account views. Web is **read-only** (no in-browser edit). `desktop` opens the same UI in an eletrocromo/Helium window when available. `lsp` speaks language-server protocol for editors (Helix dogfood).
+**Reports.** CLI and web share the same engine: check, balances, journal, P&L, net worth, account views. Web is **read-only** (no in-browser edit). `desktop` opens the same UI in the system web view (WebKit) when that library is available. `lsp` speaks language-server protocol for editors (Helix dogfood).
 
 **ingest.** Merge JSONL directives into a `.beancount` file (upsert by `id` → `ingest_id`). Useful for price/index pipelines such as `scripts/fetch-cdi`.
 
@@ -149,7 +149,7 @@ Contapila took poetic license on tooling so the stack stays small: one binary, f
 | `dump <dialect> <path>` | PDF/XLSX element tree → compact JSON (`--password` for encrypted files) |
 | `web [ledger]` | Read-only HTTP UI |
 | `build` | Static HTML site (`--out`, default `site`; `-j` workers; no time filters) |
-| `desktop [ledger]` | Same UI via eletrocromo |
+| `desktop [ledger]` | Same UI in the system web view |
 | `lsp` | Language server (stdio) |
 
 Ledger arguments are **directory names** under the project root.

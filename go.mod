@@ -7,8 +7,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
-	github.com/lewtec/eletrocromo v0.0.0-20260720233412-019f2474a08f
-	github.com/lewtec/lewkit v0.0.0-20260920134059-05308db6c08e
+	github.com/lewtec/lewkit v0.0.0-20260924020104-e8ed696cdc41
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
@@ -32,6 +31,7 @@ require (
 	github.com/dop251/goja v0.0.0-20260903201622-f87b40ad7341 // indirect
 	github.com/dop251/goja_nodejs v0.0.0-20260212111938-1f56ff5bcf14 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/emicklei/proto v1.14.3 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect

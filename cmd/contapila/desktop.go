@@ -11,26 +11,34 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/lewtec/eletrocromo"
+	"github.com/lewtec/lewkit/x/driver/webview"
+	_ "github.com/lewtec/lewkit/x/driver/webview/webkitgtk"
+	_ "github.com/lewtec/lewkit/x/driver/webview/webview2"
+	_ "github.com/lewtec/lewkit/x/driver/webview/wkwebview"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
 	"github.com/mattn/go-isatty"
 )
 
-// eletrocromoAppID is the reverse-domain Helium profile for contapila desktop.
-const eletrocromoAppID = "br.tec.lew.contapila"
+// desktopAppID is the reverse-domain profile name for the desktop web view.
+const desktopAppID = "br.tec.lew.contapila"
+
+const (
+	desktopWidth  = 1280
+	desktopHeight = 800
+)
 
 type desktopCmd struct {
 	Ledger *engine.LedgerArg
 }
 
 func (desktopCmd) Description() string {
-	return `Read-only UI in a Helium window (eletrocromo)
+	return `Read-only UI in a system web view
 
-Open the same read-only web UI as "contapila web" inside a Helium
---app window via eletrocromo. The library owns loopback bind and token auth;
-there is no --addr flag.
+Open the same read-only web UI as "contapila web" in the OS web view
+(WebKitGTK on Linux, WKWebView on macOS). The page is served in-process.
+Nothing listens on a port, and there is no --addr flag.
 
 Optional [ledger] opens that ledger's check page (same path web prints as a
 deep-link). Project root is discovered from -C / the process working directory
@@ -50,9 +58,9 @@ func (c *desktopCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// eletrocromo always launches "/?token=…"; when the user names a
-	// ledger, redirect that root hit to /l/<ledger>/check so desktop
-	// matches the deep-link path that `web [ledger]` only prints.
+	// The web view loads the origin root. When the user names a ledger,
+	// redirect that hit to /l/<ledger>/check so desktop matches the
+	// deep-link path that `web [ledger]` only prints.
 	handler := http.Handler(s.Handler())
 	if c.Ledger != nil {
 		name := c.Ledger.Value()
@@ -61,16 +69,41 @@ func (c *desktopCmd) Run(ctx context.Context) error {
 		}
 		handler = rootDeepLinkHandler(handler, name)
 	}
+	handler = withAbsoluteLocation(handler)
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	app := eletrocromo.App{
-		ID:      eletrocromoAppID,
-		Handler: handler,
-		Context: ctx,
+	profile, err := desktopProfileDir()
+	if err != nil {
+		return err
 	}
-	return app.Run()
+	view, err := webview.Open(ctx, webview.Config{
+		Title:   "contapila",
+		Width:   desktopWidth,
+		Height:  desktopHeight,
+		Profile: profile,
+		Handler: handler,
+	})
+	if err != nil {
+		return err
+	}
+	defer view.Close()
+	select {
+	case <-ctx.Done():
+	case <-view.Done():
+	}
+	return nil
+}
+
+// desktopProfileDir is the persistent cookie and storage directory for the
+// desktop web view. Theme choice lives in localStorage there.
+func desktopProfileDir() (string, error) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("desktop profile: %w", err)
+	}
+	return filepath.Join(base, "contapila", desktopAppID), nil
 }
 
 // projectHasLedger reports whether name is a discovered ledger directory.
@@ -87,8 +120,7 @@ func projectHasLedger(p *project.Project, name string) bool {
 }
 
 // rootDeepLinkHandler redirects GET/HEAD "/" to /l/<ledger>/check, preserving
-// the query string (eletrocromo's one-shot ?token= auth). All other paths pass
-// through unchanged.
+// the query string. All other paths pass through unchanged.
 func rootDeepLinkHandler(next http.Handler, ledger string) http.Handler {
 	targetPath := "/l/" + url.PathEscape(ledger) + "/check"
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +136,39 @@ func rootDeepLinkHandler(next http.Handler, ledger string) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// withAbsoluteLocation rewrites relative Location headers to absolute URLs
+// against the request. The web view's app:// origin follows those redirects.
+func withAbsoluteLocation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(&absoluteLocation{ResponseWriter: w, request: r}, r)
+	})
+}
+
+type absoluteLocation struct {
+	http.ResponseWriter
+	request *http.Request
+	wrote   bool
+}
+
+func (w *absoluteLocation) WriteHeader(status int) {
+	if !w.wrote {
+		w.wrote = true
+		if loc := w.Header().Get("Location"); loc != "" && w.request != nil && w.request.URL != nil && w.request.URL.Scheme != "" {
+			if u, err := url.Parse(loc); err == nil && u.Scheme == "" && u.Host == "" {
+				w.Header().Set("Location", w.request.URL.ResolveReference(u).String())
+			}
+		}
+	}
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *absoluteLocation) Write(p []byte) (int, error) {
+	if !w.wrote {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(p)
 }
 
 // applyDesktopRewrite mutates os.Args so bare not-a-TTY launches become
