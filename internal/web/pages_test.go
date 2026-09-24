@@ -57,6 +57,21 @@ func TestPageRegistryRegisterAndLookup(t *testing.T) {
 	}
 }
 
+func TestPageOrderTieBreaksByID(t *testing.T) {
+	r := NewPageRegistry()
+	body := func(PageData) templ.Component { return templ.NopComponent }
+	r.Register(Page{ID: "b", Order: 1, Sidebar: true, Body: body})
+	r.Register(Page{ID: "a", Order: 1, Sidebar: true, Body: body})
+	side := r.Sidebar()
+	if ids(side)[0] != "a" || ids(side)[1] != "b" {
+		t.Fatalf("sidebar: %v", ids(side))
+	}
+	secs := r.SidebarSections()
+	if len(secs) != 1 || ids(secs[0].Pages)[0] != "a" || ids(secs[0].Pages)[1] != "b" {
+		t.Fatalf("sections: %+v", secs)
+	}
+}
+
 func TestSidebarSectionsOrderAndMerge(t *testing.T) {
 	r := NewPageRegistry()
 	body := func(d PageData) templ.Component { return templ.NopComponent }
