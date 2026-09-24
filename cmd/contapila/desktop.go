@@ -12,9 +12,7 @@ import (
 	"syscall"
 
 	"github.com/lewtec/lewkit/x/driver/webview"
-	_ "github.com/lewtec/lewkit/x/driver/webview/webkitgtk"
-	_ "github.com/lewtec/lewkit/x/driver/webview/webview2"
-	_ "github.com/lewtec/lewkit/x/driver/webview/wkwebview"
+	_ "github.com/lewtec/lewkit/x/driver/webview/prelude"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
