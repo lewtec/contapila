@@ -147,6 +147,14 @@ func (r *PageRegistry) Lookup(id string) (Page, bool) {
 	return r.pages[i], true
 }
 
+// pageLess orders sidebar pages by Order, then ID.
+func pageLess(a, b Page) bool {
+	if a.Order != b.Order {
+		return a.Order < b.Order
+	}
+	return a.ID < b.ID
+}
+
 // Sidebar returns pages with Sidebar set, sorted by Order then ID (flat; all sections).
 func (r *PageRegistry) Sidebar() []Page {
 	if r == nil {
@@ -158,12 +166,7 @@ func (r *PageRegistry) Sidebar() []Page {
 			out = append(out, p)
 		}
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Order != out[j].Order {
-			return out[i].Order < out[j].Order
-		}
-		return out[i].ID < out[j].ID
-	})
+	sort.SliceStable(out, func(i, j int) bool { return pageLess(out[i], out[j]) })
 	return out
 }
 
@@ -184,12 +187,7 @@ func (r *PageRegistry) SidebarSections() []SidebarSection {
 	}
 	for sec := range bySec {
 		pages := bySec[sec]
-		sort.SliceStable(pages, func(i, j int) bool {
-			if pages[i].Order != pages[j].Order {
-				return pages[i].Order < pages[j].Order
-			}
-			return pages[i].ID < pages[j].ID
-		})
+		sort.SliceStable(pages, func(i, j int) bool { return pageLess(pages[i], pages[j]) })
 		bySec[sec] = pages
 	}
 	var out []SidebarSection
