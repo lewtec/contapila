@@ -50,23 +50,18 @@ func (d Diagnostic) String() string {
 
 type List []Diagnostic
 
-func (l List) HasErrors() bool {
+func (l List) hasSeverity(sev Severity) bool {
 	for _, d := range l {
-		if d.Severity == Error {
+		if d.Severity == sev {
 			return true
 		}
 	}
 	return false
 }
 
-func (l List) HasWarnings() bool {
-	for _, d := range l {
-		if d.Severity == Warn {
-			return true
-		}
-	}
-	return false
-}
+func (l List) HasErrors() bool { return l.hasSeverity(Error) }
+
+func (l List) HasWarnings() bool { return l.hasSeverity(Warn) }
 
 // Format joins all diagnostics via Diagnostic.String(), one per line.
 // Empty lists return "". Prefer this for multi-line CLI/stderr output.
