@@ -7,7 +7,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
-	github.com/lewtec/lewkit v0.0.0-20260924165650-c10290a0a35c
+	github.com/lewtec/lewkit v0.0.0-20260926004721-11710eb97853
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
@@ -58,6 +58,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
+	golang.org/x/image v0.42.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
