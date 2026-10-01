@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -38,6 +41,17 @@ func TestStampedVersion(t *testing.T) {
 			require.Equal(t, tt.want, stampedVersion(tt.version))
 		})
 	}
+}
+
+func TestLazyProjectHandlerMissingProject(t *testing.T) {
+	t.Chdir(t.TempDir())
+	handler := lazyProjectHandler(context.Background())
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), "contapila.cue")
+	require.Contains(t, rec.Header().Get("Content-Type"), "text/html")
 }
 
 func TestHeadlessHost(t *testing.T) {
