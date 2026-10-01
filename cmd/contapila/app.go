@@ -1,0 +1,78 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+
+	"github.com/lewtec/lewkit/x/app"
+	"github.com/lewtec/lewkit/x/driver/bundle"
+	"github.com/lewtec/lewkit/x/entry"
+	"github.com/lewtec/lewkit/x/release"
+)
+
+func init() { entry.Bind(runApp) }
+
+// wantWindow reports whether this process should open the desktop UI.
+// lewkit release run stamps the app id and the version, then starts the
+// binary with no arguments. Any argument stays on the CLI, including desktop.
+func wantWindow(args []string) bool {
+	if len(args) > 0 {
+		return false
+	}
+	return releaseStamped()
+}
+
+func releaseStamped() bool {
+	if !stampedVersion(release.Version()) {
+		return false
+	}
+	_, err := release.AppID()
+	return err == nil
+}
+
+func stampedVersion(version string) bool {
+	version = strings.TrimSpace(version)
+	return version != "" && version != "dev" && !strings.HasPrefix(version, "dev-")
+}
+
+func headlessHost() bool {
+	return envOn("LEWKIT_NO_UI") || envOn("ELETROCROMO_NO_UI")
+}
+
+func envOn(key string) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	return value == "1" || strings.EqualFold(value, "true") || strings.EqualFold(value, "yes")
+}
+
+// runApp opens the read-only UI for a stamped binary.
+// A headless host serves the handler on a loopback port. Otherwise the
+// OS web view opens it, and a missing web view returns an error.
+func runApp(ctx context.Context) error {
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM)
+	defer stop()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get working directory: %w", err)
+	}
+	handler, err := desktopHandler(ctx, cwd, nil)
+	if err != nil {
+		return err
+	}
+	if headlessHost() {
+		return app.App{
+			Title:   "Contapila",
+			Width:   desktopWidth,
+			Height:  desktopHeight,
+			Handler: app.Web(handler),
+		}.Run(ctx)
+	}
+	root, err := bundle.Resolve(ctx)
+	if err != nil {
+		return err
+	}
+	return openDesktopView(ctx, handler, root.Profile)
+}

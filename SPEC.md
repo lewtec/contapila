@@ -35,7 +35,7 @@ Inherited C (cite the file):
 | Project marker `contapila.cue`; ledgers `<root>/*/main.beancount` | `pkg/project/project.go` |
 | Embedded CUE prelude | `internal/config/prelude.cue` |
 | Average-cost inventory | `internal/booking/booking.go` |
-| Desktop web view via lewkit `x/driver/webview`, profile `br.tec.lew.contapila` | `cmd/contapila/desktop.go` |
+| Desktop web view via lewkit `x/driver/webview`, profile `br.tec.lew.contapila`. Empty argv on a lewkit release stamp opens that window | `cmd/contapila/desktop.go`, `eletrocromo.json` |
 | First-party modules | `internal/plugin/plugin.go` |
 | Commands: `init`, `status`, `check`, `balances`, `journal`, `pnl`, `networth`, `account`, `parse`, `ingest`, `dump`, `web`, `build`, `desktop`, `lsp` | `cmd/contapila/main.go` |
 | No database | this tree |
@@ -48,7 +48,7 @@ Inherited C (cite the file):
 | TEC-01 | A local process with no person accounts | Address the Project root and Ledger directory names. One process owns one Project. A Ledger is one economic subject (a person; a business). | One Project and its named Ledgers |
 | TEC-02 | Journals, `contapila.cue`, and optional `<ledger>/docs/by-account` on disk | Walk up for the nearest marker. Discover one-level `*/main.beancount`. Resolve `include` against the including file. CLI and `web` reload from disk. `lsp` overlays open buffers. | Project, isolated Ledgers, shared PriceDB |
 | TEC-03 | The same Ledger APIs the CLI uses | Render HTML on the server. Deliver those pages three ways: loopback HTTP, a dedicated app window, a static HTML tree. HTTP MUST NOT write journals. | HTML reports |
-| TEC-04 | `web` against `desktop` | `web` uses no credentials and binds loopback. `desktop` serves the same handler in the OS web view. Nothing listens. A missing web view fails closed. | Local-only access |
+| TEC-04 | `web` against `desktop` | `web` uses no credentials and binds loopback. `desktop` serves the same handler in the OS web view. Nothing listens. A missing web view fails closed. A lewkit release stamp with empty argv opens that window. `ELETROCROMO_NO_UI` serves the handler on a loopback port for the host web view. | Local-only access |
 | TEC-05 | argv | Run the frozen command set. When both stdin and stdout are not TTYs and argv matches the implicit-desktop table, rewrite to `desktop`. Discovery uses `-C` when set, else the process working directory. There is no `--config`. | One command runs |
 | TEC-06 | A command result | Print a `Run` error on stderr and exit 1. `check` fails on errors. `check` succeeds when only warnings exist. Reports print human text on stdout. `lsp` uses stdout for the protocol only. | Unix exit status and one stdout shape |
 | TEC-07 | An Operator write | Change journal bytes only through `ingest` (span surgery; upsert by `ingest_id`; append when that key is absent). `init` copies the embedded starter Project (personal + company) into `-C` / cwd. `build` writes the `--out` directory. `dump` prints JSON on stdout. | Updated journal file, starter tree, site tree, JSON |
@@ -84,7 +84,7 @@ Inherited C (cite the file):
 | Runtime | One OS process | C | TEC-01, TEC-05 | `cmd/contapila/main.go` |
 | Persistence | Plain-text files | C | TEC-02 | `pkg/project/project.go` |
 | UI | Server-rendered HTML | C | TEC-03 | `internal/web` |
-| Packaging | One binary via goreleaser | C | TEC-05 | `mise.toml` |
+| Packaging | One binary via goreleaser. `lewkit release run` reads `eletrocromo.json` | C | TEC-05 | `mise.toml`, `eletrocromo.json` |
 | Identity | None | C | TEC-01 | none |
 | Host OS | linux, darwin | C | TEC-04 | `README.md` |
 
@@ -430,6 +430,6 @@ Residual risk: any local process can call `web` on the loopback port. `desktop` 
 - Average-cost is the inventory law. Rejected: Beancount lot default as this product’s default.
 - First-party Modules stay in this binary. Rejected: user-loadable plugin code. Retracted: “plugins never”.
 - Config unify is CUE. Rejected: YAML plus a Go merge table.
-- Desktop window is the OS web view through lewkit. Rejected: eletrocromo/Helium, embedding Chromium, system-browser fallback.
+- Desktop window is the OS web view through lewkit. `eletrocromo.json` is the lewkit app manifest for `lewkit release run`. Rejected: Helium, embedding Chromium, system-browser fallback.
 - Booking is this repo. Rejected: gobean ledger, Python Beancount at runtime.
 - Genre is app + cli. Rejected: `pkg/*` as a supported import API.

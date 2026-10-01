@@ -17,7 +17,8 @@ import (
 	"time"
 
 	"github.com/lewtec/lewkit/x/cmd"
-	"github.com/lewtec/lewkit/x/thread"
+	"github.com/lewtec/lewkit/x/driver/thread"
+	"github.com/lewtec/lewkit/x/entry"
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/engine"
@@ -44,6 +45,13 @@ var (
 )
 
 func main() {
+	// A release stamp with empty argv is the desktop app (lewkit release run).
+	// Any argument stays on the CLI.
+	if wantWindow(os.Args[1:]) {
+		entry.Main(runApp)
+		return
+	}
+
 	// Not-a-TTY bare launch / project path → desktop (SPEC §3.2.1).
 	applyDesktopRewrite()
 

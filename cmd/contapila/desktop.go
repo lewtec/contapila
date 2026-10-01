@@ -48,34 +48,46 @@ func (c *desktopCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	h, err := engine.Open(ctx, cwd)
+	handler, err := desktopHandler(ctx, cwd, c.Ledger)
 	if err != nil {
 		return err
 	}
-	s, err := web.New(h.Project, h.Prices)
-	if err != nil {
-		return err
-	}
-	// The web view loads the origin root. When the user names a ledger,
-	// redirect that hit to /l/<ledger>/check so desktop matches the
-	// deep-link path that `web [ledger]` only prints.
-	handler := http.Handler(s.Handler())
-	if c.Ledger != nil {
-		name := c.Ledger.Value()
-		if !projectHasLedger(h.Project, name) {
-			return fmt.Errorf("%w %q", engine.ErrUnknownLedger, name)
-		}
-		handler = rootDeepLinkHandler(handler, name)
-	}
-	handler = withAbsoluteLocation(handler)
-
-	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
 	profile, err := desktopProfileDir()
 	if err != nil {
 		return err
 	}
+	return openDesktopView(ctx, handler, profile)
+}
+
+// desktopHandler loads the project at cwd and returns the page handler.
+// ledger, when set, redirects the origin root to that ledger's check page.
+func desktopHandler(ctx context.Context, cwd string, ledger *engine.LedgerArg) (http.Handler, error) {
+	h, err := engine.Open(ctx, cwd)
+	if err != nil {
+		return nil, err
+	}
+	s, err := web.New(h.Project, h.Prices)
+	if err != nil {
+		return nil, err
+	}
+	printDiags(h.Diags)
+	// The web view loads the origin root. When the user names a ledger,
+	// redirect that hit to /l/<ledger>/check so desktop matches the
+	// deep-link path that `web [ledger]` only prints.
+	handler := http.Handler(s.Handler())
+	if ledger != nil {
+		name := ledger.Value()
+		if !projectHasLedger(h.Project, name) {
+			return nil, fmt.Errorf("%w %q", engine.ErrUnknownLedger, name)
+		}
+		handler = rootDeepLinkHandler(handler, name)
+	}
+	return withAbsoluteLocation(handler), nil
+}
+
+func openDesktopView(ctx context.Context, handler http.Handler, profile string) error {
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	view, err := webview.Open(ctx, webview.Config{
 		Title:   "contapila",
 		Width:   desktopWidth,

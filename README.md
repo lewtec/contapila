@@ -172,6 +172,19 @@ mise run ci         # codegen + tests + build
 go install github.com/lucasew/contapila-go/cmd/contapila@latest
 ```
 
+`eletrocromo.json` is the lewkit app manifest. Run the next command from a Project directory. It builds `cmd/contapila`, stamps `br.tec.lew.contapila`, and opens the desktop UI:
+
+```bash
+lewkit release run --config /path/to/contapila
+```
+
+`--config` is `eletrocromo.json` or the directory that contains it. A build without that stamp stays the CLI. The working directory must contain `contapila.cue`, or sit inside a Project. From this repo:
+
+```bash
+cd testdata/example
+lewkit release run --config ../..
+```
+
 ## Docs map
 
 | Doc | Role |
