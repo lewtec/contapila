@@ -3,14 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"html"
-	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/lewtec/lewkit/x/app"
@@ -56,54 +53,37 @@ func envOn(key string) bool {
 // runApp opens the read-only UI for a stamped binary.
 // A headless host serves the handler on a loopback port. Otherwise the
 // OS web view opens it, and a missing web view returns an error.
+// When the working directory is not a project, the window asks for a folder.
 func runApp(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM)
 	defer stop()
 	// The packaged host waits for ELETROCROMO_READY. Returning a project
 	// error before app.App.Run skips that line. Android then reports the
 	// failure after the UI loop has stopped, and the splash never moves.
+	handler := projectHandler(ctx)
 	if headlessHost() {
 		return app.App{
 			Title:   "Contapila",
 			Width:   desktopWidth,
 			Height:  desktopHeight,
-			Handler: app.Web(lazyProjectHandler(ctx)),
+			Handler: app.Web(handler),
 		}.Run(ctx)
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("get working directory: %w", err)
-	}
-	handler, err := desktopHandler(ctx, cwd, nil)
+	profile, err := windowProfile(ctx)
 	if err != nil {
 		return err
 	}
-	root, err := bundle.Resolve(ctx)
-	if err != nil {
-		return err
-	}
-	return openDesktopView(ctx, handler, root.Profile)
+	return openDesktopView(ctx, handler, profile)
 }
 
-// lazyProjectHandler opens the project on the first request.
-// The loopback server is already listening by then, so a missing project
-// is a page instead of a process error.
-func lazyProjectHandler(ctx context.Context) http.Handler {
-	var (
-		once    sync.Once
-		handler http.Handler
-		openErr error
-	)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		once.Do(func() {
-			handler, openErr = openHeadlessProject(ctx)
-		})
-		if openErr != nil {
-			writeStartupPage(w, openErr)
-			return
-		}
-		handler.ServeHTTP(w, r)
-	})
+// windowProfile is the web view storage directory. A stamped bundle wins.
+// Otherwise the desktop command's profile directory is used.
+func windowProfile(ctx context.Context) (string, error) {
+	root, err := bundle.Resolve(ctx)
+	if err == nil && root.Profile != "" {
+		return root.Profile, nil
+	}
+	return desktopProfileDir()
 }
 
 func openHeadlessProject(ctx context.Context) (http.Handler, error) {
@@ -122,18 +102,4 @@ func openHeadlessProject(ctx context.Context) (http.Handler, error) {
 		}
 	}
 	return nil, openErr
-}
-
-func writeStartupPage(w http.ResponseWriter, err error) {
-	msg := "could not open a project"
-	if err != nil {
-		msg = err.Error()
-	}
-	body := "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><title>Contapila</title><h1>Contapila</h1><p>" + html.EscapeString(msg) + "</p>"
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(http.StatusOK)
-	if _, err := io.WriteString(w, body); err != nil {
-		return
-	}
 }

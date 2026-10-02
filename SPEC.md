@@ -35,7 +35,7 @@ Inherited C (cite the file):
 | Project marker `contapila.cue`; ledgers `<root>/*/main.beancount` | `pkg/project/project.go` |
 | Embedded CUE prelude | `internal/config/prelude.cue` |
 | Average-cost inventory | `internal/booking/booking.go` |
-| Desktop web view via lewkit `x/driver/webview`, profile `br.tec.lew.contapila`. Empty argv on a lewkit release stamp opens that window | `cmd/contapila/desktop.go`, `eletrocromo.json` |
+| Desktop web view via lewkit `x/driver/webview`, profile `br.tec.lew.contapila`. Empty argv on a lewkit release stamp opens that window. When the working directory is not a Project, the window asks for a folder | `cmd/contapila/desktop.go`, `cmd/contapila/welcome.go`, `eletrocromo.json` |
 | First-party modules | `internal/plugin/plugin.go` |
 | Commands: `init`, `status`, `check`, `balances`, `journal`, `pnl`, `networth`, `account`, `parse`, `ingest`, `dump`, `web`, `build`, `desktop`, `lsp` | `cmd/contapila/main.go` |
 | No database | this tree |

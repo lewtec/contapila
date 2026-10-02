@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -43,15 +42,19 @@ func TestStampedVersion(t *testing.T) {
 	}
 }
 
-func TestLazyProjectHandlerMissingProject(t *testing.T) {
+func TestWelcomeMissingProject(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Chdir(t.TempDir())
-	handler := lazyProjectHandler(context.Background())
+	handler := projectHandler(t.Context())
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
-	require.Contains(t, rec.Body.String(), "contapila.cue")
 	require.Contains(t, rec.Header().Get("Content-Type"), "text/html")
+	body := rec.Body.String()
+	require.Contains(t, body, "Choose a folder")
+	require.Contains(t, body, "Open a folder")
+	require.Contains(t, body, "contapila.cue")
 }
 
 func TestHeadlessHost(t *testing.T) {

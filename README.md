@@ -178,7 +178,7 @@ go install github.com/lucasew/contapila-go/cmd/contapila@latest
 lewkit release run --config /path/to/contapila
 ```
 
-`--config` is `eletrocromo.json` or the directory that contains it. A build without that stamp stays the CLI. The working directory must contain `contapila.cue`, or sit inside a Project. From this repo:
+`--config` is `eletrocromo.json` or the directory that contains it. A build without that stamp stays the CLI. The working directory must contain `contapila.cue`, or sit inside a Project. If that directory is not a Project, the window asks you to choose a folder. From this repo:
 
 ```bash
 cd testdata/example
