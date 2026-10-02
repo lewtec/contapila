@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "package_id": "br.tec.lew.contapila",
+  "app_name": "Contapila",
+  "version_name": "0.4.1",
+  "go_main": "cmd/contapila",
+  "icon": "docs/images/logo.png",
+  "abis": ["arm64-v8a"]
+}
