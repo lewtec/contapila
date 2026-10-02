@@ -64,6 +64,7 @@ type projectGate struct {
 	choosePaths   []string
 	chooseErr     error
 	opening       bool
+	waitWelcome   bool
 }
 
 func projectHandler(ctx context.Context) *projectGate {
@@ -74,6 +75,15 @@ func (g *projectGate) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// After the response is written, so the web view can leave this call
 	// before the dialog asks for the main thread.
 	defer g.startArmedChoose()
+	if handler := g.current(); handler != nil {
+		handler.ServeHTTP(w, r)
+		return
+	}
+	// The lewkit folder window is choosing. This page is not a second picker.
+	if g.waitingWelcome() {
+		g.render(w, welcomeView{Pending: true})
+		return
+	}
 	g.ensureTried()
 	if handler := g.current(); handler != nil {
 		handler.ServeHTTP(w, r)
@@ -96,6 +106,10 @@ func (g *projectGate) ensureTried() {
 		g.mu.Lock()
 		defer g.mu.Unlock()
 		if err != nil || handler == nil {
+			// The folder window already published its own error.
+			if g.openErr != nil {
+				return
+			}
 			if err == nil {
 				err = errors.New("could not open a project")
 			}
@@ -106,6 +120,43 @@ func (g *projectGate) ensureTried() {
 			g.handler = handler
 		}
 	})
+}
+
+// holdWelcome makes the page wait while the lewkit folder window is open.
+func (g *projectGate) holdWelcome() {
+	g.mu.Lock()
+	g.waitWelcome = true
+	g.mu.Unlock()
+}
+
+func (g *projectGate) waitingWelcome() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.waitWelcome && g.handler == nil
+}
+
+// applyWelcome publishes the folder window's result.
+// It reports whether the hosted app should stop. Closing the window
+// without a folder stops it. No window driver leaves the in-page list.
+func (g *projectGate) applyWelcome(handler http.Handler, err error) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.waitWelcome = false
+	if handler != nil {
+		if g.handler == nil {
+			g.handler = handler
+		}
+		g.openErr = nil
+		return false
+	}
+	if err == nil || errors.Is(err, context.Canceled) {
+		return true
+	}
+	if errors.Is(err, driver.ErrUnavailable) {
+		return false
+	}
+	g.openErr = err
+	return false
 }
 
 func (g *projectGate) current() http.Handler {

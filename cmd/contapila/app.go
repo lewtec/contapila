@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/lewtec/lewkit/x/app"
+	"github.com/lewtec/lewkit/x/driver"
 	"github.com/lewtec/lewkit/x/driver/bundle"
 	"github.com/lewtec/lewkit/x/driver/window"
 	_ "github.com/lewtec/lewkit/x/driver/window/prelude" // registers the host window
@@ -57,12 +58,12 @@ func envOn(key string) bool {
 }
 
 // runApp opens the read-only UI for a stamped binary.
-// A headless host serves the handler on a loopback port. That host cannot
-// show the folder window: a GUI model has no HTTP handler, and the loopback
-// path rejects it. The page asks for a folder instead.
-// A windowed launch opens the OS web view on a project. With no project,
-// the standard folder window opens first, and the web view opens on the
-// folder that was picked. A missing web view returns an error and does not listen.
+// With no project, both a windowed launch and a packaged host use the
+// lewkit folder window. The ledger web view opens on the folder it returns.
+// A packaged host still serves loopback so the outer window can load.
+// Until the folder window returns, that page only says it is opening.
+// A process with no host window keeps the in-page folder list.
+// A missing web view on a windowed launch returns an error and does not listen.
 func runApp(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM)
 	defer stop()
@@ -70,12 +71,7 @@ func runApp(ctx context.Context) error {
 	// error before app.App.Run skips that line. Android then reports the
 	// failure after the UI loop has stopped, and the splash never moves.
 	if headlessHost() {
-		return app.App{
-			Title:   "Contapila",
-			Width:   desktopWidth,
-			Height:  desktopHeight,
-			Handler: app.Web(projectHandler(ctx)),
-		}.Run(ctx)
+		return runHosted(ctx)
 	}
 	profile, err := windowProfile(ctx)
 	if err != nil {
@@ -90,10 +86,48 @@ func runApp(ctx context.Context) error {
 	return openDesktopView(ctx, handler, profile)
 }
 
-// interactiveHandler is the ledger UI for a windowed launch.
+// runHosted serves the ledger on loopback for a packaged host.
+// The folder window runs beside that server when this process can open one.
+func runHosted(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	gate := projectHandler(ctx)
+	if hostWindow(ctx) {
+		gate.holdWelcome()
+		go func() {
+			handler, err := interactiveHandler(ctx)
+			if gate.applyWelcome(handler, err) {
+				cancel()
+			}
+		}()
+	}
+	return app.App{
+		Title:   "Contapila",
+		Width:   desktopWidth,
+		Height:  desktopHeight,
+		Handler: app.Web(gate),
+	}.Run(ctx)
+}
+
+// hostWindow reports whether a real host window can open.
+// The in-memory window is always compatible and has nobody to click it.
+func hostWindow(ctx context.Context) bool {
+	handles, err := driver.List[window.Driver](ctx)
+	if err != nil {
+		return false
+	}
+	for _, handle := range handles {
+		if handle.ID != "window_mem" {
+			return true
+		}
+	}
+	return false
+}
+
+// interactiveHandler opens the ledger.
 // A project in the working directory, or in the app data directory, opens
-// directly. Otherwise the folder window picks one. A nil handler means the
-// user closed that window.
+// directly. Otherwise the lewkit folder window picks one. A nil handler
+// means the user closed that window.
 func interactiveHandler(ctx context.Context) (http.Handler, error) {
 	handler, err := openHeadlessProject(ctx)
 	if err == nil {
@@ -116,7 +150,7 @@ var openWelcome welcomeOpener = func(ctx context.Context, title string, dirs []g
 	if err != nil {
 		return "", err
 	}
-	model := &folderWelcome{Welcome: gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs, Logo: logo})}
+	model := gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs, Logo: logo})
 	err = gui.Open(ctx, model, gui.Options{
 		Config: window.Config{Title: "Contapila", Width: 880, Height: 720},
 	})
@@ -132,37 +166,7 @@ var openWelcome welcomeOpener = func(ctx context.Context, title string, dirs []g
 	return "", nil
 }
 
-// folderWelcome is the standard welcome without the card behind the logo.
-// Dark mode paints a white plate for the LEWTEC lockup. The contapila
-// coin is transparent, so that plate is the background.
-type folderWelcome struct {
-	*gui.Welcome
-}
-
-func (folder *folderWelcome) Update(msg gui.Msg) (gui.Model, gui.Cmd) {
-	_, cmd := folder.Welcome.Update(msg)
-	return folder, cmd
-}
-
-func (folder *folderWelcome) View() gui.Node {
-	root := folder.Welcome.View()
-	box, ok := root.(*gui.Box)
-	if !ok {
-		return root
-	}
-	column, ok := box.Child.(*gui.Flex)
-	if !ok || len(column.Children) == 0 {
-		return root
-	}
-	logo, ok := column.Children[0].Child.(*gui.Box)
-	if !ok {
-		return root
-	}
-	logo.Fill = nil
-	return root
-}
-
-// pickProject shows the folder window until the user picks a project or closes it.
+// pickProject shows the lewkit folder window until the user picks a project or closes it.
 // EnsureDir is the wrong call: on a terminal it returns the working directory
 // and never shows the window. release run keeps stdin a TTY.
 // A folder that is not a project brings the window back with the reason.
