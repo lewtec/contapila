@@ -18,6 +18,7 @@ import (
 	"github.com/lewtec/lewkit/x/entry"
 	"github.com/lewtec/lewkit/x/release"
 	"github.com/lewtec/lewkit/x/ui/gui"
+	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
@@ -110,8 +111,13 @@ type welcomeOpener func(ctx context.Context, title string, dirs []gui.Directory)
 
 // openWelcome is the standard folder window. Tests replace it.
 var openWelcome welcomeOpener = func(ctx context.Context, title string, dirs []gui.Directory) (string, error) {
-	model := gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs})
-	err := gui.Open(ctx, model, gui.Options{
+	// A nil Logo is the LEWTEC lockup.
+	logo, err := web.Logo()
+	if err != nil {
+		return "", err
+	}
+	model := gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs, Logo: logo})
+	err = gui.Open(ctx, model, gui.Options{
 		Config: window.Config{Title: "Contapila", Width: 880, Height: 720},
 	})
 	if path := model.Picked(); path != "" {
