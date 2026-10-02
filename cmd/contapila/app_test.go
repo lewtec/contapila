@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/lewtec/lewkit/x/driver/daynight"
 	"github.com/lewtec/lewkit/x/ui/gui"
+	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
 	"github.com/stretchr/testify/require"
 )
@@ -60,6 +62,35 @@ func TestWelcomeMissingProject(t *testing.T) {
 	require.Contains(t, body, "Choose a folder")
 	require.Contains(t, body, "Open a folder")
 	require.Contains(t, body, "contapila.cue")
+}
+
+func TestFolderWelcomeLogoHasNoPlate(t *testing.T) {
+	t.Parallel()
+	logo, err := web.Logo()
+	require.NoError(t, err)
+	welcome := gui.NewWelcome(gui.WelcomeArgs{Title: "Contapila", Logo: logo})
+	welcome.Update(gui.ModeMsg{Mode: daynight.Dark})
+	raw := logoBox(t, welcome.View())
+	require.NotNil(t, raw.Fill)
+	require.Equal(t, gui.RGB{Red: 255, Green: 255, Blue: 255, Alpha: 255}, *raw.Fill)
+
+	folder := &folderWelcome{Welcome: welcome}
+	plate := logoBox(t, folder.View())
+	require.Nil(t, plate.Fill)
+	_, ok := plate.Child.(*gui.Image)
+	require.True(t, ok)
+}
+
+func logoBox(t *testing.T, node gui.Node) *gui.Box {
+	t.Helper()
+	box, ok := node.(*gui.Box)
+	require.True(t, ok)
+	column, ok := box.Child.(*gui.Flex)
+	require.True(t, ok)
+	require.NotEmpty(t, column.Children)
+	logo, ok := column.Children[0].Child.(*gui.Box)
+	require.True(t, ok)
+	return logo
 }
 
 func withWelcome(t *testing.T, fn welcomeOpener) {

@@ -116,7 +116,7 @@ var openWelcome welcomeOpener = func(ctx context.Context, title string, dirs []g
 	if err != nil {
 		return "", err
 	}
-	model := gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs, Logo: logo})
+	model := &folderWelcome{Welcome: gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs, Logo: logo})}
 	err = gui.Open(ctx, model, gui.Options{
 		Config: window.Config{Title: "Contapila", Width: 880, Height: 720},
 	})
@@ -130,6 +130,36 @@ var openWelcome welcomeOpener = func(ctx context.Context, title string, dirs []g
 		return "", err
 	}
 	return "", nil
+}
+
+// folderWelcome is the standard welcome without the card behind the logo.
+// Dark mode paints a white plate for the LEWTEC lockup. The contapila
+// coin is transparent, so that plate is the background.
+type folderWelcome struct {
+	*gui.Welcome
+}
+
+func (folder *folderWelcome) Update(msg gui.Msg) (gui.Model, gui.Cmd) {
+	_, cmd := folder.Welcome.Update(msg)
+	return folder, cmd
+}
+
+func (folder *folderWelcome) View() gui.Node {
+	root := folder.Welcome.View()
+	box, ok := root.(*gui.Box)
+	if !ok {
+		return root
+	}
+	column, ok := box.Child.(*gui.Flex)
+	if !ok || len(column.Children) == 0 {
+		return root
+	}
+	logo, ok := column.Children[0].Child.(*gui.Box)
+	if !ok {
+		return root
+	}
+	logo.Fill = nil
+	return root
 }
 
 // pickProject shows the folder window until the user picks a project or closes it.
