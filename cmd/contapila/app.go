@@ -18,6 +18,7 @@ import (
 	_ "github.com/lewtec/lewkit/x/driver/window/prelude" // registers the host window
 	"github.com/lewtec/lewkit/x/entry"
 	"github.com/lewtec/lewkit/x/release"
+	"github.com/lewtec/lewkit/x/taskgroup"
 	"github.com/lewtec/lewkit/x/ui/gui"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
@@ -58,10 +59,10 @@ func envOn(key string) bool {
 }
 
 // runApp opens the read-only UI for a stamped binary.
-// With no project, both a windowed launch and a packaged host use the
-// lewkit folder window. The ledger web view opens on the folder it returns.
-// A packaged host still serves loopback so the outer window can load.
-// Until the folder window returns, that page only says it is opening.
+// With no project, the lewkit folder window is the only window. It closes
+// before the ledger web view opens on the picked folder.
+// A packaged host still serves loopback so its outer window can load the
+// ledger. That serve starts after the folder window closes.
 // A process with no host window keeps the in-page folder list.
 // A missing web view on a windowed launch returns an error and does not listen.
 func runApp(ctx context.Context) error {
@@ -87,31 +88,34 @@ func runApp(ctx context.Context) error {
 }
 
 // runHosted serves the ledger on loopback for a packaged host.
-// The folder window runs beside that server when this process can open one.
+// The folder window runs to completion first. The web view opens after it
+// closes, already on the picked folder.
 func runHosted(ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	gate := projectHandler(ctx)
-	if hostWindow(ctx) {
-		gate.holdWelcome()
-		go func() {
-			handler, err := interactiveHandler(ctx)
-			if gate.applyWelcome(handler, err) {
-				cancel()
-			}
-		}()
+	// Android calls runApp before the UI loop is pumping. The folder window
+	// needs that loop, and a project error returned after it stops deadlocks
+	// the host. Enter the loop here, then publish the folder result, then serve.
+	open := func(ctx context.Context) error {
+		gate := projectHandler(ctx)
+		if chooseHosted(ctx, gate) {
+			entry.NotifyFail("folder window closed")
+			return nil
+		}
+		return app.App{
+			Title:   "Contapila",
+			Width:   desktopWidth,
+			Height:  desktopHeight,
+			Handler: app.Web(gate),
+		}.Run(ctx)
 	}
-	return app.App{
-		Title:   "Contapila",
-		Width:   desktopWidth,
-		Height:  desktopHeight,
-		Handler: app.Web(gate),
-	}.Run(ctx)
+	if taskgroup.FromContext(ctx) != nil {
+		return open(ctx)
+	}
+	return entry.Run(ctx, open)
 }
 
 // hostWindow reports whether a real host window can open.
 // The in-memory window is always compatible and has nobody to click it.
-func hostWindow(ctx context.Context) bool {
+var hostWindow = func(ctx context.Context) bool {
 	handles, err := driver.List[window.Driver](ctx)
 	if err != nil {
 		return false
@@ -122,6 +126,16 @@ func hostWindow(ctx context.Context) bool {
 		}
 	}
 	return false
+}
+
+// chooseHosted opens the folder window before any web view exists.
+// It reports whether the user closed that window, so the web view stays shut.
+func chooseHosted(ctx context.Context, gate *projectGate) bool {
+	if !hostWindow(ctx) {
+		return false
+	}
+	handler, err := interactiveHandler(ctx)
+	return gate.applyWelcome(handler, err)
 }
 
 // interactiveHandler opens the ledger.

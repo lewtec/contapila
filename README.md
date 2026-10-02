@@ -178,7 +178,7 @@ go install github.com/lucasew/contapila-go/cmd/contapila@latest
 lewkit release run --config /path/to/contapila
 ```
 
-`--config` is `eletrocromo.json` or the directory that contains it. A build without that stamp stays the CLI. The working directory must contain `contapila.cue`, or sit inside a Project. If that directory is not a Project, `release run` and `release run --app` both open the lewkit folder window first, and the ledger opens on the folder you pick. A host with no window driver lists folders on the page instead. From this repo:
+`--config` is `eletrocromo.json` or the directory that contains it. A build without that stamp stays the CLI. The working directory must contain `contapila.cue`, or sit inside a Project. If that directory is not a Project, `release run` and `release run --app` open the lewkit folder window alone. The ledger window opens after that window closes. A host with no window driver lists folders on its page instead. From this repo:
 
 ```bash
 cd testdata/example

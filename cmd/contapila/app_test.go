@@ -63,37 +63,57 @@ func TestWelcomeMissingProject(t *testing.T) {
 	require.Contains(t, body, "contapila.cue")
 }
 
-func TestHostedWelcomeWaitsThenOpens(t *testing.T) {
+func TestHostedPickThenLedger(t *testing.T) {
 	example := exampleProject(t)
 	isolateWelcome(t)
+	withHostWindow(t, true)
+	withWelcome(t, func(context.Context, string, []gui.Directory) (string, error) {
+		return example, nil
+	})
 	gate := projectHandler(t.Context())
-	gate.holdWelcome()
-	rec := httptest.NewRecorder()
-	gate.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
-	require.Equal(t, http.StatusOK, rec.Code)
-	require.Contains(t, rec.Body.String(), "Opening…")
-	require.NotContains(t, rec.Body.String(), "Choose a folder")
+	require.False(t, chooseHosted(t.Context(), gate))
+	body := serveRoot(t, gate)
+	require.Contains(t, body, "Ledgers")
+	require.NotContains(t, body, "Opening…")
+	require.NotContains(t, body, "Choose a folder")
+}
 
-	handler, err := loadProject(t.Context(), example)
-	require.NoError(t, err)
-	require.False(t, gate.applyWelcome(handler, nil))
+func TestHostedProjectSkipsFolderWindow(t *testing.T) {
+	example := exampleProject(t)
+	isolateWelcome(t)
+	t.Chdir(example)
+	withHostWindow(t, true)
+	withWelcome(t, func(context.Context, string, []gui.Directory) (string, error) {
+		require.FailNow(t, "folder window opened for a project")
+		return "", nil
+	})
+	gate := projectHandler(t.Context())
+	require.False(t, chooseHosted(t.Context(), gate))
 	require.Contains(t, serveRoot(t, gate), "Ledgers")
+}
+
+func TestHostedPickCancelSkipsWebView(t *testing.T) {
+	isolateWelcome(t)
+	withHostWindow(t, true)
+	withWelcome(t, func(context.Context, string, []gui.Directory) (string, error) {
+		return "", nil
+	})
+	gate := projectHandler(t.Context())
+	require.True(t, chooseHosted(t.Context(), gate))
+	require.Nil(t, gate.current())
 }
 
 func TestHostedWelcomeCancelStops(t *testing.T) {
 	gate := projectHandler(t.Context())
-	gate.holdWelcome()
 	require.True(t, gate.applyWelcome(nil, nil))
 
 	gate = projectHandler(t.Context())
-	gate.holdWelcome()
 	require.True(t, gate.applyWelcome(nil, context.Canceled))
 }
 
 func TestHostedWelcomeErrorStaysOnPage(t *testing.T) {
 	isolateWelcome(t)
 	gate := projectHandler(t.Context())
-	gate.holdWelcome()
 	require.False(t, gate.applyWelcome(nil, errPortalBroke))
 	rec := httptest.NewRecorder()
 	gate.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
@@ -105,12 +125,18 @@ func TestHostedWelcomeErrorStaysOnPage(t *testing.T) {
 func TestHostedWelcomeUnavailableUsesPage(t *testing.T) {
 	isolateWelcome(t)
 	gate := projectHandler(t.Context())
-	gate.holdWelcome()
 	require.False(t, gate.applyWelcome(nil, driver.ErrUnavailable))
 	rec := httptest.NewRecorder()
 	gate.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), "Choose a folder")
+}
+
+func withHostWindow(t *testing.T, open bool) {
+	t.Helper()
+	previous := hostWindow
+	hostWindow = func(context.Context) bool { return open }
+	t.Cleanup(func() { hostWindow = previous })
 }
 
 func withWelcome(t *testing.T, fn welcomeOpener) {
