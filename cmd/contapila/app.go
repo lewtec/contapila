@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,8 +13,12 @@ import (
 
 	"github.com/lewtec/lewkit/x/app"
 	"github.com/lewtec/lewkit/x/driver/bundle"
+	"github.com/lewtec/lewkit/x/driver/window"
+	_ "github.com/lewtec/lewkit/x/driver/window/prelude" // registers the host window
 	"github.com/lewtec/lewkit/x/entry"
 	"github.com/lewtec/lewkit/x/release"
+	"github.com/lewtec/lewkit/x/ui/gui"
+	"github.com/lucasew/contapila-go/pkg/project"
 )
 
 func init() { entry.Bind(runApp) }
@@ -51,33 +56,107 @@ func envOn(key string) bool {
 }
 
 // runApp opens the read-only UI for a stamped binary.
-// A headless host serves the handler on a loopback port. Otherwise the
-// OS web view opens it, and a missing web view returns an error.
-// When the working directory is not a project, the window asks for a folder.
+// A headless host serves the handler on a loopback port. That host cannot
+// show the folder window: a GUI model has no HTTP handler, and the loopback
+// path rejects it. The page asks for a folder instead.
+// A windowed launch opens the OS web view on a project. With no project,
+// the standard folder window opens first, and the web view opens on the
+// folder that was picked. A missing web view returns an error and does not listen.
 func runApp(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM)
 	defer stop()
 	// The packaged host waits for ELETROCROMO_READY. Returning a project
 	// error before app.App.Run skips that line. Android then reports the
 	// failure after the UI loop has stopped, and the splash never moves.
-	gate := projectHandler(ctx)
 	if headlessHost() {
 		return app.App{
 			Title:   "Contapila",
 			Width:   desktopWidth,
 			Height:  desktopHeight,
-			Handler: app.Web(gate),
+			Handler: app.Web(projectHandler(ctx)),
 		}.Run(ctx)
 	}
 	profile, err := windowProfile(ctx)
 	if err != nil {
 		return err
 	}
-	// The macOS web view runs this handler on the main thread until the
-	// response is written. Load the project first so that wait is only
-	// the page itself, and the event loop keeps turning.
-	gate.ensureTried()
-	return openDesktopView(ctx, gate, profile)
+	// Load the project before the web view. On macOS the first page runs
+	// on the main thread until the response is written.
+	handler, err := interactiveHandler(ctx)
+	if err != nil || handler == nil {
+		return err
+	}
+	return openDesktopView(ctx, handler, profile)
+}
+
+// interactiveHandler is the ledger UI for a windowed launch.
+// A project in the working directory, or in the app data directory, opens
+// directly. Otherwise the folder window picks one. A nil handler means the
+// user closed that window.
+func interactiveHandler(ctx context.Context) (http.Handler, error) {
+	handler, err := openHeadlessProject(ctx)
+	if err == nil {
+		return handler, nil
+	}
+	if !errors.Is(err, project.ErrNotAProject) {
+		return nil, err
+	}
+	return pickProject(ctx)
+}
+
+// welcomeOpener shows the folder window.
+// An empty path and a nil error means the user closed it.
+type welcomeOpener func(ctx context.Context, title string, dirs []gui.Directory) (string, error)
+
+// openWelcome is the standard folder window. Tests replace it.
+var openWelcome welcomeOpener = func(ctx context.Context, title string, dirs []gui.Directory) (string, error) {
+	model := gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs})
+	err := gui.Open(ctx, model, gui.Options{
+		Config: window.Config{Title: "Contapila", Width: 880, Height: 720},
+	})
+	if path := model.Picked(); path != "" {
+		return path, nil
+	}
+	if ctx.Err() != nil {
+		return "", context.Cause(ctx)
+	}
+	if err != nil {
+		return "", err
+	}
+	return "", nil
+}
+
+// pickProject shows the folder window until the user picks a project or closes it.
+// EnsureDir is the wrong call: on a terminal it returns the working directory
+// and never shows the window. release run keeps stdin a TTY.
+// A folder that is not a project brings the window back with the reason.
+func pickProject(ctx context.Context) (http.Handler, error) {
+	dirs, err := gui.Recent()
+	if err != nil {
+		dirs = nil
+	}
+	title := "Contapila"
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, context.Cause(ctx)
+		}
+		dir, err := openWelcome(ctx, title, dirs)
+		if err != nil {
+			return nil, err
+		}
+		if dir == "" {
+			return nil, nil
+		}
+		handler, err := loadProject(ctx, dir)
+		if err != nil {
+			title = err.Error()
+			continue
+		}
+		if err := gui.Remember(dir); err != nil {
+			return nil, err
+		}
+		return handler, nil
+	}
 }
 
 // windowProfile is the web view storage directory. A stamped bundle wins.
