@@ -60,20 +60,24 @@ func runApp(ctx context.Context) error {
 	// The packaged host waits for ELETROCROMO_READY. Returning a project
 	// error before app.App.Run skips that line. Android then reports the
 	// failure after the UI loop has stopped, and the splash never moves.
-	handler := projectHandler(ctx)
+	gate := projectHandler(ctx)
 	if headlessHost() {
 		return app.App{
 			Title:   "Contapila",
 			Width:   desktopWidth,
 			Height:  desktopHeight,
-			Handler: app.Web(handler),
+			Handler: app.Web(gate),
 		}.Run(ctx)
 	}
 	profile, err := windowProfile(ctx)
 	if err != nil {
 		return err
 	}
-	return openDesktopView(ctx, handler, profile)
+	// The macOS web view runs this handler on the main thread until the
+	// response is written. Load the project first so that wait is only
+	// the page itself, and the event loop keeps turning.
+	gate.ensureTried()
+	return openDesktopView(ctx, gate, profile)
 }
 
 // windowProfile is the web view storage directory. A stamped bundle wins.

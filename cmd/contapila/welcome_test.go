@@ -9,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/lewtec/lewkit/x/driver"
 	"github.com/lewtec/lewkit/x/driver/filedialog"
@@ -47,6 +49,25 @@ func withChooser(t *testing.T, choose func(context.Context) ([]string, error)) {
 	previous := chooseFolder
 	chooseFolder = choose
 	t.Cleanup(func() { chooseFolder = previous })
+}
+
+// settleWelcome polls until a folder dialog or project load finishes.
+// The page reloads itself; tests do not wait for the refresh header.
+func settleWelcome(t *testing.T, handler http.Handler) *httptest.ResponseRecorder {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	var last *httptest.ResponseRecorder
+	for {
+		last = httptest.NewRecorder()
+		handler.ServeHTTP(last, httptest.NewRequest(http.MethodGet, "/", nil))
+		if last.Code == http.StatusSeeOther || !strings.Contains(last.Body.String(), "Opening…") {
+			return last
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("welcome still opening\n%s", last.Body.String())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func TestWelcomeBrowseListsChild(t *testing.T) {
@@ -89,7 +110,10 @@ func TestWelcomeOpenEmptyDir(t *testing.T) {
 	handler := projectHandler(t.Context())
 	rec := postForm(handler, "/welcome/open", url.Values{"path": {empty}})
 	require.Equal(t, http.StatusOK, rec.Code)
-	body := rec.Body.String()
+	require.Contains(t, rec.Body.String(), "Opening…")
+	settled := settleWelcome(t, handler)
+	require.Equal(t, http.StatusOK, settled.Code)
+	body := settled.Body.String()
 	require.Contains(t, body, "not a contapila project")
 	require.Contains(t, body, "contapila.cue")
 	require.Contains(t, body, "Choose a folder")
@@ -107,14 +131,10 @@ func TestWelcomeOpenExample(t *testing.T) {
 	handler := projectHandler(t.Context())
 
 	rec := postForm(handler, "/welcome/open", url.Values{"path": {example}})
-	require.Equal(t, http.StatusSeeOther, rec.Code)
-	loc, err := url.Parse(rec.Header().Get("Location"))
-	require.NoError(t, err)
-	require.Equal(t, "/", loc.Path)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), "Opening…")
 
-	next := httptest.NewRequest(http.MethodGet, "/", nil)
-	nextRec := httptest.NewRecorder()
-	handler.ServeHTTP(nextRec, next)
+	nextRec := settleWelcome(t, handler)
 	require.Equal(t, http.StatusOK, nextRec.Code)
 	require.Contains(t, nextRec.Body.String(), "Ledgers")
 
@@ -167,8 +187,10 @@ func TestWelcomeRecentLink(t *testing.T) {
 	openedRec := httptest.NewRecorder()
 	handler.ServeHTTP(openedRec, opened)
 	require.Equal(t, http.StatusOK, openedRec.Code)
-	require.Contains(t, openedRec.Body.String(), "contapila.cue")
-	require.Contains(t, openedRec.Body.String(), "Choose a folder")
+	require.Contains(t, openedRec.Body.String(), "Opening…")
+	settled := settleWelcome(t, handler)
+	require.Contains(t, settled.Body.String(), "contapila.cue")
+	require.Contains(t, settled.Body.String(), "Choose a folder")
 }
 
 func TestWelcomeBrowseDialog(t *testing.T) {
@@ -180,8 +202,11 @@ func TestWelcomeBrowseDialog(t *testing.T) {
 		handler := projectHandler(t.Context())
 		rec := postForm(handler, "/welcome/browse", nil)
 		require.Equal(t, http.StatusOK, rec.Code)
-		require.Empty(t, rec.Header().Get("Location"))
-		require.Contains(t, rec.Body.String(), "Choose a folder")
+		require.Contains(t, rec.Body.String(), "Opening…")
+		settled := settleWelcome(t, handler)
+		require.Equal(t, http.StatusOK, settled.Code)
+		require.Empty(t, settled.Header().Get("Location"))
+		require.Contains(t, settled.Body.String(), "Choose a folder")
 	})
 
 	t.Run("unavailable", func(t *testing.T) {
@@ -194,8 +219,11 @@ func TestWelcomeBrowseDialog(t *testing.T) {
 		})
 		handler := projectHandler(t.Context())
 		rec := postForm(handler, "/welcome/browse", nil)
-		require.Equal(t, http.StatusSeeOther, rec.Code)
-		loc, err := url.Parse(rec.Header().Get("Location"))
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.Contains(t, rec.Body.String(), "Opening…")
+		settled := settleWelcome(t, handler)
+		require.Equal(t, http.StatusSeeOther, settled.Code)
+		loc, err := url.Parse(settled.Header().Get("Location"))
 		require.NoError(t, err)
 		require.Equal(t, "/welcome/browse", loc.Path)
 		require.Equal(t, "1", loc.Query().Get("note"))
@@ -219,8 +247,11 @@ func TestWelcomeBrowseDialog(t *testing.T) {
 		handler := projectHandler(t.Context())
 		rec := postForm(handler, "/welcome/browse", nil)
 		require.Equal(t, http.StatusOK, rec.Code)
-		require.Contains(t, rec.Body.String(), "portal broke")
-		require.Contains(t, rec.Body.String(), "Choose a folder")
+		require.Contains(t, rec.Body.String(), "Opening…")
+		settled := settleWelcome(t, handler)
+		require.Equal(t, http.StatusOK, settled.Code)
+		require.Contains(t, settled.Body.String(), "portal broke")
+		require.Contains(t, settled.Body.String(), "Choose a folder")
 	})
 
 	t.Run("picked", func(t *testing.T) {
@@ -232,7 +263,116 @@ func TestWelcomeBrowseDialog(t *testing.T) {
 		handler := projectHandler(t.Context())
 		rec := postForm(handler, "/welcome/browse", nil)
 		require.Equal(t, http.StatusOK, rec.Code)
-		require.Contains(t, rec.Body.String(), "contapila.cue")
-		require.Contains(t, rec.Body.String(), "Choose a folder")
+		require.Contains(t, rec.Body.String(), "Opening…")
+		settled := settleWelcome(t, handler)
+		require.Equal(t, http.StatusOK, settled.Code)
+		require.Contains(t, settled.Body.String(), "contapila.cue")
+		require.Contains(t, settled.Body.String(), "Choose a folder")
 	})
+}
+
+func TestWelcomeBrowseHeadlessSkipsDialog(t *testing.T) {
+	isolateWelcome(t)
+	t.Setenv("ELETROCROMO_NO_UI", "1")
+	root := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(root, "inside"), 0o755))
+	t.Chdir(root)
+	called := false
+	withChooser(t, func(context.Context) ([]string, error) {
+		called = true
+		return nil, errPortalBroke
+	})
+	handler := projectHandler(t.Context())
+	rec := postForm(handler, "/welcome/browse", nil)
+	require.False(t, called)
+	require.Equal(t, http.StatusSeeOther, rec.Code)
+	loc, err := url.Parse(rec.Header().Get("Location"))
+	require.NoError(t, err)
+	require.Equal(t, "/welcome/browse", loc.Path)
+	require.Equal(t, "1", loc.Query().Get("note"))
+	require.Equal(t, root, loc.Query().Get("at"))
+}
+
+func TestWelcomeBrowseDoesNotWaitForDialog(t *testing.T) {
+	isolateWelcome(t)
+	release := make(chan struct{})
+	started := make(chan struct{})
+	var startOnce sync.Once
+	var closeOnce sync.Once
+	unblock := func() { closeOnce.Do(func() { close(release) }) }
+	t.Cleanup(unblock)
+	withChooser(t, func(ctx context.Context) ([]string, error) {
+		startOnce.Do(func() { close(started) })
+		select {
+		case <-release:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		return nil, filedialog.ErrCanceled
+	})
+	handler := projectHandler(t.Context())
+	done := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		done <- postForm(handler, "/welcome/browse", nil)
+	}()
+	select {
+	case rec := <-done:
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.Contains(t, rec.Body.String(), "Opening…")
+	case <-time.After(2 * time.Second):
+		require.FailNow(t, "browse handler blocked on the folder dialog")
+	}
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		require.FailNow(t, "folder dialog was not started after the response")
+	}
+	unblock()
+	settled := settleWelcome(t, handler)
+	require.Contains(t, settled.Body.String(), "Choose a folder")
+}
+
+func TestWelcomeOpenDoesNotWaitForLoad(t *testing.T) {
+	isolateWelcome(t)
+	release := make(chan struct{})
+	started := make(chan struct{})
+	var startOnce sync.Once
+	var closeOnce sync.Once
+	unblock := func() { closeOnce.Do(func() { close(release) }) }
+	previous := loadProject
+	loadProject = func(ctx context.Context, dir string) (http.Handler, error) {
+		startOnce.Do(func() { close(started) })
+		select {
+		case <-release:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		return nil, errPortalBroke
+	}
+	t.Cleanup(func() {
+		loadProject = previous
+		unblock()
+	})
+	handler := projectHandler(t.Context())
+	dir := t.TempDir()
+	done := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		done <- postForm(handler, "/welcome/open", url.Values{"path": {dir}})
+	}()
+	select {
+	case rec := <-done:
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.Contains(t, rec.Body.String(), "Opening…")
+	case <-time.After(2 * time.Second):
+		require.FailNow(t, "open handler blocked while the project was loading")
+	}
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		require.FailNow(t, "project load was not started after the response")
+	}
+	unblock()
+	settled := settleWelcome(t, handler)
+	require.Contains(t, settled.Body.String(), "portal broke")
+	require.Contains(t, settled.Body.String(), "Choose a folder")
 }

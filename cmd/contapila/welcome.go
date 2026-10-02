@@ -26,12 +26,20 @@ const (
 )
 
 // chooseFolder asks the OS for one directory. Tests replace it.
-// The Linux driver talks to the portal from the caller's goroutine.
+// Run it only after the HTTP response is written. On macOS the web view
+// calls this handler on the process main thread and does not pump events
+// until the response is written. The folder dialog needs that same thread.
 var chooseFolder = func(ctx context.Context) ([]string, error) {
 	return filedialog.Choose(ctx, filedialog.Request{
 		Title:  "Open folder",
 		Folder: true,
 	})
+}
+
+// loadProject opens a folder as the ledger UI. Tests replace it.
+// The macOS page load waits on the main thread, so this runs beside the request.
+var loadProject = func(ctx context.Context, dir string) (http.Handler, error) {
+	return desktopHandler(ctx, dir, nil)
 }
 
 // projectGate serves the ledger UI once a project is open.
@@ -40,22 +48,43 @@ var chooseFolder = func(ctx context.Context) ([]string, error) {
 // auto-open does not stick: a later choice can still open a project.
 // The headless host must serve that page from the loopback server.
 // Returning the miss as a process error deadlocks the Android splash.
+//
+// A folder dialog and a project load both outlive the request that started
+// them. While either is running, the page says "Opening…" and reloads.
 type projectGate struct {
 	ctx     context.Context
 	once    sync.Once
 	mu      sync.Mutex
 	handler http.Handler
 	openErr error
+
+	chooseArmed   bool
+	chooseRunning bool
+	chooseReady   bool
+	choosePaths   []string
+	chooseErr     error
+	opening       bool
 }
 
-func projectHandler(ctx context.Context) http.Handler {
+func projectHandler(ctx context.Context) *projectGate {
 	return &projectGate{ctx: ctx}
 }
 
 func (g *projectGate) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// After the response is written, so the web view can leave this call
+	// before the dialog asks for the main thread.
+	defer g.startArmedChoose()
 	g.ensureTried()
 	if handler := g.current(); handler != nil {
 		handler.ServeHTTP(w, r)
+		return
+	}
+	if paths, ok, err := g.takeChoose(); ok {
+		g.applyChoose(w, r, paths, err)
+		return
+	}
+	if g.pending() {
+		g.render(w, welcomeView{Pending: true})
 		return
 	}
 	g.serveIdle(w, r)
@@ -83,12 +112,6 @@ func (g *projectGate) current() http.Handler {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	return g.handler
-}
-
-func (g *projectGate) adopt(handler http.Handler) {
-	g.mu.Lock()
-	g.handler = handler
-	g.mu.Unlock()
 }
 
 func (g *projectGate) startupError() string {
@@ -130,13 +153,25 @@ func (g *projectGate) serveIdle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *projectGate) browseWithDialog(w http.ResponseWriter, r *http.Request) {
-	paths, err := chooseFolder(r.Context())
+	// A packaged host draws the page in another process. This process
+	// has no window, so the in-page list is the folder picker.
+	if headlessHost() {
+		g.applyChoose(w, r, nil, driver.ErrUnavailable)
+		return
+	}
+	g.armChoose()
+	g.render(w, welcomeView{Pending: true})
+}
+
+// applyChoose handles a dialog that already returned.
+// A chosen folder starts a project load and this response stays short.
+func (g *projectGate) applyChoose(w http.ResponseWriter, r *http.Request, paths []string, err error) {
 	if err == nil {
 		if len(paths) == 0 {
 			g.render(w, welcomeView{})
 			return
 		}
-		g.openDirectory(w, r, paths[0])
+		g.openDirectory(w, paths[0])
 		return
 	}
 	if errors.Is(err, filedialog.ErrCanceled) {
@@ -155,6 +190,62 @@ func (g *projectGate) browseWithDialog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	g.render(w, welcomeView{Error: err.Error()})
+}
+
+func (g *projectGate) armChoose() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.chooseArmed || g.chooseRunning || g.chooseReady || g.opening {
+		return
+	}
+	g.chooseArmed = true
+}
+
+// startArmedChoose opens the folder dialog on its own goroutine.
+// The goroutine exits when the dialog returns or the app context is canceled.
+// Call it from defer so it cannot run before the response headers are written.
+func (g *projectGate) startArmedChoose() {
+	g.mu.Lock()
+	if !g.chooseArmed || g.chooseRunning || g.chooseReady {
+		g.mu.Unlock()
+		return
+	}
+	g.chooseArmed = false
+	g.chooseRunning = true
+	g.mu.Unlock()
+	go g.runChoose()
+}
+
+func (g *projectGate) runChoose() {
+	paths, err := chooseFolder(g.ctx)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.chooseRunning = false
+	if g.ctx.Err() != nil {
+		return
+	}
+	g.chooseReady = true
+	g.choosePaths = paths
+	g.chooseErr = err
+}
+
+func (g *projectGate) takeChoose() ([]string, bool, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if !g.chooseReady {
+		return nil, false, nil
+	}
+	paths, err := g.choosePaths, g.chooseErr
+	g.chooseReady = false
+	g.choosePaths = nil
+	g.chooseErr = nil
+	return paths, true, err
+}
+
+func (g *projectGate) pending() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.chooseArmed || g.chooseRunning || g.opening
 }
 
 func (g *projectGate) serveBrowse(w http.ResponseWriter, r *http.Request) {
@@ -191,23 +282,56 @@ func (g *projectGate) openFromRequest(w http.ResponseWriter, r *http.Request) {
 		g.render(w, welcomeView{Error: "could not read the folder"})
 		return
 	}
-	g.openDirectory(w, r, r.FormValue("path"))
+	g.openDirectory(w, r.FormValue("path"))
 }
 
-func (g *projectGate) openDirectory(w http.ResponseWriter, r *http.Request, dir string) {
+func (g *projectGate) openDirectory(w http.ResponseWriter, dir string) {
 	cleaned, ok := cleanWelcomeDir(dir)
 	if !ok {
 		g.render(w, welcomeView{Error: "not a folder"})
 		return
 	}
-	handler, err := desktopHandler(g.ctx, cleaned, nil)
-	if err != nil {
-		g.render(w, welcomeView{Error: err.Error()})
+	g.startOpen(cleaned)
+	g.render(w, welcomeView{Pending: true})
+}
+
+// startOpen loads dir beside the request. The goroutine exits when the
+// load returns or the app context is canceled. The next reload either
+// serves the ledger or shows the error on the welcome page.
+func (g *projectGate) startOpen(dir string) {
+	g.mu.Lock()
+	if g.opening || g.handler != nil {
+		g.mu.Unlock()
 		return
 	}
-	rememberBestEffort(cleaned)
-	g.adopt(handler)
-	redirectWelcome(w, r, "/")
+	g.opening = true
+	g.openErr = nil
+	g.mu.Unlock()
+	go g.finishOpen(dir)
+}
+
+func (g *projectGate) finishOpen(dir string) {
+	handler, err := loadProject(g.ctx, dir)
+	stopped := g.ctx.Err() != nil
+	if !stopped && err == nil && handler != nil {
+		rememberBestEffort(dir)
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.opening = false
+	if stopped {
+		return
+	}
+	if err != nil || handler == nil {
+		if err == nil {
+			err = errors.New("could not open a project")
+		}
+		g.openErr = err
+		return
+	}
+	if g.handler == nil {
+		g.handler = handler
+	}
 }
 
 func methodNotAllowed(w http.ResponseWriter, allow string) {
@@ -232,6 +356,7 @@ type welcomeLink struct {
 type welcomeView struct {
 	Error      string
 	DialogNote bool
+	Pending    bool
 	At         string
 	Up         welcomeLink
 	Dirs       []welcomeLink
@@ -240,18 +365,20 @@ type welcomeView struct {
 }
 
 func (g *projectGate) render(w http.ResponseWriter, view welcomeView) {
-	if view.At == "" && view.Error == "" {
-		if message := g.startupError(); message != "" {
-			view.Error = message
+	if !view.Pending {
+		if view.At == "" && view.Error == "" {
+			if message := g.startupError(); message != "" {
+				view.Error = message
+			}
 		}
-	}
-	if view.At == "" && view.Browse.Href == "" {
-		if at := browseSeed(); at != "" {
-			view.Browse = welcomeLink{Label: "Browse this computer", Href: browseHref(at, false)}
+		if view.At == "" && view.Browse.Href == "" {
+			if at := browseSeed(); at != "" {
+				view.Browse = welcomeLink{Label: "Browse this computer", Href: browseHref(at, false)}
+			}
 		}
-	}
-	for _, dir := range readRecentDirs() {
-		view.Recent = append(view.Recent, welcomeLink{Label: dir, Href: openHref(dir)})
+		for _, dir := range readRecentDirs() {
+			view.Recent = append(view.Recent, welcomeLink{Label: dir, Href: openHref(dir)})
+		}
 	}
 	var buf bytes.Buffer
 	if err := welcomeTemplate.Execute(&buf, view); err != nil {
@@ -262,6 +389,11 @@ func (g *projectGate) render(w http.ResponseWriter, view welcomeView) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if view.Pending {
+		// Relative so an app:// document reloads itself. An absolute
+		// http URL here would leave the web view's scheme.
+		w.Header().Set("Refresh", "1;url=/")
+	}
 	w.WriteHeader(http.StatusOK)
 	if _, err := buf.WriteTo(w); err != nil {
 		return
@@ -427,6 +559,7 @@ const welcomeSource = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{{if .Pending}}<meta http-equiv="refresh" content="1;url=/">{{end}}
 <title>Contapila</title>
 <style>
 :root {
@@ -487,7 +620,9 @@ button {
 <body>
 <main>
 <h1>Contapila</h1>
-{{if .At}}
+{{if .Pending}}
+<p class="lead">Opening…</p>
+{{else if .At}}
 <p class="path">{{.At}}</p>
 {{if .Up.Href}}<p><a href="{{.Up.Href}}">{{.Up.Label}}</a></p>{{end}}
 <form method="post" action="/welcome/open">
