@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/lewtec/lewkit/x/driver"
 	"github.com/lewtec/lewkit/x/driver/filedialog"
+	"github.com/lewtec/lewkit/x/release"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,8 +24,18 @@ var errPortalBroke = errors.New("portal broke")
 
 func isolateWelcome(t *testing.T) {
 	t.Helper()
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	// UserConfigDir is XDG_CONFIG_HOME on Linux and ~/Library/Application Support on macOS.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Chdir(t.TempDir())
+}
+
+func recentDirsPath(t *testing.T) string {
+	t.Helper()
+	dir, err := os.UserConfigDir()
+	require.NoError(t, err)
+	return filepath.Join(dir, release.Name(), "recent-dirs")
 }
 
 func exampleProject(t *testing.T) string {
@@ -138,8 +150,7 @@ func TestWelcomeOpenExample(t *testing.T) {
 	require.Equal(t, http.StatusOK, nextRec.Code)
 	require.Contains(t, nextRec.Body.String(), "Ledgers")
 
-	config := os.Getenv("XDG_CONFIG_HOME")
-	recentPath := filepath.Join(config, "lewkit", "recent-dirs")
+	recentPath := recentDirsPath(t)
 	info, err := os.Stat(recentPath)
 	require.NoError(t, err)
 	require.Equal(t, os.FileMode(0o600), info.Mode().Perm())
@@ -172,9 +183,9 @@ func TestWelcomeOpenRejectsRelativeAndFile(t *testing.T) {
 func TestWelcomeRecentLink(t *testing.T) {
 	isolateWelcome(t)
 	dir := t.TempDir()
-	config := os.Getenv("XDG_CONFIG_HOME")
-	require.NoError(t, os.MkdirAll(filepath.Join(config, "lewkit"), 0o700))
-	require.NoError(t, os.WriteFile(filepath.Join(config, "lewkit", "recent-dirs"), []byte(dir+"\n"), 0o600))
+	recentPath := recentDirsPath(t)
+	require.NoError(t, os.MkdirAll(filepath.Dir(recentPath), 0o700))
+	require.NoError(t, os.WriteFile(recentPath, []byte(dir+"\n"), 0o600))
 
 	handler := projectHandler(t.Context())
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -271,7 +282,8 @@ func TestWelcomeBrowseDialog(t *testing.T) {
 	})
 }
 
-func TestWelcomeBrowseHeadlessSkipsDialog(t *testing.T) {
+func TestWelcomeBrowseHeadlessUsesDialog(t *testing.T) {
+	example := exampleProject(t)
 	isolateWelcome(t)
 	t.Setenv("ELETROCROMO_NO_UI", "1")
 	root := t.TempDir()
@@ -280,17 +292,44 @@ func TestWelcomeBrowseHeadlessSkipsDialog(t *testing.T) {
 	called := false
 	withChooser(t, func(context.Context) ([]string, error) {
 		called = true
-		return nil, errPortalBroke
+		return nil, driver.ErrUnavailable
 	})
 	handler := projectHandler(t.Context())
 	rec := postForm(handler, "/welcome/browse", nil)
-	require.False(t, called)
-	require.Equal(t, http.StatusSeeOther, rec.Code)
-	loc, err := url.Parse(rec.Header().Get("Location"))
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), "Opening…")
+	settled := settleWelcome(t, handler)
+	require.True(t, called)
+	require.Equal(t, http.StatusSeeOther, settled.Code)
+	loc, err := url.Parse(settled.Header().Get("Location"))
 	require.NoError(t, err)
 	require.Equal(t, "/welcome/browse", loc.Path)
 	require.Equal(t, "1", loc.Query().Get("note"))
 	require.Equal(t, root, loc.Query().Get("at"))
+
+	withChooser(t, func(context.Context) ([]string, error) {
+		return []string{example}, nil
+	})
+	picked := projectHandler(t.Context())
+	rec = postForm(picked, "/welcome/browse", nil)
+	require.Contains(t, rec.Body.String(), "Opening…")
+	settled = settleWelcome(t, picked)
+	require.Contains(t, settled.Body.String(), "Ledgers")
+}
+
+func TestLoadProjectContentTree(t *testing.T) {
+	example := exampleProject(t)
+	filedialog.RegisterContent(func([]string) (fs.FS, error) {
+		return os.DirFS(example), nil
+	})
+	t.Cleanup(func() { filedialog.RegisterContent(nil) })
+
+	handler, err := loadProject(t.Context(), "content://tree")
+	require.NoError(t, err)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), "Ledgers")
 }
 
 func TestWelcomeBrowseDoesNotWaitForDialog(t *testing.T) {

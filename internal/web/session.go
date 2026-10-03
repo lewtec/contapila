@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/lucasew/contapila-go/internal/engine"
+	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/prices"
 	"github.com/lucasew/contapila-go/pkg/project"
 )
@@ -30,6 +31,8 @@ var (
 // hrefs natively without post-processing HTML.
 type Session struct {
 	Root string
+	// Files reads the project. Nil means the operating system.
+	Files filesys.FS
 	// Static is true for contapila build: link methods use on-disk URL shapes.
 	Static bool
 
@@ -71,7 +74,11 @@ func (s *Session) open(ctx context.Context) (*engine.Handle, error) {
 			s.openErr = ErrProjectRootRequired
 			return
 		}
-		s.handle, s.openErr = engine.Open(ctx, s.Root)
+		fsys := s.Files
+		if fsys == nil {
+			fsys = filesys.OS{}
+		}
+		s.handle, s.openErr = engine.OpenFS(ctx, fsys, s.Root)
 	})
 	return s.handle, s.openErr
 }
