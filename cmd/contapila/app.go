@@ -15,6 +15,7 @@ import (
 	"github.com/lewtec/lewkit/x/driver/bundle"
 	"github.com/lewtec/lewkit/x/entry"
 	"github.com/lewtec/lewkit/x/release"
+	"github.com/lewtec/lewkit/x/taskgroup"
 	"github.com/lewtec/lewkit/x/ui/gui"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
@@ -49,7 +50,19 @@ func stampedVersion(version string) bool {
 // The folder window is app.GUI. After it returns a project, the ledger is
 // app.Web. Lewkit opens that as a web view, or as loopback when the host
 // asked for no UI.
+//
+// Android starts runApp on the loader thread with no session. One entry.Run
+// keeps that loop alive for both windows. A welcome session that owns the
+// loop stops it on return, and the content-provider reads that follow have
+// no thread left to call Java on. The surface then stays blank.
 func runApp(ctx context.Context) error {
+	if taskgroup.FromContext(ctx) != nil {
+		return runAppBody(ctx)
+	}
+	return entry.Run(ctx, runAppBody)
+}
+
+func runAppBody(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM)
 	defer stop()
 	handler, err := interactiveHandler(ctx)
