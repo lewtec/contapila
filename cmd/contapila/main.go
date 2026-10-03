@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/lewtec/lewkit/x/cmd"
+	_ "github.com/lewtec/lewkit/x/driver/prelude" // registers host drivers, including the folder dialog
 	"github.com/lewtec/lewkit/x/driver/thread"
 	"github.com/lewtec/lewkit/x/entry"
 	"github.com/lucasew/contapila-go/internal/ast"

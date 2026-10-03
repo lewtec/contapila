@@ -21,7 +21,7 @@ func (s *Server) openLedgerRequest(w http.ResponseWriter, r *http.Request, ledge
 ) {
 	sess = sessionFrom(r.Context())
 	if sess == nil {
-		sess = NewSession(s.Root)
+		sess = s.newSession()
 	}
 	var err error
 	proj, pdb, err = sess.Project(r.Context())

@@ -12,10 +12,7 @@ import (
 	"syscall"
 
 	"github.com/lewtec/lewkit/x/app"
-	"github.com/lewtec/lewkit/x/driver"
 	"github.com/lewtec/lewkit/x/driver/bundle"
-	"github.com/lewtec/lewkit/x/driver/window"
-	_ "github.com/lewtec/lewkit/x/driver/window/prelude" // registers the host window
 	"github.com/lewtec/lewkit/x/entry"
 	"github.com/lewtec/lewkit/x/release"
 	"github.com/lewtec/lewkit/x/taskgroup"
@@ -49,93 +46,35 @@ func stampedVersion(version string) bool {
 	return version != "" && version != "dev" && !strings.HasPrefix(version, "dev-")
 }
 
-func headlessHost() bool {
-	return envOn("LEWKIT_NO_UI") || envOn("ELETROCROMO_NO_UI")
-}
-
-func envOn(key string) bool {
-	value := strings.TrimSpace(os.Getenv(key))
-	return value == "1" || strings.EqualFold(value, "true") || strings.EqualFold(value, "yes")
-}
-
-// runApp opens the read-only UI for a stamped binary.
-// With no project, the lewkit folder window is the only window. It closes
-// before the ledger web view opens on the picked folder.
-// A packaged host still serves loopback so its outer window can load the
-// ledger. That serve starts after the folder window closes.
-// A process with no host window keeps the in-page folder list.
-// A missing web view on a windowed launch returns an error and does not listen.
+// runApp opens the stamped UI the same way as the lewkit welcome example.
+// The folder window is app.GUI. After it returns a project, the ledger is
+// app.Web. Lewkit opens that as a web view, or as loopback when the host
+// asked for no UI.
+//
+// Android starts runApp on the loader thread with no session. One entry.Run
+// keeps that loop alive for both windows. A welcome session that owns the
+// loop stops it on return, and the content-provider reads that follow have
+// no thread left to call Java on. The surface then stays blank.
 func runApp(ctx context.Context) error {
+	if taskgroup.FromContext(ctx) != nil {
+		return runAppBody(ctx)
+	}
+	return entry.Run(ctx, runAppBody)
+}
+
+func runAppBody(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGTERM)
 	defer stop()
-	// The packaged host waits for ELETROCROMO_READY. Returning a project
-	// error before app.App.Run skips that line. Android then reports the
-	// failure after the UI loop has stopped, and the splash never moves.
-	if headlessHost() {
-		return runHosted(ctx)
-	}
-	profile, err := windowProfile(ctx)
-	if err != nil {
-		return err
-	}
-	// Load the project before the web view. On macOS the first page runs
-	// on the main thread until the response is written.
 	handler, err := interactiveHandler(ctx)
 	if err != nil || handler == nil {
 		return err
 	}
-	return openDesktopView(ctx, handler, profile)
-}
-
-// runHosted serves the ledger on loopback for a packaged host.
-// The folder window runs to completion first. The web view opens after it
-// closes, already on the picked folder.
-func runHosted(ctx context.Context) error {
-	// Android calls runApp before the UI loop is pumping. The folder window
-	// needs that loop, and a project error returned after it stops deadlocks
-	// the host. Enter the loop here, then publish the folder result, then serve.
-	open := func(ctx context.Context) error {
-		gate := projectHandler(ctx)
-		if chooseHosted(ctx, gate) {
-			entry.NotifyFail("folder window closed")
-			return nil
-		}
-		return app.App{
-			Title:   "Contapila",
-			Width:   desktopWidth,
-			Height:  desktopHeight,
-			Handler: app.Web(gate),
-		}.Run(ctx)
-	}
-	if taskgroup.FromContext(ctx) != nil {
-		return open(ctx)
-	}
-	return entry.Run(ctx, open)
-}
-
-// hostWindow reports whether a real host window can open.
-// The in-memory window is always compatible and has nobody to click it.
-var hostWindow = func(ctx context.Context) bool {
-	handles, err := driver.List[window.Driver](ctx)
-	if err != nil {
-		return false
-	}
-	for _, handle := range handles {
-		if handle.ID != "window_mem" {
-			return true
-		}
-	}
-	return false
-}
-
-// chooseHosted opens the folder window before any web view exists.
-// It reports whether the user closed that window, so the web view stays shut.
-func chooseHosted(ctx context.Context, gate *projectGate) bool {
-	if !hostWindow(ctx) {
-		return false
-	}
-	handler, err := interactiveHandler(ctx)
-	return gate.applyWelcome(handler, err)
+	return app.App{
+		Title:   "Contapila",
+		Width:   desktopWidth,
+		Height:  desktopHeight,
+		Handler: app.Web(handler),
+	}.Run(ctx)
 }
 
 // interactiveHandler opens the ledger.
@@ -165,9 +104,12 @@ var openWelcome welcomeOpener = func(ctx context.Context, title string, dirs []g
 		return "", err
 	}
 	model := gui.NewWelcome(gui.WelcomeArgs{Title: title, Dirs: dirs, Logo: logo})
-	err = gui.Open(ctx, model, gui.Options{
-		Config: window.Config{Title: "Contapila", Width: 880, Height: 720},
-	})
+	err = app.App{
+		Title:   "Contapila",
+		Width:   880,
+		Height:  720,
+		Handler: app.GUI(model),
+	}.Run(ctx)
 	if path := model.Picked(); path != "" {
 		return path, nil
 	}
@@ -206,21 +148,13 @@ func pickProject(ctx context.Context) (http.Handler, error) {
 			title = err.Error()
 			continue
 		}
-		if err := gui.Remember(dir); err != nil {
-			return nil, err
+		if !strings.HasPrefix(dir, "content:") {
+			if err := gui.Remember(dir); err != nil {
+				return nil, err
+			}
 		}
 		return handler, nil
 	}
-}
-
-// windowProfile is the web view storage directory. A stamped bundle wins.
-// Otherwise the desktop command's profile directory is used.
-func windowProfile(ctx context.Context) (string, error) {
-	root, err := bundle.Resolve(ctx)
-	if err == nil && root.Profile != "" {
-		return root.Profile, nil
-	}
-	return desktopProfileDir()
 }
 
 func openHeadlessProject(ctx context.Context) (http.Handler, error) {

@@ -273,9 +273,12 @@ func TestWithAbsoluteLocation(t *testing.T) {
 }
 
 func TestDesktopProfileDir(t *testing.T) {
-	base := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", base)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	got, err := desktopProfileDir()
+	require.NoError(t, err)
+	base, err := os.UserConfigDir()
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(base, "contapila", desktopAppID), got)
 }

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/lewtec/lewkit/x/driver"
@@ -49,8 +48,7 @@ func TestStampedVersion(t *testing.T) {
 }
 
 func TestWelcomeMissingProject(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Chdir(t.TempDir())
+	isolateWelcome(t)
 	handler := projectHandler(t.Context())
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
@@ -61,46 +59,6 @@ func TestWelcomeMissingProject(t *testing.T) {
 	require.Contains(t, body, "Choose a folder")
 	require.Contains(t, body, "Open a folder")
 	require.Contains(t, body, "contapila.cue")
-}
-
-func TestHostedPickThenLedger(t *testing.T) {
-	example := exampleProject(t)
-	isolateWelcome(t)
-	withHostWindow(t, true)
-	withWelcome(t, func(context.Context, string, []gui.Directory) (string, error) {
-		return example, nil
-	})
-	gate := projectHandler(t.Context())
-	require.False(t, chooseHosted(t.Context(), gate))
-	body := serveRoot(t, gate)
-	require.Contains(t, body, "Ledgers")
-	require.NotContains(t, body, "Opening…")
-	require.NotContains(t, body, "Choose a folder")
-}
-
-func TestHostedProjectSkipsFolderWindow(t *testing.T) {
-	example := exampleProject(t)
-	isolateWelcome(t)
-	t.Chdir(example)
-	withHostWindow(t, true)
-	withWelcome(t, func(context.Context, string, []gui.Directory) (string, error) {
-		require.FailNow(t, "folder window opened for a project")
-		return "", nil
-	})
-	gate := projectHandler(t.Context())
-	require.False(t, chooseHosted(t.Context(), gate))
-	require.Contains(t, serveRoot(t, gate), "Ledgers")
-}
-
-func TestHostedPickCancelSkipsWebView(t *testing.T) {
-	isolateWelcome(t)
-	withHostWindow(t, true)
-	withWelcome(t, func(context.Context, string, []gui.Directory) (string, error) {
-		return "", nil
-	})
-	gate := projectHandler(t.Context())
-	require.True(t, chooseHosted(t.Context(), gate))
-	require.Nil(t, gate.current())
 }
 
 func TestHostedWelcomeCancelStops(t *testing.T) {
@@ -130,13 +88,6 @@ func TestHostedWelcomeUnavailableUsesPage(t *testing.T) {
 	gate.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), "Choose a folder")
-}
-
-func withHostWindow(t *testing.T, open bool) {
-	t.Helper()
-	previous := hostWindow
-	hostWindow = func(context.Context) bool { return open }
-	t.Cleanup(func() { hostWindow = previous })
 }
 
 func withWelcome(t *testing.T, fn welcomeOpener) {
@@ -169,7 +120,7 @@ func TestInteractiveWelcomeOpensExample(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, serveRoot(t, handler), "Ledgers")
 
-	recentPath := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "lewkit", "recent-dirs")
+	recentPath := recentDirsPath(t)
 	text, err := os.ReadFile(recentPath)
 	require.NoError(t, err)
 	require.Equal(t, example+"\n", string(text))
@@ -233,15 +184,4 @@ func serveRoot(t *testing.T, handler http.Handler) string {
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 	return rec.Body.String()
-}
-
-func TestHeadlessHost(t *testing.T) {
-	t.Setenv("LEWKIT_NO_UI", "")
-	t.Setenv("ELETROCROMO_NO_UI", "")
-	require.False(t, headlessHost())
-	t.Setenv("LEWKIT_NO_UI", "1")
-	require.True(t, headlessHost())
-	t.Setenv("LEWKIT_NO_UI", "")
-	t.Setenv("ELETROCROMO_NO_UI", "yes")
-	require.True(t, headlessHost())
 }

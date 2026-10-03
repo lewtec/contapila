@@ -12,8 +12,8 @@ import (
 	"syscall"
 
 	"github.com/lewtec/lewkit/x/driver/webview"
-	_ "github.com/lewtec/lewkit/x/driver/webview/prelude"
 	"github.com/lucasew/contapila-go/internal/engine"
+	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
 	"github.com/mattn/go-isatty"
@@ -62,7 +62,11 @@ func (c *desktopCmd) Run(ctx context.Context) error {
 // desktopHandler loads the project at cwd and returns the page handler.
 // ledger, when set, redirects the origin root to that ledger's check page.
 func desktopHandler(ctx context.Context, cwd string, ledger *engine.LedgerArg) (http.Handler, error) {
-	h, err := engine.Open(ctx, cwd)
+	return projectUI(ctx, filesys.OS{}, cwd, ledger)
+}
+
+func projectUI(ctx context.Context, fsys filesys.FS, cwd string, ledger *engine.LedgerArg) (http.Handler, error) {
+	h, err := engine.OpenFS(ctx, fsys, cwd)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +74,7 @@ func desktopHandler(ctx context.Context, cwd string, ledger *engine.LedgerArg) (
 	if err != nil {
 		return nil, err
 	}
+	s.Files = fsys
 	printDiags(h.Diags)
 	// The web view loads the origin root. When the user names a ledger,
 	// redirect that hit to /l/<ledger>/check so desktop matches the
@@ -88,10 +93,16 @@ func desktopHandler(ctx context.Context, cwd string, ledger *engine.LedgerArg) (
 func openDesktopView(ctx context.Context, handler http.Handler, profile string) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	logo, err := web.Logo()
+	if err != nil {
+		return err
+	}
+	// Icon is the Dock mark on a bare release run. A packaged .app keeps its own.
 	view, err := webview.Open(ctx, webview.Config{
 		Title:   "contapila",
 		Width:   desktopWidth,
 		Height:  desktopHeight,
+		Icon:    logo,
 		Profile: profile,
 		Handler: handler,
 	})

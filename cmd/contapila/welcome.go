@@ -16,8 +16,9 @@ import (
 
 	"github.com/lewtec/lewkit/x/driver"
 	"github.com/lewtec/lewkit/x/driver/filedialog"
-	_ "github.com/lewtec/lewkit/x/driver/filedialog/prelude" // registers folder dialog drivers
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/lewtec/lewkit/x/release"
+	"github.com/lucasew/contapila-go/internal/filesys"
 )
 
 const (
@@ -39,6 +40,13 @@ var chooseFolder = func(ctx context.Context) ([]string, error) {
 // loadProject opens a folder as the ledger UI. Tests replace it.
 // The macOS page load waits on the main thread, so this runs beside the request.
 var loadProject = func(ctx context.Context, dir string) (http.Handler, error) {
+	if strings.HasPrefix(dir, "content:") {
+		tree, err := filedialog.Open(dir)
+		if err != nil {
+			return nil, err
+		}
+		return projectUI(ctx, filesys.FromIO(tree, filesys.ProviderRoot), filesys.ProviderRoot, nil)
+	}
 	return desktopHandler(ctx, dir, nil)
 }
 
@@ -185,12 +193,6 @@ func (g *projectGate) serveIdle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *projectGate) browseWithDialog(w http.ResponseWriter, r *http.Request) {
-	// A packaged host draws the page in another process. This process
-	// has no window, so the in-page list is the folder picker.
-	if headlessHost() {
-		g.applyChoose(w, r, nil, driver.ErrUnavailable)
-		return
-	}
 	g.armChoose()
 	g.render(w, welcomeView{Pending: true})
 }
@@ -531,7 +533,7 @@ func recentFile() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "lewkit", "recent-dirs"), nil
+	return filepath.Join(dir, release.Name(), "recent-dirs"), nil
 }
 
 func readRecentDirs() []string {

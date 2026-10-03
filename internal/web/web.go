@@ -4,6 +4,7 @@ package web
 //go:generate go tool tailwind -i input.css -o static/app.css
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"embed"
@@ -31,6 +32,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/diag"
 	docsutil "github.com/lucasew/contapila-go/internal/docs"
 	"github.com/lucasew/contapila-go/internal/engine"
+	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/period"
 	"github.com/lucasew/contapila-go/internal/prices"
 	"github.com/lucasew/contapila-go/pkg/project"
@@ -47,9 +49,12 @@ var (
 
 type Server struct {
 	// Root is the project directory (contapila.cue). Config, prices, ledger
-	// discovery, and journals are reloaded from disk on every request so F5
-	// always reflects current files — no process-lifetime cache of project state.
+	// discovery, and journals are reloaded on every request so F5 reflects
+	// current files. No process-lifetime cache of project state.
 	Root string
+	// Files reads Root. Nil means the operating system. A picked content
+	// tree sets this to the provider filesystem.
+	Files filesys.FS
 	// Pages is the ledger report table (sidebar + /l/{ledger}/{page} + build).
 	// Nil means DefaultPages() builtins.
 	Pages *PageRegistry
@@ -115,6 +120,19 @@ func New(p *project.Project, _ *prices.DB) (*Server, error) {
 	return &Server{Root: p.Root}, nil
 }
 
+func (s *Server) files() filesys.FS {
+	if s == nil || s.Files == nil {
+		return filesys.OS{}
+	}
+	return s.Files
+}
+
+func (s *Server) newSession() *Session {
+	sess := NewSession(s.Root)
+	sess.Files = s.files()
+	return sess
+}
+
 // withSecurityHeaders sets baseline browser hardening headers on every response.
 func withSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +150,7 @@ func withSecurityHeaders(next http.Handler) http.Handler {
 func (s *Server) withSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if sessionFrom(r.Context()) == nil {
-			r = r.WithContext(withSession(r.Context(), NewSession(s.Root)))
+			r = r.WithContext(withSession(r.Context(), s.newSession()))
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -316,7 +334,7 @@ type nwRow struct {
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	sess := sessionFrom(r.Context())
 	if sess == nil {
-		sess = NewSession(s.Root)
+		sess = s.newSession()
 	}
 	p, _, err := sess.Project(r.Context())
 	if err != nil {
@@ -839,24 +857,18 @@ func (s *Server) handleDocFile(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	root, err := os.OpenRoot(s.Root)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	defer root.Close()
-	f, err := root.Open(filepath.FromSlash(rel))
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	defer f.Close()
-	st, err := f.Stat()
+	full := filepath.Join(s.Root, filepath.FromSlash(rel))
+	st, err := s.files().Stat(full)
 	if err != nil || st.IsDir() {
 		http.NotFound(w, r)
 		return
 	}
-	http.ServeContent(w, r, st.Name(), st.ModTime(), f)
+	data, err := s.files().ReadFile(full)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeContent(w, r, st.Name(), st.ModTime(), bytes.NewReader(data))
 }
 
 func (s *Server) handleCommodity(w http.ResponseWriter, r *http.Request) {

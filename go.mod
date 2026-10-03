@@ -7,7 +7,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
-	github.com/lewtec/lewkit v0.0.0-20261001180931-70a0a0b19549
+	github.com/lewtec/lewkit v0.0.0-20261003172654-e54d2ebeb429
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
@@ -46,7 +46,10 @@ require (
 	github.com/emicklei/proto v1.14.3 // indirect
 	github.com/facebookincubator/go-belt v0.0.0-20250308011339-62fb7027b11f // indirect
 	github.com/fatih/color v1.19.0 // indirect
+	github.com/fetchurl/fetchurl v0.0.0-20260714002336-2d69880d6c8b // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/gdamore/encoding v1.0.1 // indirect
+	github.com/gdamore/tcell/v2 v2.6.0 // indirect
 	github.com/go-json-experiment/json v0.0.0-20260623181947-01eb4420fa68 // indirect
 	github.com/go-ng/slices v0.0.0-20230703171042-6195d35636a2 // indirect
 	github.com/go-ng/sort v0.0.0-20220617173827-2cc7cd04f7c7 // indirect
@@ -56,22 +59,31 @@ require (
 	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jezek/xgb v1.3.1 // indirect
+	github.com/ktr0731/go-ansisgr v0.1.0 // indirect
+	github.com/ktr0731/go-fuzzyfinder v0.9.0 // indirect
+	github.com/lewtec/leaven v0.0.0-20260814142252-666e23083398 // indirect
+	github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9 // indirect
 	github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0 // indirect
+	github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260927175003-766673523e06 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
+	github.com/modernc-tree-sitter/ccgo-tree-sitter/core v0.0.0-20260927184652-669b18df5afb // indirect
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/go v0.0.0-20260713221032-8673315d25fc // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/nsf/termbox-go v1.1.1 // indirect
 	github.com/opencontainers/selinux v1.13.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20260420112717-c39628bde8b5 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/richardlehane/mscfb v1.0.7 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/shogo82148/go-sfv v0.3.3 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
