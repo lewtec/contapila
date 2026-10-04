@@ -63,7 +63,7 @@ require (
 	github.com/ktr0731/go-fuzzyfinder v0.9.0 // indirect
 	github.com/lewtec/leaven v0.0.0-20260814142252-666e23083398 // indirect
 	github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9 // indirect
-	github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0 // indirect
+	github.com/lewtec/tailgopher v0.0.0-20260905113308-ac140dd664b5 // indirect
 	github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260927175003-766673523e06 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
