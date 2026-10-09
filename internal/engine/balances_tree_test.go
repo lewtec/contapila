@@ -3,6 +3,7 @@ package engine
 import (
 	"math/big"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -54,30 +55,64 @@ func TestSelectAccounts(t *testing.T) {
 	brl := big.NewRat(10, 1)
 	usd := big.NewRat(3, 1)
 	bals := map[string]map[string]*big.Rat{
-		"Assets:Cash":   {"BRL": brl},
-		"Assets:Bank":   {"USD": usd},
-		"Expenses:Food": {"BRL": brl},
+		"Assets:Cash":        {"BRL": brl},
+		"Assets:Cash:Wallet": {"BRL": brl},
+		"Assets:Bank":        {"USD": usd},
+		"Expenses:Food":      {"BRL": brl},
 	}
 	got := SelectAccounts(bals, nil)
-	require.Len(t, got, 3)
+	require.Len(t, got, 4)
 	assert.Same(t, brl, got["Assets:Cash"]["BRL"])
 
-	assets := SelectAccounts(bals, []string{"Assets"})
+	empty := SelectAccounts(bals, []*regexp.Regexp{})
+	assert.Same(t, brl, empty["Assets:Cash"]["BRL"])
+
+	none := SelectAccounts(bals, []*regexp.Regexp{nil})
+	assert.Empty(t, none)
+
+	assets := SelectAccounts(bals, patterns(t, "Assets"))
 	assert.NotContains(t, assets, "Expenses:Food")
 	assert.Contains(t, assets, "Assets:Cash")
+	assert.Contains(t, assets, "Assets:Cash:Wallet")
 	assert.Contains(t, assets, "Assets:Bank")
 
-	one := SelectAccounts(bals, []string{"Assets:Cash", "Expenses:Food"})
+	cash := SelectAccounts(bals, patterns(t, "Cash"))
+	assert.Contains(t, cash, "Assets:Cash")
+	assert.Contains(t, cash, "Assets:Cash:Wallet")
+	assert.NotContains(t, cash, "Assets:Bank")
+	assert.NotContains(t, cash, "Expenses:Food")
+
+	exact := SelectAccounts(bals, patterns(t, "^Assets:Cash$"))
+	assert.Contains(t, exact, "Assets:Cash")
+	assert.NotContains(t, exact, "Assets:Cash:Wallet")
+
+	food := SelectAccounts(bals, patterns(t, "^Expenses", "Food$"))
+	assert.Len(t, food, 1)
+	assert.Contains(t, food, "Expenses:Food")
+
+	one := SelectAccounts(bals, patterns(t, "^Assets:Cash$", "^Expenses:Food$"))
 	assert.Len(t, one, 2)
 
-	filtered := BalancesTreeFrom(SelectAccounts(bals, []string{"Assets:Cash"}))
+	filtered := BalancesTreeFrom(SelectAccounts(bals, patterns(t, "^Assets:Cash$")))
 	var accounts []string
 	for _, line := range filtered {
 		accounts = append(accounts, line.Account)
 	}
 	assert.NotContains(t, accounts, "Expenses:Food")
+	assert.NotContains(t, accounts, "Assets:Cash:Wallet")
 	assert.Contains(t, accounts, "Assets")
 	assert.Contains(t, accounts, "Assets:Cash")
+}
+
+func patterns(t *testing.T, exprs ...string) []*regexp.Regexp {
+	t.Helper()
+	out := make([]*regexp.Regexp, len(exprs))
+	for i, expr := range exprs {
+		re, err := regexp.Compile(expr)
+		require.NoError(t, err)
+		out[i] = re
+	}
+	return out
 }
 
 func sameRat(a, b *big.Rat) bool {

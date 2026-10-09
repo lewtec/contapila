@@ -269,9 +269,9 @@ func (c *checkCmd) Run(ctx context.Context) error {
 }
 
 type balancesCmd struct {
-	AsOf     cmd.StringArg   `long:"as-of" help:"YYYY-MM-DD" default:""`
-	Account  []cmd.StringArg `long:"account" help:"account and subaccounts; repeat to add another"`
-	ByLedger ledgerEnum      `long:"ledger" help:"limit to this ledger" default:""`
+	AsOf     cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
+	Account  []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
+	ByLedger ledgerEnum    `long:"ledger" help:"limit to this ledger" default:""`
 	Ledger   *engine.LedgerArg
 }
 
@@ -289,16 +289,6 @@ func (c *balancesCmd) ledgerNames() ([]string, error) {
 	return pos, nil
 }
 
-func accountNames(args []cmd.StringArg) ([]string, error) {
-	names := cmd.Values(args)
-	for _, name := range names {
-		if name == "" {
-			return nil, fmt.Errorf("%w: --account", cmd.ErrMissingValue)
-		}
-	}
-	return names, nil
-}
-
 func (c *balancesCmd) Run(ctx context.Context) error {
 
 	t, err := engine.ParseDate(c.AsOf.Value())
@@ -308,10 +298,7 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	if t.IsZero() {
 		t = engine.AsOfLatest
 	}
-	accounts, err := accountNames(c.Account)
-	if err != nil {
-		return err
-	}
+	filters := cmd.Values(c.Account)
 	names, err := c.ledgerNames()
 	if err != nil {
 		return err
@@ -319,7 +306,7 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	// Single ledger: hierarchical tree. Multi-ledger: flat sorted table.
 	if len(names) == 1 {
 		return withLedgers(ctx, names, func(l *engine.Ledger) error {
-			tree := engine.BalancesTreeFrom(engine.SelectAccounts(l.BalancesAsOf(t), accounts))
+			tree := engine.BalancesTreeFrom(engine.SelectAccounts(l.BalancesAsOf(t), filters))
 			fmt.Printf("== %s balances ==\n", l.Name)
 			for _, ln := range tree {
 				pad := strings.Repeat("  ", ln.Depth)
@@ -342,7 +329,7 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	}
 	var rows []row
 	err = withLedgers(ctx, names, func(l *engine.Ledger) error {
-		bals := engine.SelectAccounts(l.BalancesAsOf(t), accounts)
+		bals := engine.SelectAccounts(l.BalancesAsOf(t), filters)
 		var accts []string
 		for a := range bals {
 			accts = append(accts, a)
