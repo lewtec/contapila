@@ -109,6 +109,12 @@ func TestTodoHelp(t *testing.T) {
 	assert.Contains(t, out, "--format")
 	assert.Contains(t, out, "rustc")
 	assert.Contains(t, out, "table")
+	assert.Contains(t, out, "case-sensitive")
+	assert.Contains(t, out, "exactly two components")
+	assert.Contains(t, out, "Expenses:TODO:Tax")
+	assert.Contains(t, out, "Expenses:Food:TODO")
+	assert.Contains(t, out, "Either posting direction matches.")
+	assert.Contains(t, out, "listed once")
 }
 
 func TestTodoFormatRejected(t *testing.T) {
