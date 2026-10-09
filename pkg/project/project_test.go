@@ -6,7 +6,22 @@ import (
 	"testing"
 
 	"github.com/lucasew/contapila-go/internal/filesys"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestLedgerNames(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", "..", "testdata", "example"))
+	require.NoError(t, err)
+	want := []string{"acme", "ong", "personal", "smuggle"}
+	for _, start := range []string{root, filepath.Join(root, "personal")} {
+		names, err := LedgerNames(start)
+		require.NoError(t, err)
+		assert.Equal(t, want, names, "LedgerNames(%s)", start)
+	}
+	_, err = LedgerNames(t.TempDir())
+	require.ErrorIs(t, err, ErrNotAProject)
+}
 
 func TestDiscovery(t *testing.T) {
 	tmp := t.TempDir()

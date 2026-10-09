@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/lucasew/contapila-go/internal/config"
@@ -123,6 +124,32 @@ func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
 	}
 
 	return ledgers, nil
+}
+
+// LedgerNames lists ledger directory names for the project that contains start.
+// start may be the project root or a directory inside it. Names are sorted.
+func LedgerNames(start string) ([]string, error) {
+	if start == "" {
+		var err error
+		start, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	}
+	root, err := findRoot(filesys.OS{}, start)
+	if err != nil {
+		return nil, err
+	}
+	ledgers, err := discoverLedgers(filesys.OS{}, root)
+	if err != nil {
+		return nil, fmt.Errorf("discover ledgers: %w", err)
+	}
+	names := make([]string, len(ledgers))
+	for i, ledger := range ledgers {
+		names[i] = ledger.Name
+	}
+	sort.Strings(names)
+	return names, nil
 }
 
 // OpenProject opens from disk (CLI default).

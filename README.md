@@ -139,7 +139,7 @@ Contapila took poetic license on tooling so the stack stays small: one binary, f
 | `init` | Copy a starter Project (personal + company) into the current directory (`--force` if not empty except `.git`) |
 | `status` | Project / ledger discovery |
 | `check [ledger]` | Validate (all ledgers if omitted) |
-| `balances [ledger]` | Balances as-of |
+| `balances [ledger]` | Balances as-of. `--ledger` and repeatable `--account` (RE2, unanchored) filter that report |
 | `journal [ledger]` | Period activity |
 | `todo [ledger]` | Transactions tagged `#todo`, or posting to `Type:TODO` (`Expenses:TODO`, `Income:TODO`, …). Default is rustc diagnostics (`--format` text, table, sarif, rustc) |
 | `pnl [ledger]` | Income vs expenses |

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"math/big"
+	"regexp"
 	"sort"
 	"time"
 )
@@ -21,7 +22,37 @@ type BalanceTreeLine struct {
 
 // BalancesTree returns all non-zero balances as a Fava-style account tree.
 func (l *Ledger) BalancesTree(asOf time.Time) []BalanceTreeLine {
-	return balancesTreeFromMap(l.BalancesAsOf(asOf))
+	return BalancesTreeFrom(l.BalancesAsOf(asOf))
+}
+
+// BalancesTreeFrom is the balances tree for an already loaded balance map.
+func BalancesTreeFrom(bals map[string]map[string]*big.Rat) []BalanceTreeLine {
+	return balancesTreeFromMap(bals)
+}
+
+// SelectAccounts keeps accounts that match any filter.
+// Each filter is a RE2 pattern. MatchString is unanchored unless the pattern uses ^ or $.
+// An empty filters list returns bals unchanged. A nil filter does not match.
+func SelectAccounts(bals map[string]map[string]*big.Rat, filters []*regexp.Regexp) map[string]map[string]*big.Rat {
+	if len(filters) == 0 {
+		return bals
+	}
+	out := make(map[string]map[string]*big.Rat)
+	for account, byCommodity := range bals {
+		if accountMatches(account, filters) {
+			out[account] = byCommodity
+		}
+	}
+	return out
+}
+
+func accountMatches(account string, filters []*regexp.Regexp) bool {
+	for _, filter := range filters {
+		if filter != nil && filter.MatchString(account) {
+			return true
+		}
+	}
+	return false
 }
 
 func balancesTreeFromMap(bals map[string]map[string]*big.Rat) []BalanceTreeLine {
