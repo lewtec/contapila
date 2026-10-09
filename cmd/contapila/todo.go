@@ -29,10 +29,7 @@ comment is not a tag. Only transaction directives are listed.
 A posting account matches when it has exactly two components and the
 second component is TODO. Expenses:TODO, Income:TODO, Equity:TODO,
 Assets:TODO, Liabilities:TODO, and Type:TODO match. Expenses:TODO:Tax
-and Expenses:Food:TODO do not. Either posting direction matches.
-
-A transaction that matches both ways is listed once, oldest first.
-The default format is rustc.`
+and Expenses:Food:TODO do not. Either posting direction matches.`
 }
 
 func (c *todoCmd) Run(ctx context.Context) error {

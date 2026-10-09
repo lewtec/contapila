@@ -114,7 +114,8 @@ func TestTodoHelp(t *testing.T) {
 	assert.Contains(t, out, "Expenses:TODO:Tax")
 	assert.Contains(t, out, "Expenses:Food:TODO")
 	assert.Contains(t, out, "Either posting direction matches.")
-	assert.Contains(t, out, "listed once")
+	assert.NotContains(t, out, "listed once")
+	assert.NotContains(t, out, "default format")
 }
 
 func TestTodoFormatRejected(t *testing.T) {
