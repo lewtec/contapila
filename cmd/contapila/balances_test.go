@@ -49,11 +49,34 @@ func TestBalancesAccountFilter(t *testing.T) {
 	assert.NotContains(t, one, "ContaCorrente")
 	assert.NotContains(t, one, "Poupanca")
 
-	prefix := runBalances(t, "personal", "--account", "Assets:BR:Alfa")
-	assert.Contains(t, prefix, "ContaCorrente")
-	assert.Contains(t, prefix, "Poupanca")
-	assert.NotContains(t, prefix, "Carteira")
-	assert.NotContains(t, prefix, "B3_PETR4")
+	alfa := runBalances(t, "personal", "--account", "Assets:BR:Alfa")
+	assert.Contains(t, alfa, "ContaCorrente")
+	assert.Contains(t, alfa, "Poupanca")
+	assert.NotContains(t, alfa, "Carteira")
+	assert.NotContains(t, alfa, "B3_PETR4")
+
+	middle := runBalances(t, "personal", "--account", "Alfa")
+	assert.Contains(t, middle, "ContaCorrente")
+	assert.Contains(t, middle, "Poupanca")
+	assert.NotContains(t, middle, "Carteira")
+
+	end := runBalances(t, "personal", "--account", "Carteira$")
+	assert.Contains(t, end, "Carteira")
+	assert.Contains(t, end, "245.0000")
+	assert.NotContains(t, end, "ContaCorrente")
+
+	exact := runBalances(t, "personal", "--account", "^Assets:Cash:Carteira$")
+	assert.Contains(t, exact, "Carteira")
+	assert.Contains(t, exact, "245.0000")
+	assert.NotContains(t, exact, "ContaCorrente")
+
+	anchoredMiss := runBalances(t, "personal", "--account", "Cash$")
+	assert.Equal(t, "== personal balances ==\n", anchoredMiss)
+
+	dot := runBalances(t, "personal", "--account", "Assets.Cash.Carteira")
+	assert.Contains(t, dot, "Carteira")
+	assert.Contains(t, dot, "245.0000")
+	assert.NotContains(t, dot, "ContaCorrente")
 
 	both := runBalances(t, "--ledger", "personal", "--account", "Assets:Cash:Carteira", "--account", "Assets:BR:Alfa:Poupanca")
 	assert.Contains(t, both, "Carteira")
@@ -85,8 +108,12 @@ func TestBalancesLedgerFlag(t *testing.T) {
 	unknown := cmd.ParseOK[cmd.App[root]](t, "balances", "nope")
 	require.ErrorIs(t, unknown.Run(t.Context()), engine.ErrUnknownLedger)
 
-	empty := cmd.ParseOK[cmd.App[root]](t, "balances", "--account", "")
-	require.ErrorIs(t, empty.Run(t.Context()), cmd.ErrMissingValue)
+	empty := cmd.ParseErr[cmd.App[root]](t, "balances", "--account", "")
+	require.ErrorIs(t, empty, cmd.ErrInvalidArgument)
+	assert.Contains(t, empty.Error(), "empty pattern")
+
+	bad := cmd.ParseErr[cmd.App[root]](t, "balances", "--account", "[")
+	require.ErrorIs(t, bad, cmd.ErrInvalidArgument)
 }
 
 func TestBalancesHelpLedgerChoices(t *testing.T) {
@@ -95,6 +122,7 @@ func TestBalancesHelpLedgerChoices(t *testing.T) {
 	lewtest.DiscardSlog(t)
 	out := balancesHelp(t, "balances", "--help")
 	assert.Contains(t, out, "--account")
+	assert.Contains(t, out, "unanchored")
 	assert.Contains(t, out, "--ledger")
 	assert.Contains(t, out, "choices: acme, ong, personal, smuggle")
 

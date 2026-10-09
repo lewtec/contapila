@@ -150,7 +150,7 @@ Ban: a Person table. A second Commodity list in Go beside CUE. Invented `ledgers
 | `init` | files under `-C` / cwd (not an existing Project walk) | Copy the embedded starter Project | Directory has an entry other than `.git` and `--force` is absent → list those names on stderr, exit 1 |
 | `status` | none | Read Project | Not a Project → stderr, exit 1 |
 | `check` | none | Read Ledger | Hard diagnostics → print, exit 1 |
-| `balances` | none | Read Ledger | Unknown Ledger, bad `--as-of`, bad `--ledger`, empty `--account` → stderr, exit 1 |
+| `balances` | none | Read Ledger | Unknown Ledger, bad `--as-of`, bad `--ledger`, bad `--account` → stderr, exit 1 |
 | `journal` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
 | `pnl` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
 | `networth` | none | Read Ledger | Unknown Ledger, bad `--as-of` → stderr, exit 1 |
@@ -265,7 +265,7 @@ Global: `-C` / `--directory` (start directory for discovery). `-v` / `--verbose`
 
 Reports: `--as-of YYYY-MM-DD` on `balances` and `networth` (empty means latest). `--time` (Fava-style period) on period reports. `--from` and `--to` (inclusive `YYYY-MM-DD`). The Operator MUST NOT pass `--time` together with `--from` / `--to`.
 
-`balances --ledger` selects one Ledger. `--help` lists the Ledger names of the Project found from `-C`, then `CONTAPILA_DIRECTORY`, then the working directory. An unknown name is an invalid argument. `balances --account` may be repeated. Each value selects that Account and its subaccounts. No `--ledger` and no `--account` leaves the report unchanged. A positional Ledger name still selects one Ledger. A positional name and `--ledger` MUST name the same Ledger when both are set.
+`balances --ledger` selects one Ledger. `--help` lists the Ledger names of the Project found from `-C`, then `CONTAPILA_DIRECTORY`, then the working directory. An unknown name is an invalid argument. `balances --account` may be repeated. Each value is a RE2 regular expression. The expression matches the Account name. The match falls anywhere in the name when the pattern has no `^` and no `$`. `^` anchors the start. `$` anchors the end. `:` matches a colon. Other characters follow RE2. An empty value or an invalid pattern is an invalid argument. No `--ledger` and no `--account` leaves the report unchanged. A positional Ledger name still selects one Ledger. A positional name and `--ledger` MUST name the same Ledger when both are set.
 
 `init` copies the embedded starter Project (personal and company Ledgers) into `-C` when set, else the process working directory. It does not walk up for an existing marker. Without `--force`, dest MUST be empty except for a `.git` entry. With `--force`, extra names stay; a name that already exists is an error. `.git` is the only ignored dest name.
 
