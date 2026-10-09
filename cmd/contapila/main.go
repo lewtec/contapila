@@ -50,7 +50,7 @@ func main() {
 	// A release stamp with empty argv is the desktop app (lewkit release run).
 	// Any argument stays on the CLI.
 	if wantWindow(os.Args[1:]) {
-		entry.Main(runApp)
+		entry.Main(context.Background(), runApp)
 		return
 	}
 
@@ -269,9 +269,9 @@ func (c *checkCmd) Run(ctx context.Context) error {
 }
 
 type balancesCmd struct {
-	AsOf     cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
-	Account  []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
-	ByLedger ledgerEnum    `long:"ledger" help:"limit to this ledger" default:""`
+	AsOf     cmd.StringArg   `long:"as-of" help:"YYYY-MM-DD" default:""`
+	Account  []cmd.RegexpArg `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
+	ByLedger ledgerEnum      `long:"ledger" help:"limit to this ledger" default:""`
 	Ledger   *engine.LedgerArg
 }
 
