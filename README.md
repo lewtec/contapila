@@ -141,6 +141,7 @@ Contapila took poetic license on tooling so the stack stays small: one binary, f
 | `check [ledger]` | Validate (all ledgers if omitted) |
 | `balances [ledger]` | Balances as-of |
 | `journal [ledger]` | Period activity |
+| `todo [ledger]` | Transactions tagged `#todo`, or posting to `Type:TODO` (`Expenses:TODO`, `Income:TODO`, …) |
 | `pnl [ledger]` | Income vs expenses |
 | `networth [ledger]` | Net worth as-of |
 | `account …` | Account-focused views |
