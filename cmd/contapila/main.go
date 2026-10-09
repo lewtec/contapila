@@ -43,6 +43,7 @@ var (
 	ErrCheckFailed        = errors.New("check failed")
 	ErrTimeFlagsExclusive = errors.New("use either --time or --from/--to, not both")
 	ErrFileRequired       = errors.New("--file is required")
+	ErrLedgerConflict     = errors.New("ledger argument and --ledger differ")
 )
 
 func main() {
@@ -268,11 +269,35 @@ func (c *checkCmd) Run(ctx context.Context) error {
 }
 
 type balancesCmd struct {
-	AsOf   cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
-	Ledger *engine.LedgerArg
+	AsOf     cmd.StringArg   `long:"as-of" help:"YYYY-MM-DD" default:""`
+	Account  []cmd.StringArg `long:"account" help:"account and subaccounts; repeat to add another"`
+	ByLedger ledgerEnum      `long:"ledger" help:"limit to this ledger" default:""`
+	Ledger   *engine.LedgerArg
 }
 
 func (balancesCmd) Description() string { return "Balances as-of" }
+
+func (c *balancesCmd) ledgerNames() ([]string, error) {
+	flag := c.ByLedger.Value()
+	pos := optionalName(c.Ledger)
+	if flag != "" && len(pos) == 1 && flag != pos[0] {
+		return nil, fmt.Errorf("%w: %s and %s", ErrLedgerConflict, pos[0], flag)
+	}
+	if flag != "" {
+		return []string{flag}, nil
+	}
+	return pos, nil
+}
+
+func accountNames(args []cmd.StringArg) ([]string, error) {
+	names := cmd.Values(args)
+	for _, name := range names {
+		if name == "" {
+			return nil, fmt.Errorf("%w: --account", cmd.ErrMissingValue)
+		}
+	}
+	return names, nil
+}
 
 func (c *balancesCmd) Run(ctx context.Context) error {
 
@@ -283,11 +308,18 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	if t.IsZero() {
 		t = engine.AsOfLatest
 	}
-	args := optionalName(c.Ledger)
+	accounts, err := accountNames(c.Account)
+	if err != nil {
+		return err
+	}
+	names, err := c.ledgerNames()
+	if err != nil {
+		return err
+	}
 	// Single ledger: hierarchical tree. Multi-ledger: flat sorted table.
-	if len(args) == 1 {
-		return withLedgers(ctx, args, func(l *engine.Ledger) error {
-			tree := l.BalancesTree(t)
+	if len(names) == 1 {
+		return withLedgers(ctx, names, func(l *engine.Ledger) error {
+			tree := engine.BalancesTreeFrom(engine.SelectAccounts(l.BalancesAsOf(t), accounts))
 			fmt.Printf("== %s balances ==\n", l.Name)
 			for _, ln := range tree {
 				pad := strings.Repeat("  ", ln.Depth)
@@ -309,8 +341,8 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 		ledger, account, amount, commodity string
 	}
 	var rows []row
-	err = withLedgers(ctx, args, func(l *engine.Ledger) error {
-		bals := l.BalancesAsOf(t)
+	err = withLedgers(ctx, names, func(l *engine.Ledger) error {
+		bals := engine.SelectAccounts(l.BalancesAsOf(t), accounts)
 		var accts []string
 		for a := range bals {
 			accts = append(accts, a)

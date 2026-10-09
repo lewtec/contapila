@@ -1,9 +1,13 @@
 package engine
 
 import (
+	"math/big"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBalancesTreeLeafNames(t *testing.T) {
@@ -35,4 +39,50 @@ func TestBalancesTreeLeafNames(t *testing.T) {
 	if !sawAssets {
 		t.Fatal("missing Assets root")
 	}
+	direct := tree
+	via := BalancesTreeFrom(l.BalancesAsOf(AsOfLatest))
+	require.Len(t, via, len(direct))
+	for i := range direct {
+		assert.Equal(t, direct[i].Account, via[i].Account, "line %d account", i)
+		assert.Equal(t, direct[i].Commodity, via[i].Commodity, "line %d commodity", i)
+		assert.Equal(t, direct[i].IsRollup, via[i].IsRollup, "line %d rollup", i)
+		assert.True(t, sameRat(direct[i].Amount, via[i].Amount), "line %d amount", i)
+	}
+}
+
+func TestSelectAccounts(t *testing.T) {
+	brl := big.NewRat(10, 1)
+	usd := big.NewRat(3, 1)
+	bals := map[string]map[string]*big.Rat{
+		"Assets:Cash":   {"BRL": brl},
+		"Assets:Bank":   {"USD": usd},
+		"Expenses:Food": {"BRL": brl},
+	}
+	got := SelectAccounts(bals, nil)
+	require.Len(t, got, 3)
+	assert.Same(t, brl, got["Assets:Cash"]["BRL"])
+
+	assets := SelectAccounts(bals, []string{"Assets"})
+	assert.NotContains(t, assets, "Expenses:Food")
+	assert.Contains(t, assets, "Assets:Cash")
+	assert.Contains(t, assets, "Assets:Bank")
+
+	one := SelectAccounts(bals, []string{"Assets:Cash", "Expenses:Food"})
+	assert.Len(t, one, 2)
+
+	filtered := BalancesTreeFrom(SelectAccounts(bals, []string{"Assets:Cash"}))
+	var accounts []string
+	for _, line := range filtered {
+		accounts = append(accounts, line.Account)
+	}
+	assert.NotContains(t, accounts, "Expenses:Food")
+	assert.Contains(t, accounts, "Assets")
+	assert.Contains(t, accounts, "Assets:Cash")
+}
+
+func sameRat(a, b *big.Rat) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.Cmp(b) == 0
 }

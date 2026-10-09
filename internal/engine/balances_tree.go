@@ -21,7 +21,37 @@ type BalanceTreeLine struct {
 
 // BalancesTree returns all non-zero balances as a Fava-style account tree.
 func (l *Ledger) BalancesTree(asOf time.Time) []BalanceTreeLine {
-	return balancesTreeFromMap(l.BalancesAsOf(asOf))
+	return BalancesTreeFrom(l.BalancesAsOf(asOf))
+}
+
+// BalancesTreeFrom is the balances tree for an already loaded balance map.
+func BalancesTreeFrom(bals map[string]map[string]*big.Rat) []BalanceTreeLine {
+	return balancesTreeFromMap(bals)
+}
+
+// SelectAccounts keeps accounts equal to a name or under it.
+// A name matches that account and subaccounts (name or name:…).
+// An empty names list returns bals unchanged.
+func SelectAccounts(bals map[string]map[string]*big.Rat, names []string) map[string]map[string]*big.Rat {
+	if len(names) == 0 {
+		return bals
+	}
+	out := make(map[string]map[string]*big.Rat)
+	for account, byCommodity := range bals {
+		if accountSelected(account, names) {
+			out[account] = byCommodity
+		}
+	}
+	return out
+}
+
+func accountSelected(account string, names []string) bool {
+	for _, name := range names {
+		if name != "" && accountUnder(account, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func balancesTreeFromMap(bals map[string]map[string]*big.Rat) []BalanceTreeLine {
