@@ -11,7 +11,7 @@ RFC 8174) when, and only when, they appear in all capitals.
 
 ## Intention
 
-Job: Load a conventional multi-ledger Project from plain-text journals. Run `check`. Answer balances, journal, P&L, and net worth from the CLI and from read-only local HTML (`web`, `desktop`, `build`). Expose the same Project truth through `lsp`. Book inventory at merged average-cost even when that disagrees with upstream Beancount.
+Job: Load a conventional multi-ledger Project from plain-text journals. Run `check`. Answer balances, journal, P&L, net worth, and `todo` from the CLI. Answer the same reports, except `todo`, from read-only local HTML (`web`, `desktop`, `build`). Expose the same Project truth through `lsp`. Book inventory at merged average-cost even when that disagrees with upstream Beancount.
 
 Non-goals (this project):
 
@@ -112,6 +112,7 @@ Inherited C (cite the file):
 | Static HTML export | `build` | generate, render site (as the command) |
 | Language server command | `lsp` | contapila-lsp |
 | Journal writer | `ingest` | import, merge (as the command) |
+| Todo list command | `todo` | grep (as the command) |
 | Document tree dump | `dump` | extract (as the command) |
 
 ## Types
@@ -152,6 +153,7 @@ Ban: a Person table. A second Commodity list in Go beside CUE. Invented `ledgers
 | `check` | none | Read Ledger | Hard diagnostics → print, exit 1 |
 | `balances` | none | Read Ledger | Unknown Ledger, bad `--as-of`, bad `--ledger`, bad `--account` → stderr, exit 1 |
 | `journal` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
+| `todo` | none | Read Ledger | Unknown Ledger or bad `--format` → stderr, exit 1 |
 | `pnl` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
 | `networth` | none | Read Ledger | Unknown Ledger, bad `--as-of` → stderr, exit 1 |
 | `account` | none | Read Account | Unknown Ledger, unknown flags → stderr, exit 1 |
@@ -163,7 +165,7 @@ Ban: a Person table. A second Commodity list in Go beside CUE. Invented `ledgers
 | `desktop` | none | Same handler in an app window | Web view missing or `Open` fails → stderr, exit 1 |
 | `lsp` | none on disk | Overlay buffers in memory | Setup fail → stderr, exit 1 |
 
-When a command takes `[ledger]` and the Operator names none, the command runs for every Ledger. Zero Ledgers on `check`, reports, `web`, `desktop`: error, exit 1.
+When a command takes `[ledger]` and the Operator names none, the command runs for every Ledger. Zero Ledgers on `check`, reports, `todo`, `web`, `desktop`: error, exit 1.
 
 ## Invariants
 
@@ -244,6 +246,7 @@ When a command takes `[ledger]` and the Operator names none, the command runs fo
 | CAP-06 | Operator | Read the same reports as HTML (`web`, `desktop`, `build`) |
 | CAP-07 | Operator | Edit journals in an editor via `lsp` |
 | CAP-08 | Operator | Create a Project from the embedded starter (`init`) |
+| CAP-09 | Operator | List Transactions tagged `#todo` or posting to `Type:TODO` |
 
 ## Public contract
 
@@ -264,6 +267,8 @@ On Project open the host injects a closed `ledgers` map. Operator `contapila.cue
 Global: `-C` / `--directory` (start directory for discovery). `-v` / `--verbose` (debug `slog` on stderr).
 
 Reports: `--as-of YYYY-MM-DD` on `balances` and `networth` (empty means latest). `--time` (Fava-style period) on period reports. `--from` and `--to` (inclusive `YYYY-MM-DD`). The Operator MUST NOT pass `--time` together with `--from` / `--to`.
+
+`todo` lists each Transaction with the tag `#todo`, and each Transaction with a Posting to `Type:TODO`. `Type:TODO` is an Account of exactly two components whose second component is `TODO` (`Expenses:TODO`, `Income:TODO`, `Equity:TODO`). One Transaction is one finding, oldest first, across the selected Ledgers. `--format` is `text`, `table`, `sarif`, or `rustc`. The default is `rustc`. The message is the date, the flag, and the payee and narration. The rule ID joins `todo` and the `Type:TODO` account names with commas. SARIF names the tool `contapila`. An empty list exits 0.
 
 `balances --ledger` selects one Ledger. `--help` lists the Ledger names of the Project found from `-C`, then `CONTAPILA_DIRECTORY`, then the working directory. An unknown name is an invalid argument. `balances --account` may be repeated. Each value is a RE2 regular expression. The expression matches the Account name. The match falls anywhere in the name when the pattern has no `^` and no `$`. `^` anchors the start. `$` anchors the end. `:` matches a colon. Other characters follow RE2. An empty value or an invalid pattern is an invalid argument. No `--ledger` and no `--account` leaves the report unchanged. A positional Ledger name still selects one Ledger. A positional name and `--ledger` MUST name the same Ledger when both are set.
 

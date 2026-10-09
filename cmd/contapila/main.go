@@ -88,6 +88,7 @@ type root struct {
 	Check     *checkCmd
 	Balances  *balancesCmd
 	Journal   *journalCmd
+	Todo      *todoCmd
 	Pnl       *pnlCmd
 	Networth  *networthCmd
 	Account   *accountCmd
