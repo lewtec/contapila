@@ -27,7 +27,7 @@ func TestTodos(t *testing.T) {
 			postings = append(postings, ast.Posting{Account: account})
 		}
 		return ast.Transaction{
-			Meta:      ast.Meta{Date: day(date), File: file, Line: line},
+			Meta:      ast.Meta{Date: day(date), File: file, Line: line, StartByte: line, EndByte: line + 3},
 			Flag:      flag,
 			Payee:     payee,
 			Narration: narration,
@@ -47,10 +47,10 @@ func TestTodos(t *testing.T) {
 
 	got := ledger.Todos()
 	want := []Todo{
-		{Date: day("2020-01-02"), File: "a.beancount", Line: 2, Flag: "*", Payee: "Mystery", Narration: "out", Accounts: []string{"Expenses:TODO"}},
-		{Date: day("2020-01-02"), File: "a.beancount", Line: 9, Flag: "!", Payee: "Both", Narration: "marks", Tag: true, Accounts: []string{"Income:TODO", "Expenses:TODO"}},
-		{Date: day("2020-01-04"), File: "a.beancount", Line: 8, Flag: "*", Payee: "Literal", Narration: "type", Accounts: []string{"Type:TODO"}},
-		{Date: day("2020-05-01"), File: "b.beancount", Line: 5, Flag: "*", Payee: "Cafe", Narration: "tagged", Tag: true},
+		{Date: day("2020-01-02"), File: "a.beancount", Line: 2, StartByte: 2, EndByte: 5, Flag: "*", Payee: "Mystery", Narration: "out", Accounts: []string{"Expenses:TODO"}},
+		{Date: day("2020-01-02"), File: "a.beancount", Line: 9, StartByte: 9, EndByte: 12, Flag: "!", Payee: "Both", Narration: "marks", Tag: true, Accounts: []string{"Income:TODO", "Expenses:TODO"}},
+		{Date: day("2020-01-04"), File: "a.beancount", Line: 8, StartByte: 8, EndByte: 11, Flag: "*", Payee: "Literal", Narration: "type", Accounts: []string{"Type:TODO"}},
+		{Date: day("2020-05-01"), File: "b.beancount", Line: 5, StartByte: 5, EndByte: 8, Flag: "*", Payee: "Cafe", Narration: "tagged", Tag: true},
 	}
 	require.Len(t, got, len(want))
 	for i := range want {

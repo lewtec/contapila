@@ -11,10 +11,14 @@ import (
 // Todo is one Transaction the todo command lists.
 // Tag is set when the Transaction carries the tag todo (#todo).
 // Accounts are Postings to Type:TODO, in source order, without duplicates.
+// StartByte and EndByte are the half-open source span in File.
+// Both zero means the span is unknown.
 type Todo struct {
 	Date      time.Time
 	File      string
 	Line      int
+	StartByte int
+	EndByte   int
 	Flag      string
 	Payee     string
 	Narration string
@@ -57,6 +61,8 @@ func todoItem(txn ast.Transaction) (Todo, bool) {
 		Date:      txn.Date,
 		File:      txn.File,
 		Line:      txn.Line,
+		StartByte: txn.StartByte,
+		EndByte:   txn.EndByte,
 		Flag:      txn.Flag,
 		Payee:     txn.Payee,
 		Narration: txn.Narration,

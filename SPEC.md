@@ -153,7 +153,7 @@ Ban: a Person table. A second Commodity list in Go beside CUE. Invented `ledgers
 | `check` | none | Read Ledger | Hard diagnostics → print, exit 1 |
 | `balances` | none | Read Ledger | Unknown Ledger, bad `--as-of` → stderr, exit 1 |
 | `journal` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
-| `todo` | none | Read Ledger | Unknown Ledger → stderr, exit 1 |
+| `todo` | none | Read Ledger | Unknown Ledger or bad `--format` → stderr, exit 1 |
 | `pnl` | none | Read Ledger | Unknown Ledger, bad time flags → stderr, exit 1 |
 | `networth` | none | Read Ledger | Unknown Ledger, bad `--as-of` → stderr, exit 1 |
 | `account` | none | Read Account | Unknown Ledger, unknown flags → stderr, exit 1 |
@@ -268,7 +268,7 @@ Global: `-C` / `--directory` (start directory for discovery). `-v` / `--verbose`
 
 Reports: `--as-of YYYY-MM-DD` on `balances` and `networth` (empty means latest). `--time` (Fava-style period) on period reports. `--from` and `--to` (inclusive `YYYY-MM-DD`). The Operator MUST NOT pass `--time` together with `--from` / `--to`.
 
-`todo` lists each Transaction with the tag `#todo`, and each Transaction with a Posting to `Type:TODO`. `Type:TODO` is an Account of exactly two components whose second component is `TODO` (`Expenses:TODO`, `Income:TODO`, `Equity:TODO`). One line per Transaction, oldest first: `file:line: date flag payee narration` plus the marks. An empty list exits 0.
+`todo` lists each Transaction with the tag `#todo`, and each Transaction with a Posting to `Type:TODO`. `Type:TODO` is an Account of exactly two components whose second component is `TODO` (`Expenses:TODO`, `Income:TODO`, `Equity:TODO`). One Transaction is one finding, oldest first, across the selected Ledgers. `--format` is `text`, `table`, `sarif`, or `rustc`. The default is `rustc`. The message is the date, the flag, and the payee and narration. The rule ID joins `todo` and the `Type:TODO` account names with commas. SARIF names the tool `contapila`. An empty list exits 0.
 
 `init` copies the embedded starter Project (personal and company Ledgers) into `-C` when set, else the process working directory. It does not walk up for an existing marker. Without `--force`, dest MUST be empty except for a `.git` entry. With `--force`, extra names stay; a name that already exists is an error. `.git` is the only ignored dest name.
 
