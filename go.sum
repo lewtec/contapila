@@ -127,8 +127,8 @@ github.com/lewtec/leaven v0.0.0-20260814142252-666e23083398 h1:WZkGYLNpijUbXwtha
 github.com/lewtec/leaven v0.0.0-20260814142252-666e23083398/go.mod h1:dm9Ri4N6fnxAcLFsAx9mJyy4mwuF9aLJesoB/G4SjiA=
 github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9 h1:1kN9A+oHokqYbcH+xVcCukoJLX2KZnLsyS5T4yQUWDw=
 github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9/go.mod h1:OxqZKICIWGwyxFEx8Wri6I4DCUU7lg0tSLzX73tkHQ8=
-github.com/lewtec/lewkit v0.0.0-20261003172654-e54d2ebeb429 h1:rlaseJsjQ05iCEY0r6reLxjr3OVdAxIkGMkK+oGbi6g=
-github.com/lewtec/lewkit v0.0.0-20261003172654-e54d2ebeb429/go.mod h1:SuPHu5Hj55rdx24TlheHJKCwf5VleEcMVt+QxXpkiIY=
+github.com/lewtec/lewkit v0.0.0-20261009224827-b38d99fc60ca h1:FnPMji2JSeFdK4HJJ6WyqbvaeuB1/fd2kUvjl8weOIo=
+github.com/lewtec/lewkit v0.0.0-20261009224827-b38d99fc60ca/go.mod h1:8pSsRITY5EXYM9D4wR/Qf+/Rh4GIX6GjWCVGTcg57nk=
 github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0 h1:0aH6Uew/9eJSpMTlHo4X67ne/EIxg8kkqDGZf1YDO4A=
 github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0/go.mod h1:wNGs3imOPr9sco1Jyu3XkAdVwkc6vCLR2zc3Ba8asII=
 github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260927175003-766673523e06 h1:qYGqfJ5fiQeRfSxsvcOwVbADQsZy8raGYr6l1EpaaOc=
