@@ -39,30 +39,19 @@ func (k BinKind) String() string {
 //	empty / all time with multi-year span → year; else month
 func ChartBin(raw string, r Range) BinKind {
 	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	switch {
+	case raw == "", strings.Contains(raw, " - "):
+		return binFromSpan(r)
+	case reDay.MatchString(raw), strings.HasPrefix(raw, "day"),
+		reWeek.MatchString(raw), strings.HasPrefix(raw, "week"),
+		reMonth.MatchString(raw), strings.HasPrefix(raw, "month"):
+		return BinDay
+	case reQuarter.MatchString(raw), strings.HasPrefix(raw, "quarter"),
+		reYear.MatchString(raw), strings.HasPrefix(raw, "year"):
+		return BinMonth
+	default:
 		return binFromSpan(r)
 	}
-	// Explicit range "A - B"
-	if strings.Contains(raw, " - ") {
-		return binFromSpan(r)
-	}
-	// Relative / absolute single tokens
-	if reDay.MatchString(raw) || strings.HasPrefix(raw, "day") {
-		return BinDay
-	}
-	if reWeek.MatchString(raw) || strings.HasPrefix(raw, "week") {
-		return BinDay
-	}
-	if reMonth.MatchString(raw) || strings.HasPrefix(raw, "month") {
-		return BinDay
-	}
-	if reQuarter.MatchString(raw) || strings.HasPrefix(raw, "quarter") {
-		return BinMonth
-	}
-	if reYear.MatchString(raw) || strings.HasPrefix(raw, "year") {
-		return BinMonth
-	}
-	return binFromSpan(r)
 }
 
 func binFromSpan(r Range) BinKind {

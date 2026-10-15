@@ -3,7 +3,9 @@ package prices
 import (
 	"context"
 	"errors"
+	"maps"
 	"math/big"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -170,12 +172,7 @@ func (db *DB) commodities() []string {
 		seen[b] = true
 		seen[q] = true
 	}
-	out := make([]string, 0, len(seen))
-	for c := range seen {
-		out = append(out, c)
-	}
-	sort.Strings(out)
-	return out
+	return slices.Sorted(maps.Keys(seen))
 }
 
 // Series is one base/quote pair with its points (oldest first).
@@ -186,21 +183,14 @@ type Series struct {
 
 // AllSeries returns all pairs sorted by base then quote.
 func (db *DB) AllSeries() []Series {
-	var keys []string
-	for k := range db.series {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := slices.Sorted(maps.Keys(db.series))
 	out := make([]Series, 0, len(keys))
 	for _, k := range keys {
 		base, quote, ok := splitKey(k)
 		if !ok {
 			continue
 		}
-		pts := db.series[k]
-		cp := make([]Point, len(pts))
-		copy(cp, pts)
-		out = append(out, Series{Base: base, Quote: quote, Points: cp})
+		out = append(out, Series{Base: base, Quote: quote, Points: slices.Clone(db.series[k])})
 	}
 	return out
 }

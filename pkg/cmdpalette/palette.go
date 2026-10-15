@@ -2,7 +2,10 @@ package cmdpalette
 
 //go:generate go tool templ generate
 
-import "strings"
+import (
+	"cmp"
+	"strings"
+)
 
 // Item is one row in the palette (SSR; client filters on Keywords).
 type Item struct {
@@ -56,25 +59,19 @@ func (p Palette) WithItems(items []Item) Palette {
 
 // WithID sets the DOM id prefix.
 func (p Palette) WithID(id string) Palette {
-	if id != "" {
-		p.ID = id
-	}
+	p.ID = cmp.Or(id, p.ID)
 	return p
 }
 
 // WithTitle sets the trigger label.
 func (p Palette) WithTitle(title string) Palette {
-	if title != "" {
-		p.Title = title
-	}
+	p.Title = cmp.Or(title, p.Title)
 	return p
 }
 
 // WithPlaceholder sets the search placeholder.
 func (p Palette) WithPlaceholder(s string) Palette {
-	if s != "" {
-		p.Placeholder = s
-	}
+	p.Placeholder = cmp.Or(s, p.Placeholder)
 	return p
 }
 
@@ -129,39 +126,13 @@ func Keywords(parts ...string) string {
 	return s
 }
 
-func (p Palette) rootID() string {
-	if p.ID == "" {
-		return "cmdpalette"
-	}
-	return p.ID
-}
-
-func (p Palette) openID() string   { return p.rootID() + "-open" }
-func (p Palette) inputID() string  { return p.rootID() + "-input" }
-func (p Palette) listID() string   { return p.rootID() + "-list" }
-func (p Palette) emptyID() string  { return p.rootID() + "-empty" }
-func (p Palette) hotkeyID() string { return p.rootID() + "-hotkey" }
-func (p Palette) titleText() string {
-	if p.Title == "" {
-		return "Jump"
-	}
-	return p.Title
-}
-func (p Palette) placeholderText() string {
-	if p.Placeholder == "" {
-		return "Jump to…"
-	}
-	return p.Placeholder
-}
-func (p Palette) ariaLabelText() string {
-	if p.AriaLabel == "" {
-		return "Jump to"
-	}
-	return p.AriaLabel
-}
-func (p Palette) buttonClass() string {
-	if p.ButtonClass != "" {
-		return p.ButtonClass
-	}
-	return "cmdpalette-btn"
-}
+func (p Palette) rootID() string          { return cmp.Or(p.ID, "cmdpalette") }
+func (p Palette) openID() string          { return p.rootID() + "-open" }
+func (p Palette) inputID() string         { return p.rootID() + "-input" }
+func (p Palette) listID() string          { return p.rootID() + "-list" }
+func (p Palette) emptyID() string         { return p.rootID() + "-empty" }
+func (p Palette) hotkeyID() string        { return p.rootID() + "-hotkey" }
+func (p Palette) titleText() string       { return cmp.Or(p.Title, "Jump") }
+func (p Palette) placeholderText() string { return cmp.Or(p.Placeholder, "Jump to…") }
+func (p Palette) ariaLabelText() string   { return cmp.Or(p.AriaLabel, "Jump to") }
+func (p Palette) buttonClass() string     { return cmp.Or(p.ButtonClass, "cmdpalette-btn") }
