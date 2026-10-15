@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
+	"math/big"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"syscall"
 	"text/tabwriter"
@@ -279,6 +281,26 @@ func treePadMark(depth int, rollup bool) (pad, mark string) {
 	return pad, mark
 }
 
+func printBanner(title string, r period.Range) {
+	fmt.Printf("== %s ==", title)
+	if !r.Empty() {
+		fmt.Printf("  [%s]", r.Label())
+	}
+	fmt.Println()
+}
+
+func printCommodityAmounts(m map[string]*big.Rat, empty string) {
+	if len(m) == 0 {
+		fmt.Println("  " + empty)
+		return
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	for _, c := range slices.Sorted(maps.Keys(m)) {
+		fmt.Fprintf(w, "  %s\t%s\n", m[c].FloatString(6), c)
+	}
+	w.Flush()
+}
+
 type balancesCmd struct {
 	AsOf     cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
 	Account  []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
@@ -337,18 +359,8 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	var rows []row
 	err = withLedgers(ctx, names, func(l *engine.Ledger) error {
 		bals := engine.SelectAccounts(l.BalancesAsOf(t), filters)
-		var accts []string
-		for a := range bals {
-			accts = append(accts, a)
-		}
-		sort.Strings(accts)
-		for _, a := range accts {
-			var cs []string
-			for c := range bals[a] {
-				cs = append(cs, c)
-			}
-			sort.Strings(cs)
-			for _, c := range cs {
+		for _, a := range slices.Sorted(maps.Keys(bals)) {
+			for _, c := range slices.Sorted(maps.Keys(bals[a])) {
 				rows = append(rows, row{
 					ledger:    l.Name,
 					account:   a,
@@ -362,14 +374,12 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].account != rows[j].account {
-			return rows[i].account < rows[j].account
-		}
-		if rows[i].commodity != rows[j].commodity {
-			return rows[i].commodity < rows[j].commodity
-		}
-		return rows[i].ledger < rows[j].ledger
+	slices.SortFunc(rows, func(a, b row) int {
+		return cmp.Or(
+			cmp.Compare(a.account, b.account),
+			cmp.Compare(a.commodity, b.commodity),
+			cmp.Compare(a.ledger, b.ledger),
+		)
 	})
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 	fmt.Fprintln(w, "LEDGER\tACCOUNT\tAMOUNT\tCOMMODITY")
@@ -393,11 +403,7 @@ func (c *journalCmd) Run(ctx context.Context) error {
 		return err
 	}
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
-		fmt.Printf("== %s ==", l.Name)
-		if !r.Empty() {
-			fmt.Printf("  [%s]", r.Label())
-		}
-		fmt.Println()
+		printBanner(l.Name, r)
 		for _, e := range l.Journal(r.Start, r.End) {
 			switch e.Kind {
 			case "txn":
@@ -433,11 +439,7 @@ func (c *pnlCmd) Run(ctx context.Context) error {
 		return err
 	}
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
-		fmt.Printf("== %s ==", l.Name)
-		if !r.Empty() {
-			fmt.Printf("  [%s]", r.Label())
-		}
-		fmt.Println()
+		printBanner(l.Name, r)
 		inc, exp := l.PnLTree(r.Start, r.End)
 		printPnLTree := func(title string, lines []engine.PnLLine) {
 			fmt.Println(title)
@@ -531,43 +533,11 @@ func (c *accountCmd) Run(ctx context.Context) error {
 	if asOf.IsZero() {
 		asOf = engine.AsOfLatest
 	}
-	fmt.Printf("== %s · %s ==", l.Name, acct)
-	if !r.Empty() {
-		fmt.Printf("  [%s]", r.Label())
-	}
-	fmt.Println()
+	printBanner(l.Name+" · "+acct, r)
 	fmt.Println("Balance:")
-	bals := l.AccountBalances(acct, asOf)
-	if len(bals) == 0 {
-		fmt.Println("  (zero)")
-	} else {
-		var cs []string
-		for c := range bals {
-			cs = append(cs, c)
-		}
-		sort.Strings(cs)
-		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-		for _, c := range cs {
-			fmt.Fprintf(w, "  %s\t%s\n", bals[c].FloatString(6), c)
-		}
-		w.Flush()
-	}
+	printCommodityAmounts(l.AccountBalances(acct, asOf), "(zero)")
 	fmt.Println("Change in period:")
-	act := l.AccountActivity(acct, r.Start, r.End)
-	if len(act) == 0 {
-		fmt.Println("  (none)")
-	} else {
-		var cs []string
-		for c := range act {
-			cs = append(cs, c)
-		}
-		sort.Strings(cs)
-		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-		for _, c := range cs {
-			fmt.Fprintf(w, "  %s\t%s\n", act[c].FloatString(6), c)
-		}
-		w.Flush()
-	}
+	printCommodityAmounts(l.AccountActivity(acct, r.Start, r.End), "(none)")
 	fmt.Println("Journal:")
 	for _, e := range l.JournalForAccount(acct, r.Start, r.End) {
 		if e.Kind != "txn" {
