@@ -67,9 +67,9 @@ func Listen(ctx context.Context, p *project.Project, pdb *prices.DB, defaultLedg
 	if err != nil {
 		return err
 	}
-	fmt.Printf("contapila web on http://%s/\n", addr)
+	fmt.Fprintf(os.Stdout, "contapila web on http://%s/\n", addr)
 	if defaultLedger != "" {
-		fmt.Printf("  ledger: http://%s/l/%s/check\n", addr, defaultLedger)
+		fmt.Fprintf(os.Stdout, "  ledger: http://%s/l/%s/check\n", addr, defaultLedger)
 	}
 	// Explicit timeouts: bare ListenAndServe has none (slowloris / hung conns).
 	// Values sized for a local read-only ledger UI, not a high-traffic public API.
