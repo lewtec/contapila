@@ -14,7 +14,7 @@ import (
 
 // moduleOn is CUE explicit flag, else journal plugin "id" in this ledger, else defaultOn.
 func moduleOn(cfg cue.Value, journal map[string]bool, id string, defaultOn bool) bool {
-	if flags, err := config.PluginFlags(cfg); err == nil && flags != nil {
+	if flags, err := config.PluginFlags(cfg); err == nil {
 		if b, ok := flags[id]; ok {
 			return b
 		}
@@ -33,27 +33,22 @@ func journalPlugins(dirs []ast.Directive) (map[string]bool, diag.List) {
 	var diags diag.List
 	for _, d := range dirs {
 		p, ok := d.(ast.Plugin)
-		if !ok || p.Name == "" {
+		if !ok || p.Name == "" || seen[p.Name] {
 			continue
 		}
+		seen[p.Name] = true
 		if err := config.ValidatePluginID(p.Name); err != nil {
-			if !seen[p.Name] {
-				seen[p.Name] = true
-				diags.Warn(p.File, p.Line, fmt.Sprintf("invalid plugin id %q: '/' not allowed", p.Name))
-				slog.Warn("invalid plugin directive", "plugin", p.Name, "file", p.File, "line", p.Line, "err", err.Error())
-			}
+			diags.Warn(p.File, p.Line, fmt.Sprintf("invalid plugin id %q: '/' not allowed", p.Name))
+			slog.Warn("invalid plugin directive", "plugin", p.Name, "file", p.File, "line", p.Line, "err", err.Error())
 			continue
 		}
 		if !config.IsKnownPlugin(p.Name) {
-			if !seen[p.Name] {
-				seen[p.Name] = true
-				msg := fmt.Sprintf("unknown plugin %q", p.Name)
-				if known := config.KnownPluginIDs(); len(known) > 0 {
-					msg = fmt.Sprintf("unknown plugin %q (known: %s)", p.Name, strings.Join(known, ", "))
-				}
-				diags.Warn(p.File, p.Line, msg)
-				slog.Warn("unknown plugin directive", "plugin", p.Name, "file", p.File, "line", p.Line)
+			msg := fmt.Sprintf("unknown plugin %q", p.Name)
+			if known := config.KnownPluginIDs(); len(known) > 0 {
+				msg = fmt.Sprintf("unknown plugin %q (known: %s)", p.Name, strings.Join(known, ", "))
 			}
+			diags.Warn(p.File, p.Line, msg)
+			slog.Warn("unknown plugin directive", "plugin", p.Name, "file", p.File, "line", p.Line)
 			continue
 		}
 		on[p.Name] = true
