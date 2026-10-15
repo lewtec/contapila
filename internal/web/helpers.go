@@ -3,9 +3,10 @@ package web
 import (
 	"context"
 	"log/slog"
+	"maps"
 	"math/big"
 	"net/http"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/engine"
@@ -130,11 +131,7 @@ func amountMapRows(m map[string]*big.Rat, fixedAccount, fixedCommodity string, p
 	if len(m) == 0 {
 		return nil
 	}
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := slices.Sorted(maps.Keys(m))
 	out := make([]balanceRow, 0, len(keys))
 	for _, k := range keys {
 		n := m[k]

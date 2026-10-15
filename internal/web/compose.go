@@ -1,5 +1,7 @@
 package web
 
+import "cmp"
+
 // Clone returns a new registry with the same pages (Fill/Body funcs shared).
 // Nil receiver yields an empty registry.
 func (r *PageRegistry) Clone() *PageRegistry {
@@ -33,10 +35,7 @@ func PagePluginKey(pageID string) string {
 // pagePluginKey returns p.PluginKey, or PagePluginKey(p.ID) when empty.
 // Same rule as Page.PluginKey docs and filterContribPages / FilterPagesByPlugins.
 func pagePluginKey(p Page) string {
-	if p.PluginKey != "" {
-		return p.PluginKey
-	}
-	return PagePluginKey(p.ID)
+	return cmp.Or(p.PluginKey, PagePluginKey(p.ID))
 }
 
 // FilterPagesByPlugins returns a new registry keeping only pages whose
