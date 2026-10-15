@@ -501,32 +501,16 @@ func convertPosting(f *source.File, n *grammar.Node, diags *diag.List) ast.Posti
 	}
 	// price: child "atat" or "at" + field price_annotation
 	hasAtAt := false
-	hasAt := false
 	for i := uint32(0); i < n.ChildCount(); i++ {
-		c := n.Child(i)
-		switch c.Type() {
-		case "atat":
+		if n.Child(i).Type() == "atat" {
 			hasAtAt = true
-		case "at":
-			hasAt = true
+			break
 		}
 	}
 	if pa := field(n, "price_annotation"); pa != nil {
 		if amt, ok := parseAmountNode(f, firstAmountish(pa)); ok {
-			p.Price = &ast.PriceSpec{Number: amt.Number, Commodity: amt.Commodity, Total: hasAtAt || !hasAt && hasAtAt}
-			if hasAtAt {
-				p.Price.Total = true
-			} else if hasAt {
-				p.Price.Total = false
-			} else {
-				// default total if @@ node missing but only one form
-				p.Price.Total = hasAtAt
-			}
+			p.Price = &ast.PriceSpec{Number: amt.Number, Commodity: amt.Commodity, Total: hasAtAt}
 		}
-	}
-	// Fix Total detection: if we saw atat token
-	if p.Price != nil {
-		p.Price.Total = hasAtAt
 	}
 	return p
 }
@@ -576,10 +560,7 @@ func parseCost(f *source.File, n *grammar.Node) *ast.CostSpec {
 	})
 	// empty braces {}
 	text := strings.TrimSpace(nodeText(f, n))
-	if text == "{}" || text == "{ }" {
-		return &ast.CostSpec{Empty: true}
-	}
-	if empty && (strings.Contains(text, "{}") || text == "{}") {
+	if text == "{}" || text == "{ }" || (empty && strings.Contains(text, "{}")) {
 		return &ast.CostSpec{Empty: true}
 	}
 	if num == nil && cur == "" && costDate.IsZero() {
@@ -619,11 +600,7 @@ func parseAmountNode(f *source.File, n *grammar.Node) (ast.Amount, bool) {
 	for i := uint32(0); i < n.NamedChildCount(); i++ {
 		c := n.NamedChild(i)
 		switch c.Type() {
-		case "binary_number_expr", "unary_number_expr":
-			if num == nil {
-				num = evalNumberExpr(f, c)
-			}
-		case "number":
+		case "binary_number_expr", "unary_number_expr", "number":
 			if num == nil {
 				num = evalNumberExpr(f, c)
 			}

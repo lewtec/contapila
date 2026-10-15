@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 
@@ -74,9 +76,7 @@ func (r *Registry) Routes() []Route {
 	if r == nil {
 		return nil
 	}
-	out := make([]Route, len(r.routes))
-	copy(out, r.routes)
-	return out
+	return slices.Clone(r.routes)
 }
 
 // Mount registers every route on mux. Patterns must be unique.
@@ -224,13 +224,7 @@ func expandLedgerMapPages[V any](ctx context.Context, sess *Session, m func(*eng
 		if err != nil {
 			return nil, err
 		}
-		mp := m(l)
-		keys := make([]string, 0, len(mp))
-		for k := range mp {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
+		for _, k := range slices.Sorted(maps.Keys(m(l))) {
 			out = append(out, Instance{Path: pathFn(name, k), Kind: KindPage})
 		}
 	}

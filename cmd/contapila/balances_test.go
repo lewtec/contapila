@@ -116,6 +116,20 @@ func TestBalancesLedgerFlag(t *testing.T) {
 	require.ErrorIs(t, bad, cmd.ErrInvalidArgument)
 }
 
+func TestBalancesOutputFlags(t *testing.T) {
+	t.Chdir(exampleDir(t))
+	lewtest.DiscardSlog(t)
+
+	jsonl := runBalances(t, "--format", "jsonl", "--account", "^Assets:Cash:Carteira$")
+	assert.Contains(t, jsonl, `{"LEDGER":"personal","ACCOUNT":"Assets:Cash:Carteira","AMOUNT":"245.000000","COMMODITY":"BRL"}`)
+
+	csv := runBalances(t, "personal", "--format", "csv", "--account", "^Assets:Cash:Carteira$")
+	assert.Equal(t, "LEDGER,ACCOUNT,AMOUNT,COMMODITY\npersonal,Assets:Cash:Carteira,245.000000,BRL\n", csv)
+
+	cols := runBalances(t, "personal", "--columns", "ACCOUNT,AMOUNT", "--account", "^Assets:Cash:Carteira$")
+	assert.Equal(t, "ACCOUNT               AMOUNT\nAssets:Cash:Carteira  245.000000\n", cols)
+}
+
 func TestBalancesHelpLedgerChoices(t *testing.T) {
 	dir := exampleDir(t)
 	t.Chdir(dir)
@@ -129,7 +143,7 @@ func TestBalancesHelpLedgerChoices(t *testing.T) {
 	t.Chdir(t.TempDir())
 	out = balancesHelp(t, "balances", "--help")
 	assert.Contains(t, out, "--ledger")
-	assert.NotContains(t, out, "choices:")
+	assert.NotContains(t, out, "--ledger  limit to this ledger (choices:")
 }
 
 func TestBalancesHelpDirectoryFlag(t *testing.T) {

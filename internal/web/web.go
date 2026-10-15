@@ -67,9 +67,9 @@ func Listen(ctx context.Context, p *project.Project, pdb *prices.DB, defaultLedg
 	if err != nil {
 		return err
 	}
-	fmt.Printf("contapila web on http://%s/\n", addr)
+	fmt.Fprintf(os.Stdout, "contapila web on http://%s/\n", addr)
 	if defaultLedger != "" {
-		fmt.Printf("  ledger: http://%s/l/%s/check\n", addr, defaultLedger)
+		fmt.Fprintf(os.Stdout, "  ledger: http://%s/l/%s/check\n", addr, defaultLedger)
 	}
 	// Explicit timeouts: bare ListenAndServe has none (slowloris / hung conns).
 	// Values sized for a local read-only ledger UI, not a high-traffic public API.
@@ -426,10 +426,7 @@ func (s *Server) handleLedgerPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title := name + " · " + pg.Label
-	if pg.Label == "" {
-		title = name + " · " + pageID
-	}
+	title := name + " · " + cmp.Or(pg.Label, pageID)
 	data := s.basePageData(r.Context(), sess, proj, l, name, title, pageID, tq)
 	data.Pages = reg
 	ds := l.Check()
@@ -597,22 +594,15 @@ func chartPriceJSON(db *prices.DB, base, preferQuote string, from, to time.Time)
 			Label:    base + "/" + chosen.Quote,
 			Height:   220,
 		}
-		fromD, toD := from, to
+		var fromD, toD time.Time
 		if filter {
-			if !fromD.IsZero() {
-				fromD = time.Date(fromD.Year(), fromD.Month(), fromD.Day(), 0, 0, 0, 0, time.UTC)
-			}
-			if !toD.IsZero() {
-				toD = time.Date(toD.Year(), toD.Month(), toD.Day(), 0, 0, 0, 0, time.UTC)
-			}
-		} else {
-			fromD, toD = time.Time{}, time.Time{}
+			fromD, toD = period.DateOnly(from), period.DateOnly(to)
 		}
 		for _, pt := range chosen.Points {
 			if pt.Rate == nil {
 				continue
 			}
-			d := time.Date(pt.Date.Year(), pt.Date.Month(), pt.Date.Day(), 0, 0, 0, 0, time.UTC)
+			d := period.DateOnly(pt.Date)
 			if !fromD.IsZero() && d.Before(fromD) {
 				continue
 			}
@@ -680,24 +670,27 @@ func ratFloat(r *big.Rat) float64 {
 	return f
 }
 
+func docPathHref(raw string) (cleanPath, href, name string) {
+	cleanPath = strings.TrimPrefix(filepath.ToSlash(raw), "/")
+	// serve only <ledger>/docs/... via /docfile/
+	if docsutil.IsLedgerDocPath(cleanPath) {
+		href = "/docfile/" + cleanPath
+	}
+	return cleanPath, href, path.Base(cleanPath)
+}
+
 func documentRows(docs []ast.Document) []docRow {
 	var rows []docRow
 	for _, d := range docs {
-		p := filepath.ToSlash(d.Path)
-		p = strings.TrimPrefix(p, "/")
-		href := ""
-		// serve only <ledger>/docs/... via /docfile/
-		if docsutil.IsLedgerDocPath(p) {
-			href = "/docfile/" + p
-		}
+		p, href, name := docPathHref(d.Path)
 		rows = append(rows, docRow{
 			Date:      d.Date.Format("2006-01-02"),
 			Account:   d.Account,
 			TreePath:  d.Account,
 			Path:      p,
 			Href:      href,
-			Name:      path.Base(p),
-			FileName:  path.Base(p),
+			Name:      name,
+			FileName:  name,
 			Synthetic: d.Synthetic,
 		})
 	}
@@ -720,17 +713,12 @@ func documentTreeRows(docs []ast.Document) []docRow {
 	byAcct := map[string][]fileInfo{}
 	var noAcct []fileInfo
 	for _, d := range docs {
-		p := filepath.ToSlash(d.Path)
-		p = strings.TrimPrefix(p, "/")
-		href := ""
-		if docsutil.IsLedgerDocPath(p) {
-			href = "/docfile/" + p
-		}
+		p, href, name := docPathHref(d.Path)
 		fi := fileInfo{
 			date:      d.Date.Format("2006-01-02"),
 			path:      p,
 			href:      href,
-			name:      path.Base(p),
+			name:      name,
 			synthetic: d.Synthetic,
 		}
 		if d.Account == "" {
@@ -755,19 +743,6 @@ func documentTreeRows(docs []ast.Document) []docRow {
 	}
 	tree := engine.NewAccountTree(leaves)
 
-	hasDocsUnder := map[string]bool{}
-	for _, n := range tree.Names {
-		for a, list := range byAcct {
-			if len(list) == 0 {
-				continue
-			}
-			if a == n || strings.HasPrefix(a, n+":") {
-				hasDocsUnder[n] = true
-				break
-			}
-		}
-	}
-
 	out := make([]docRow, 0, len(tree.Names)+len(docs))
 	// Unassigned docs first (flat).
 	for _, fi := range noAcct {
@@ -784,15 +759,9 @@ func documentTreeRows(docs []ast.Document) []docRow {
 	}
 
 	for _, n := range tree.Names {
-		if !hasDocsUnder[n] {
-			continue
-		}
 		own := byAcct[n]
-		depth := strings.Count(n, ":")
-		leaf := n
-		if i := strings.LastIndex(n, ":"); i >= 0 && i+1 < len(n) {
-			leaf = n[i+1:]
-		}
+		depth := engine.AccountDepth(n)
+		leaf := engine.AccountLeaf(n)
 		child := tree.HasChild[n]
 
 		// Single doc, no sub-accounts → one flat leaf row (like single-commodity balance).
@@ -1042,14 +1011,6 @@ func treePadLeft(depth int) string {
 	return strconv.FormatFloat(float64(depth)*treePadStepRem, 'f', 2, 64) + "rem"
 }
 
-func treeLabel(name, account string) string {
-	return cmp.Or(name, account)
-}
-
-func treePath(path, account string) string {
-	return cmp.Or(path, account)
-}
-
 func buildBalanceTreeRows(lines []engine.BalanceTreeLine) []balanceRow {
 	rows := make([]balanceRow, 0, len(lines))
 	for _, ln := range lines {
@@ -1059,8 +1020,8 @@ func buildBalanceTreeRows(lines []engine.BalanceTreeLine) []balanceRow {
 		}
 		rows = append(rows, balanceRow{
 			Account:   ln.Account,
-			Path:      treePath(ln.Path, ln.Account),
-			Name:      treeLabel(ln.Name, ln.Account),
+			Path:      cmp.Or(ln.Path, ln.Account),
+			Name:      cmp.Or(ln.Name, ln.Account),
 			Commodity: ln.Commodity,
 			Amount:    amt,
 			Depth:     ln.Depth,
@@ -1080,7 +1041,7 @@ func buildPnLRows(lines []engine.PnLLine) []balanceRow {
 		}
 		rows = append(rows, balanceRow{
 			Account:   ln.Account,
-			Name:      treeLabel(ln.Name, ln.Account),
+			Name:      cmp.Or(ln.Name, ln.Account),
 			Commodity: ln.Commodity,
 			Amount:    amt,
 			Depth:     ln.Depth,
@@ -1104,8 +1065,8 @@ func buildNetWorthRows(lines []engine.NetWorthTreeLine) []nwRow {
 		}
 		rows = append(rows, nwRow{
 			Account:   ln.Account,
-			Path:      treePath(ln.Path, ln.Account),
-			Name:      treeLabel(ln.Name, ln.Account),
+			Path:      cmp.Or(ln.Path, ln.Account),
+			Name:      cmp.Or(ln.Name, ln.Account),
 			Commodity: ln.Commodity,
 			Units:     units,
 			Value:     val,

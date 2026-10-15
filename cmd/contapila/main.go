@@ -5,12 +5,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"maps"
+	"math/big"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"sort"
+	"regexp"
+	"slices"
 	"strings"
 	"syscall"
 	"text/tabwriter"
@@ -20,6 +24,7 @@ import (
 	_ "github.com/lewtec/lewkit/x/driver/prelude" // registers host drivers, including the folder dialog
 	"github.com/lewtec/lewkit/x/driver/thread"
 	"github.com/lewtec/lewkit/x/entry"
+	"github.com/lewtec/lewkit/x/text/table"
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/engine"
@@ -126,11 +131,11 @@ func projectCwd(ctx context.Context) (string, error) {
 	return cwd, nil
 }
 
-func printDiags(ds diag.List) {
+func printDiags(w io.Writer, ds diag.List) {
 	if len(ds) == 0 {
 		return
 	}
-	fmt.Fprintln(os.Stderr, ds.Format())
+	fmt.Fprintln(w, ds.Format())
 }
 
 func withLedgers(ctx context.Context, names []string, fn func(*engine.Ledger) error) error {
@@ -142,7 +147,7 @@ func withLedgers(ctx context.Context, names []string, fn func(*engine.Ledger) er
 	if err != nil {
 		return err
 	}
-	printDiags(h.Diags)
+	printDiags(os.Stderr, h.Diags)
 	if len(names) == 0 {
 		names = h.LedgerNames()
 		if len(names) == 0 {
@@ -221,32 +226,36 @@ func (c *statusCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Project root:      %s\n", p.Root)
-	fmt.Printf("contapila.cue:     %s\n", filepath.Join(p.Root, "contapila.cue"))
+	return writeStatus(os.Stdout, p)
+}
+
+func writeStatus(w io.Writer, p *project.Project) error {
+	fmt.Fprintf(w, "Project root:      %s\n", p.Root)
+	fmt.Fprintf(w, "contapila.cue:     %s\n", filepath.Join(p.Root, "contapila.cue"))
 	if len(p.Ledgers) == 0 {
 		return ErrZeroLedgers
 	}
-	fmt.Printf("Ledgers (%d):\n", len(p.Ledgers))
+	fmt.Fprintf(w, "Ledgers (%d):\n", len(p.Ledgers))
 	for _, l := range p.Ledgers {
-		fmt.Printf("  - %s (%s)\n", l.Name, l.MainPath)
+		fmt.Fprintf(w, "  - %s (%s)\n", l.Name, l.MainPath)
 	}
 	if p.PricesPath != "" {
 		switch {
 		case p.PricesMissing:
-			fmt.Printf("Prices:            %s (missing)\n", p.PricesPath)
+			fmt.Fprintf(w, "Prices:            %s (missing)\n", p.PricesPath)
 		case p.PricesEmpty:
-			fmt.Printf("Prices:            %s (empty)\n", p.PricesPath)
+			fmt.Fprintf(w, "Prices:            %s (empty)\n", p.PricesPath)
 		default:
-			fmt.Printf("Prices:            %s\n", p.PricesPath)
+			fmt.Fprintf(w, "Prices:            %s\n", p.PricesPath)
 		}
 	}
 	if len(p.StreamJournals) > 0 {
-		fmt.Printf("Stream journals (%d):\n", len(p.StreamJournals))
+		fmt.Fprintf(w, "Stream journals (%d):\n", len(p.StreamJournals))
 		for _, j := range p.StreamJournals {
-			fmt.Printf("  - %s\n", j.Path)
+			fmt.Fprintf(w, "  - %s\n", j.Path)
 		}
 	}
-	fmt.Println("CUE:               Unified OK")
+	fmt.Fprintln(w, "CUE:               Unified OK")
 	return nil
 }
 
@@ -258,13 +267,13 @@ func (checkCmd) Description() string { return "Validate ledger(s)" }
 
 func (c *checkCmd) Run(ctx context.Context) error {
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
-		fmt.Printf("== %s ==\n", l.Name)
+		fmt.Fprintf(os.Stdout, "== %s ==\n", l.Name)
 		ds := l.Check()
-		printDiags(ds)
+		printDiags(os.Stderr, ds)
 		if ds.HasErrors() {
 			return fmt.Errorf("%w for %s", ErrCheckFailed, l.Name)
 		}
-		fmt.Println("OK")
+		fmt.Fprintln(os.Stdout, "OK")
 		return nil
 	})
 }
@@ -279,12 +288,49 @@ func treePadMark(depth int, rollup bool) (pad, mark string) {
 	return pad, mark
 }
 
-type balancesCmd struct {
-	AsOf     cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
-	Account  []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
-	ByLedger ledgerEnum    `long:"ledger" help:"limit to this ledger" default:""`
-	Ledger   *engine.LedgerArg
+func printBanner(w io.Writer, title string, r period.Range) {
+	fmt.Fprintf(w, "== %s ==", title)
+	if !r.Empty() {
+		fmt.Fprintf(w, "  [%s]", r.Label())
+	}
+	fmt.Fprintln(w)
 }
+
+func printCommodityAmounts(out io.Writer, m map[string]*big.Rat, empty string) {
+	if len(m) == 0 {
+		fmt.Fprintln(out, "  "+empty)
+		return
+	}
+	w := tabwriter.NewWriter(out, 0, 4, 2, ' ', 0)
+	for _, c := range slices.Sorted(maps.Keys(m)) {
+		fmt.Fprintf(w, "  %s\t%s\n", m[c].FloatString(6), c)
+	}
+	w.Flush()
+}
+
+type balancesCmd struct {
+	cmd.Output `flatten:""`
+	AsOf       cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
+	Account    []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
+	ByLedger   ledgerEnum    `long:"ledger" help:"limit to this ledger" default:""`
+	Ledger     *engine.LedgerArg
+}
+
+type balanceRow struct {
+	Ledger    string `json:"LEDGER"`
+	Account   string `json:"ACCOUNT"`
+	Amount    string `json:"AMOUNT"`
+	Commodity string `json:"COMMODITY"`
+}
+
+type balanceSpec struct {
+	Ledger    table.Field[string]
+	Account   table.Field[string]
+	Amount    table.Field[string]
+	Commodity table.Field[string]
+}
+
+var balanceLayout = table.Must(table.Make[balanceRow](balanceSpec{}))
 
 func (balancesCmd) Description() string { return "Balances as-of" }
 
@@ -315,45 +361,22 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 		return err
 	}
 	// Single ledger: hierarchical tree. Multi-ledger: flat sorted table.
-	if len(names) == 1 {
+	if len(names) == 1 && c.Format.Value() == table.Table && c.Columns.Value() == "" {
 		return withLedgers(ctx, names, func(l *engine.Ledger) error {
-			tree := engine.BalancesTreeFrom(engine.SelectAccounts(l.BalancesAsOf(t), filters))
-			fmt.Printf("== %s balances ==\n", l.Name)
-			for _, ln := range tree {
-				pad, mark := treePadMark(ln.Depth, ln.IsRollup)
-				name := cmp.Or(ln.Name, ln.Account)
-				amt := ""
-				if ln.Amount != nil {
-					amt = ln.Amount.FloatString(4)
-				}
-				fmt.Printf("%s%s%-28s %12s %s\n", pad, mark, name, amt, ln.Commodity)
-			}
+			writeLedgerBalances(os.Stdout, l, t, filters)
 			return nil
 		})
 	}
-	type row struct {
-		ledger, account, amount, commodity string
-	}
-	var rows []row
+	var rows []balanceRow
 	err = withLedgers(ctx, names, func(l *engine.Ledger) error {
 		bals := engine.SelectAccounts(l.BalancesAsOf(t), filters)
-		var accts []string
-		for a := range bals {
-			accts = append(accts, a)
-		}
-		sort.Strings(accts)
-		for _, a := range accts {
-			var cs []string
-			for c := range bals[a] {
-				cs = append(cs, c)
-			}
-			sort.Strings(cs)
-			for _, c := range cs {
-				rows = append(rows, row{
-					ledger:    l.Name,
-					account:   a,
-					amount:    bals[a][c].FloatString(6),
-					commodity: c,
+		for _, a := range slices.Sorted(maps.Keys(bals)) {
+			for _, c := range slices.Sorted(maps.Keys(bals[a])) {
+				rows = append(rows, balanceRow{
+					Ledger:    l.Name,
+					Account:   a,
+					Amount:    bals[a][c].FloatString(6),
+					Commodity: c,
 				})
 			}
 		}
@@ -362,21 +385,28 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	sort.Slice(rows, func(i, j int) bool {
-		if rows[i].account != rows[j].account {
-			return rows[i].account < rows[j].account
-		}
-		if rows[i].commodity != rows[j].commodity {
-			return rows[i].commodity < rows[j].commodity
-		}
-		return rows[i].ledger < rows[j].ledger
+	slices.SortFunc(rows, func(a, b balanceRow) int {
+		return cmp.Or(
+			cmp.Compare(a.Account, b.Account),
+			cmp.Compare(a.Commodity, b.Commodity),
+			cmp.Compare(a.Ledger, b.Ledger),
+		)
 	})
-	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "LEDGER\tACCOUNT\tAMOUNT\tCOMMODITY")
-	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ledger, r.account, r.amount, r.commodity)
+	return cmd.Rows(ctx, os.Stdout, slices.Values(rows), balanceLayout)
+}
+
+func writeLedgerBalances(w io.Writer, l *engine.Ledger, t time.Time, filters []*regexp.Regexp) {
+	tree := engine.BalancesTreeFrom(engine.SelectAccounts(l.BalancesAsOf(t), filters))
+	fmt.Fprintf(w, "== %s balances ==\n", l.Name)
+	for _, ln := range tree {
+		pad, mark := treePadMark(ln.Depth, ln.IsRollup)
+		name := cmp.Or(ln.Name, ln.Account)
+		amt := ""
+		if ln.Amount != nil {
+			amt = ln.Amount.FloatString(4)
+		}
+		fmt.Fprintf(w, "%s%s%-28s %12s %s\n", pad, mark, name, amt, ln.Commodity)
 	}
-	return w.Flush()
 }
 
 type journalCmd struct {
@@ -393,30 +423,30 @@ func (c *journalCmd) Run(ctx context.Context) error {
 		return err
 	}
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
-		fmt.Printf("== %s ==", l.Name)
-		if !r.Empty() {
-			fmt.Printf("  [%s]", r.Label())
-		}
-		fmt.Println()
-		for _, e := range l.Journal(r.Start, r.End) {
-			switch e.Kind {
-			case "txn":
-				fmt.Printf("%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
-				for _, p := range e.Postings {
-					if p.Units == nil || p.Units.Commodity == "" && p.Units.Number.Sign() == 0 {
-						fmt.Printf("  %s\n", p.Account)
-						continue
-					}
-					fmt.Printf("  %-40s %s %s\n", p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
-				}
-			case "note":
-				fmt.Printf("%s note %s %q\n", e.Date.Format("2006-01-02"), e.Account, e.Comment)
-			case "event":
-				fmt.Printf("%s event %q %q\n", e.Date.Format("2006-01-02"), e.Narration, e.Comment)
-			}
-		}
+		writeJournal(os.Stdout, l, r)
 		return nil
 	})
+}
+
+func writeJournal(w io.Writer, l *engine.Ledger, r period.Range) {
+	printBanner(w, l.Name, r)
+	for _, e := range l.Journal(r.Start, r.End) {
+		switch e.Kind {
+		case "txn":
+			fmt.Fprintf(w, "%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
+			for _, p := range e.Postings {
+				if p.Units == nil || p.Units.Commodity == "" && p.Units.Number.Sign() == 0 {
+					fmt.Fprintf(w, "  %s\n", p.Account)
+					continue
+				}
+				fmt.Fprintf(w, "  %-40s %s %s\n", p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
+			}
+		case "note":
+			fmt.Fprintf(w, "%s note %s %q\n", e.Date.Format("2006-01-02"), e.Account, e.Comment)
+		case "event":
+			fmt.Fprintf(w, "%s event %q %q\n", e.Date.Format("2006-01-02"), e.Narration, e.Comment)
+		}
+	}
 }
 
 type pnlCmd struct {
@@ -433,24 +463,24 @@ func (c *pnlCmd) Run(ctx context.Context) error {
 		return err
 	}
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
-		fmt.Printf("== %s ==", l.Name)
-		if !r.Empty() {
-			fmt.Printf("  [%s]", r.Label())
-		}
-		fmt.Println()
-		inc, exp := l.PnLTree(r.Start, r.End)
-		printPnLTree := func(title string, lines []engine.PnLLine) {
-			fmt.Println(title)
-			for _, ln := range lines {
-				pad, mark := treePadMark(ln.Depth, ln.IsRollup)
-				name := cmp.Or(ln.Name, ln.Account)
-				fmt.Printf("%s%s%-28s %s %s\n", pad, mark, name, ln.Amount.FloatString(2), ln.Commodity)
-			}
-		}
-		printPnLTree("Income:", inc)
-		printPnLTree("Expenses:", exp)
+		writePnL(os.Stdout, l, r)
 		return nil
 	})
+}
+
+func writePnL(w io.Writer, l *engine.Ledger, r period.Range) {
+	printBanner(w, l.Name, r)
+	inc, exp := l.PnLTree(r.Start, r.End)
+	printPnLTree := func(title string, lines []engine.PnLLine) {
+		fmt.Fprintln(w, title)
+		for _, ln := range lines {
+			pad, mark := treePadMark(ln.Depth, ln.IsRollup)
+			name := cmp.Or(ln.Name, ln.Account)
+			fmt.Fprintf(w, "%s%s%-28s %s %s\n", pad, mark, name, ln.Amount.FloatString(2), ln.Commodity)
+		}
+	}
+	printPnLTree("Income:", inc)
+	printPnLTree("Expenses:", exp)
 }
 
 type networthCmd struct {
@@ -470,28 +500,32 @@ func (c *networthCmd) Run(ctx context.Context) error {
 		t = engine.AsOfLatest
 	}
 	return withLedgers(ctx, optionalName(c.Ledger), func(l *engine.Ledger) error {
-		lines, total, err := l.NetWorthTree(t)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("== %s net worth (%s) ==\n", l.Name, l.OpCurrency)
-		for _, ln := range lines {
-			pad, mark := treePadMark(ln.Depth, ln.IsRollup)
-			name := cmp.Or(ln.Name, ln.Account)
-			flag := ""
-			if ln.Unpriced {
-				flag = " (no px)"
-			}
-			units := ""
-			if ln.Units != nil {
-				units = ln.Units.FloatString(4) + " " + ln.Commodity
-			}
-			fmt.Printf("%s%s%-28s %16s => %s %s%s\n",
-				pad, mark, name, units, ln.Value.FloatString(2), l.OpCurrency, flag)
-		}
-		fmt.Printf("TOTAL %s %s\n", total.FloatString(2), l.OpCurrency)
-		return nil
+		return writeNetWorth(os.Stdout, l, t)
 	})
+}
+
+func writeNetWorth(w io.Writer, l *engine.Ledger, t time.Time) error {
+	lines, total, err := l.NetWorthTree(t)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "== %s net worth (%s) ==\n", l.Name, l.OpCurrency)
+	for _, ln := range lines {
+		pad, mark := treePadMark(ln.Depth, ln.IsRollup)
+		name := cmp.Or(ln.Name, ln.Account)
+		flag := ""
+		if ln.Unpriced {
+			flag = " (no px)"
+		}
+		units := ""
+		if ln.Units != nil {
+			units = ln.Units.FloatString(4) + " " + ln.Commodity
+		}
+		fmt.Fprintf(w, "%s%s%-28s %16s => %s %s%s\n",
+			pad, mark, name, units, ln.Value.FloatString(2), l.OpCurrency, flag)
+	}
+	fmt.Fprintf(w, "TOTAL %s %s\n", total.FloatString(2), l.OpCurrency)
+	return nil
 }
 
 type accountCmd struct {
@@ -521,73 +555,44 @@ func (c *accountCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	printDiags(h.Diags)
+	printDiags(os.Stderr, h.Diags)
 	l, err := c.Ledger.Open(ctx, h)
 	if err != nil {
 		return err
 	}
-	acct := c.Account.Value()
+	writeAccount(os.Stdout, l, c.Account.Value(), r)
+	return nil
+}
+
+func writeAccount(w io.Writer, l *engine.Ledger, acct string, r period.Range) {
 	asOf := r.End
 	if asOf.IsZero() {
 		asOf = engine.AsOfLatest
 	}
-	fmt.Printf("== %s · %s ==", l.Name, acct)
-	if !r.Empty() {
-		fmt.Printf("  [%s]", r.Label())
-	}
-	fmt.Println()
-	fmt.Println("Balance:")
-	bals := l.AccountBalances(acct, asOf)
-	if len(bals) == 0 {
-		fmt.Println("  (zero)")
-	} else {
-		var cs []string
-		for c := range bals {
-			cs = append(cs, c)
-		}
-		sort.Strings(cs)
-		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-		for _, c := range cs {
-			fmt.Fprintf(w, "  %s\t%s\n", bals[c].FloatString(6), c)
-		}
-		w.Flush()
-	}
-	fmt.Println("Change in period:")
-	act := l.AccountActivity(acct, r.Start, r.End)
-	if len(act) == 0 {
-		fmt.Println("  (none)")
-	} else {
-		var cs []string
-		for c := range act {
-			cs = append(cs, c)
-		}
-		sort.Strings(cs)
-		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-		for _, c := range cs {
-			fmt.Fprintf(w, "  %s\t%s\n", act[c].FloatString(6), c)
-		}
-		w.Flush()
-	}
-	fmt.Println("Journal:")
+	printBanner(w, l.Name+" · "+acct, r)
+	fmt.Fprintln(w, "Balance:")
+	printCommodityAmounts(w, l.AccountBalances(acct, asOf), "(zero)")
+	fmt.Fprintln(w, "Change in period:")
+	printCommodityAmounts(w, l.AccountActivity(acct, r.Start, r.End), "(none)")
+	fmt.Fprintln(w, "Journal:")
 	for _, e := range l.JournalForAccount(acct, r.Start, r.End) {
 		if e.Kind != "txn" {
-			fmt.Printf("%s %s %s\n", e.Date.Format("2006-01-02"), e.Kind, e.Comment)
+			fmt.Fprintf(w, "%s %s %s\n", e.Date.Format("2006-01-02"), e.Kind, e.Comment)
 			continue
 		}
-		fmt.Printf("%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
+		fmt.Fprintf(w, "%s * %s\n", e.Date.Format("2006-01-02"), formatPayeeNarration(e.Payee, e.Narration))
 		for _, p := range e.Postings {
 			mark := "  "
 			if p.Account == acct {
 				mark = "* "
 			}
 			if p.Units == nil {
-				fmt.Printf("%s%s\n", mark, p.Account)
+				fmt.Fprintf(w, "%s%s\n", mark, p.Account)
 				continue
 			}
-			fmt.Printf("%s%-40s %s %s\n", mark, p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
+			fmt.Fprintf(w, "%s%-40s %s %s\n", mark, p.Account, p.Units.Number.FloatString(4), p.Units.Commodity)
 		}
 	}
-	return nil
 }
 
 // formatPayeeNarration prints Beancount-style "Payee" "Narration" or a single string.
@@ -618,12 +623,12 @@ func (c *parseCmd) Run(ctx context.Context) error {
 		return err
 	}
 	dirs, diags, err := parser.Parse(c.File.Value(), src)
-	printDiags(diags)
+	printDiags(os.Stderr, diags)
 	if err != nil {
 		return err
 	}
 	for _, d := range dirs {
-		fmt.Printf("%T date=%s\n", d, d.GetDate().Format("2006-01-02"))
+		fmt.Fprintf(os.Stdout, "%T date=%s\n", d, d.GetDate().Format("2006-01-02"))
 	}
 	return nil
 }
@@ -740,8 +745,8 @@ func (c *buildCmd) Run(ctx context.Context) error {
 		return err
 	}
 	// Phase detail is on stderr via slog; keep a one-line stdout summary.
-	fmt.Printf("wrote static site to %s\n", c.Out.Value())
-	return nil
+	_, err = fmt.Fprintf(os.Stdout, "wrote static site to %s\n", c.Out.Value())
+	return err
 }
 
 type lspCmd struct {

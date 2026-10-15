@@ -3,6 +3,7 @@ package lsp
 import (
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func suggestDates(prefix, docText string, now time.Time) []dateSuggestion {
 
 	add := func(d time.Time, detail, sortKey string) {
 		s := d.Format("2006-01-02")
-		if prefix != "" && !hasDatePrefix(s, prefix) {
+		if prefix != "" && !strings.HasPrefix(s, prefix) {
 			return
 		}
 		if old, ok := cand[s]; ok {
@@ -67,15 +68,4 @@ func suggestDates(prefix, docText string, now time.Time) []dateSuggestion {
 		return out[i].Date > out[j].Date // newer first when same tier
 	})
 	return out
-}
-
-func hasDatePrefix(full, prefix string) bool {
-	if prefix == "" {
-		return true
-	}
-	// allow prefix without requiring trailing chars: "2024-0" matches "2024-01-15"
-	if len(prefix) > len(full) {
-		return false
-	}
-	return full[:len(prefix)] == prefix
 }

@@ -48,20 +48,15 @@ func NewAccountTree(leaves []string) AccountTree {
 	return AccountTree{Names: names, HasChild: hasChild}
 }
 
-// accountLeaf is the last ":" segment (Income:Ativo:BR → BR).
-func accountLeaf(account string) string {
+// AccountLeaf is the last ":" segment (Income:Ativo:BR → BR).
+func AccountLeaf(account string) string {
 	if i := strings.LastIndex(account, ":"); i >= 0 && i+1 < len(account) {
 		return account[i+1:]
 	}
 	return account
 }
 
-// accountDepth is hierarchy depth (number of ":" separators).
-func accountDepth(account string) int {
+// AccountDepth is hierarchy depth (number of ":" separators).
+func AccountDepth(account string) int {
 	return strings.Count(account, ":")
-}
-
-// accountUnder reports whether leaf is prefix or a descendant of prefix.
-func accountUnder(leaf, prefix string) bool {
-	return leaf == prefix || strings.HasPrefix(leaf, prefix+":")
 }

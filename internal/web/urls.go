@@ -90,35 +90,27 @@ func (s *Session) LedgerRootURL(ledger string) string {
 
 // sessionStatic reports whether links/UI should use the static-site shape.
 func sessionStatic(s *Session) bool {
-	return s != nil && s.Static
-}
-
-// orSession returns s, or an empty Session when s is nil (live URL defaults).
-func orSession(s *Session) *Session {
-	if s == nil {
-		return &Session{}
-	}
-	return s
+	return s.staticMode()
 }
 
 func homeURL(s *Session) string {
-	return orSession(s).HomeURL()
+	return s.HomeURL()
 }
 
 func ledgerURL(s *Session, ledger, page, timeFilter string) string {
-	return orSession(s).LedgerURL(ledger, page, timeFilter)
+	return s.LedgerURL(ledger, page, timeFilter)
 }
 
 func accountURL(s *Session, ledger, account, timeFilter string) string {
-	return orSession(s).AccountURL(ledger, account, timeFilter)
+	return s.AccountURL(ledger, account, timeFilter)
 }
 
 func commodityURL(s *Session, ledger, commodity, timeFilter string) string {
-	return orSession(s).CommodityURL(ledger, commodity, timeFilter)
+	return s.CommodityURL(ledger, commodity, timeFilter)
 }
 
 func queryURL(s *Session, ledger, name, timeFilter string) string {
-	return orSession(s).QueryURL(ledger, name, timeFilter)
+	return s.QueryURL(ledger, name, timeFilter)
 }
 
 func pageTitle(d PageData) string {

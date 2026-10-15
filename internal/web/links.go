@@ -15,9 +15,6 @@ func LedgerHref(s *Session, ledger, page, timeFilter string) string {
 
 // LedgerRootHref is the ledger landing path (/l/{ledger}/).
 func LedgerRootHref(s *Session, ledger string) string {
-	if s == nil {
-		return (&Session{}).LedgerRootURL(ledger)
-	}
 	return s.LedgerRootURL(ledger)
 }
 

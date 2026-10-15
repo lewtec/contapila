@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"sort"
 
 	"github.com/lucasew/contapila-go/internal/config"
@@ -63,12 +64,8 @@ func commandItems(d pageData) []CommandItem {
 			if p.ID == "" {
 				continue
 			}
-			label := p.Label
-			if label == "" {
-				label = p.ID
-			}
 			out = append(out, Command(
-				sec.Title, label,
+				sec.Title, cmp.Or(p.Label, p.ID),
 				ledgerURL(d.Sess, d.LedgerName, p.ID, d.Time),
 				p.ID,
 			))
@@ -164,10 +161,8 @@ func applyPaletteEntries(entries []paletteEntry, flags map[string]bool, pc PageC
 
 // pluginContribEnabled matches filterContribPages: explicit CUE wins, else default.
 func pluginContribEnabled(key string, defaultEnabled bool, flags map[string]bool) bool {
-	if flags != nil {
-		if b, ok := flags[key]; ok {
-			return b
-		}
+	if b, ok := flags[key]; ok {
+		return b
 	}
 	return defaultEnabled
 }

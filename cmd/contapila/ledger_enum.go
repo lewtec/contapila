@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/lewtec/lewkit/x/cmd"
@@ -23,11 +24,9 @@ func (e *ledgerEnum) Parse(s string) error {
 	if err != nil {
 		return err
 	}
-	for _, name := range names {
-		if name == s {
-			e.name = s
-			return nil
-		}
+	if slices.Contains(names, s) {
+		e.name = s
+		return nil
 	}
 	return fmt.Errorf("%w: want one of %s", cmd.ErrInvalidArgument, strings.Join(names, ", "))
 }
@@ -36,10 +35,7 @@ func (e ledgerEnum) Value() string { return e.name }
 
 // ArgChoices runs when usage text is built, so the set matches the project at --help.
 func (ledgerEnum) ArgChoices() []string {
-	names, err := ledgerChoices()
-	if err != nil {
-		return nil
-	}
+	names, _ := ledgerChoices()
 	return names
 }
 

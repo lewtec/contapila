@@ -44,10 +44,7 @@ func Build(ctx context.Context, root, outDir string, jobs int) error {
 		return fmt.Errorf("web: build out: %w", err)
 	}
 	if jobs <= 0 {
-		jobs = runtime.GOMAXPROCS(0)
-	}
-	if jobs < 1 {
-		jobs = 1
+		jobs = max(1, runtime.GOMAXPROCS(0))
 	}
 
 	start := time.Now()
@@ -129,7 +126,6 @@ func Build(ctx context.Context, root, outDir string, jobs int) error {
 	g := new(errgroup.Group)
 	g.SetLimit(jobs)
 	for i, inst := range insts {
-		i, inst := i, inst
 		g.Go(func() error {
 			n, err := writeInstance(absOut, h, sess, inst)
 			if err != nil {
@@ -227,23 +223,22 @@ func writeInstance(outDir string, h http.Handler, sess *Session, inst Instance) 
 // fetchBuildBody GETs path via h with sess on the request context so handlers
 // reuse the build Session. One 3xx hop is followed (ledger root → check).
 func fetchBuildBody(h http.Handler, sess *Session, path string) ([]byte, error) {
-	req := httptest.NewRequest(http.MethodGet, path, nil)
-	if sess != nil {
-		req = req.WithContext(withSession(req.Context(), sess))
+	doGet := func(p string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodGet, p, nil)
+		if sess != nil {
+			req = req.WithContext(withSession(req.Context(), sess))
+		}
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, req)
+		return rr
 	}
-	rr := httptest.NewRecorder()
-	h.ServeHTTP(rr, req)
+	rr := doGet(path)
 	if rr.Code >= 300 && rr.Code < 400 {
 		loc := rr.Header().Get("Location")
 		if loc == "" {
 			return nil, fmt.Errorf("%w: %s status %d (no Location)", ErrBuildStatus, path, rr.Code)
 		}
-		req2 := httptest.NewRequest(http.MethodGet, loc, nil)
-		if sess != nil {
-			req2 = req2.WithContext(withSession(req2.Context(), sess))
-		}
-		rr2 := httptest.NewRecorder()
-		h.ServeHTTP(rr2, req2)
+		rr2 := doGet(loc)
 		if rr2.Code != http.StatusOK {
 			return nil, fmt.Errorf("%w: %s → %s status %d", ErrBuildStatus, path, loc, rr2.Code)
 		}

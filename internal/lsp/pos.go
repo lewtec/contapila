@@ -8,29 +8,22 @@ import (
 	"go.lsp.dev/protocol"
 )
 
+// lineStartByte returns the byte offset of the start of 1-based line1.
+func lineStartByte(text string, line1 int) int {
+	off := 0
+	for cur := 1; off < len(text) && cur < line1; off++ {
+		if text[off] == '\n' {
+			cur++
+		}
+	}
+	return off
+}
+
 // byteOffset returns the UTF-8 byte offset for an LSP position (UTF-16 columns).
 func byteOffset(text string, pos protocol.Position) int {
-	line := int(pos.Line)
-	char := int(pos.Character)
-	if line < 0 {
-		line = 0
-	}
-	if char < 0 {
-		char = 0
-	}
-	// Find start of line (0-based line index).
-	off := 0
-	curLine := 0
-	for off <= len(text) && curLine < line {
-		if off == len(text) {
-			return len(text)
-		}
-		r, size := utf8.DecodeRuneInString(text[off:])
-		off += size
-		if r == '\n' {
-			curLine++
-		}
-	}
+	line := max(0, int(pos.Line))
+	char := max(0, int(pos.Character))
+	off := lineStartByte(text, line+1)
 	// Walk UTF-16 code units on this line.
 	u16 := 0
 	for off < len(text) && u16 < char {
@@ -73,20 +66,8 @@ func rangeFromBytes(text string, start, end int, lines *grammar.LineIndex) proto
 
 // lineRange is a whole-line range (1-based line).
 func lineRange(text string, line1 int) protocol.Range {
-	if line1 < 1 {
-		line1 = 1
-	}
 	lines := grammar.NewLineIndex(text)
-	// Find byte start of line.
-	// LineIndex doesn't expose line starts publicly; scan.
-	start := 0
-	cur := 1
-	for start < len(text) && cur < line1 {
-		if text[start] == '\n' {
-			cur++
-		}
-		start++
-	}
+	start := lineStartByte(text, max(1, line1))
 	end := start
 	for end < len(text) && text[end] != '\n' {
 		end++
@@ -95,23 +76,8 @@ func lineRange(text string, line1 int) protocol.Range {
 }
 
 func byteColToUTF16(text string, line1, byteCol int) int {
-	if line1 < 1 {
-		line1 = 1
-	}
-	// Find line start byte.
-	off := 0
-	cur := 1
-	for off < len(text) && cur < line1 {
-		if text[off] == '\n' {
-			cur++
-		}
-		off++
-	}
-	lineStart := off
-	target := lineStart + byteCol
-	if target > len(text) {
-		target = len(text)
-	}
+	off := lineStartByte(text, max(1, line1))
+	target := min(len(text), off+byteCol)
 	u16 := 0
 	for off < target {
 		r, size := utf8.DecodeRuneInString(text[off:])

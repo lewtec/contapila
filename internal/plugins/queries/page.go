@@ -2,8 +2,6 @@
 package queries
 
 import (
-	"github.com/a-h/templ"
-
 	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/web"
 )
@@ -28,7 +26,7 @@ func init() {
 			Build:          true,
 			DefaultEnabled: true,
 			Fill:           fill,
-			Body:           func(d web.PageData) templ.Component { return queriesBody(d) },
+			Body:           queriesBody,
 		})
 		// List page is not Sidebar; expose it (and named queries) in Cmd+K.
 		reg.Palette(web.Palette{

@@ -14,31 +14,24 @@ func isCommodityRune(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' || r == '.'
 }
 
+func isTokenRune(r rune) bool {
+	return isAccountRune(r) || isCommodityRune(r)
+}
+
 // tokenAt returns the identifier under byte offset.
 func tokenAt(text string, byteOff int) (tok string, start, end int) {
-	if byteOff < 0 {
-		byteOff = 0
-	}
-	if byteOff > len(text) {
-		byteOff = len(text)
-	}
+	byteOff = max(0, min(len(text), byteOff))
 	start, end = byteOff, byteOff
 	for start > 0 {
 		r, size := utf8.DecodeLastRuneInString(text[:start])
-		if r == utf8.RuneError && size == 1 {
-			break
-		}
-		if !isAccountRune(r) && !isCommodityRune(r) {
+		if (r == utf8.RuneError && size == 1) || !isTokenRune(r) {
 			break
 		}
 		start -= size
 	}
 	for end < len(text) {
 		r, size := utf8.DecodeRuneInString(text[end:])
-		if r == utf8.RuneError && size == 1 {
-			break
-		}
-		if !isAccountRune(r) && !isCommodityRune(r) {
+		if (r == utf8.RuneError && size == 1) || !isTokenRune(r) {
 			break
 		}
 		end += size
@@ -93,21 +86,14 @@ func completionKind(linePrefix string) string {
 	// Posting lines are indented.
 	if len(linePrefix) > 0 && (linePrefix[0] == ' ' || linePrefix[0] == '\t') {
 		parts := strings.Fields(linePrefix)
-		if len(parts) == 0 {
-			return "account"
-		}
-		if len(parts) == 1 {
+		if len(parts) <= 1 {
 			return "account"
 		}
 		// After account + number → commodity
-		if len(parts) >= 2 && looksNumber(parts[1]) {
+		if looksNumber(parts[1]) || looksNumber(parts[len(parts)-1]) {
 			return "commodity"
 		}
-		last := parts[len(parts)-1]
-		if looksNumber(last) {
-			return "commodity"
-		}
-		if !strings.Contains(parts[0], ":") && len(parts) > 1 {
+		if !strings.Contains(parts[0], ":") {
 			return "commodity"
 		}
 		return "account"
@@ -156,14 +142,7 @@ func isDatePrefix(s string) bool {
 			return false
 		}
 	}
-	if digits == 0 {
-		return false
-	}
-	// reject pure numbers that look like amounts with decimal
-	if strings.Contains(s, ".") {
-		return false
-	}
-	return true
+	return digits > 0
 }
 
 func looksNumber(s string) bool {

@@ -3,8 +3,10 @@ package filesys
 
 import (
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 )
@@ -75,11 +77,7 @@ func (o *Overlay) Get(path string) (string, bool) {
 func (o *Overlay) Paths() []string {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
-	out := make([]string, 0, len(o.files))
-	for p := range o.files {
-		out = append(out, p)
-	}
-	return out
+	return slices.Collect(maps.Keys(o.files))
 }
 
 func (o *Overlay) ReadFile(path string) ([]byte, error) {

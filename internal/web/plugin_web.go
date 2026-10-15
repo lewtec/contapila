@@ -1,6 +1,7 @@
 package web
 
 import (
+	"slices"
 	"sync"
 
 	"github.com/lucasew/contapila-go/internal/plugin"
@@ -110,9 +111,7 @@ func pluginContributedPages() []Page {
 	if pluginPages == nil {
 		return nil
 	}
-	out := make([]Page, len(pluginPages.pages))
-	copy(out, pluginPages.pages)
-	return out
+	return slices.Clone(pluginPages.pages)
 }
 
 // pluginContributedPalettes returns palette hooks in registration order (copy).
@@ -120,12 +119,7 @@ func pluginContributedPalettes() []paletteEntry {
 	BindPluginPages()
 	pluginPagesMu.Lock()
 	defer pluginPagesMu.Unlock()
-	if len(pluginPalettes) == 0 {
-		return nil
-	}
-	out := make([]paletteEntry, len(pluginPalettes))
-	copy(out, pluginPalettes)
-	return out
+	return slices.Clone(pluginPalettes)
 }
 
 // resetPluginPagesForTest clears the package-local plugin page registry

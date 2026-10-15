@@ -51,27 +51,12 @@ func PluginEnabled(v cue.Value, pluginKey string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if flags == nil {
-		return false, nil
-	}
-	if b, ok := flags[pluginKey]; ok {
-		return b, nil
-	}
-	return false, nil
+	return flags[pluginKey], nil
 }
 
 // PluginsEnabledFunc returns a predicate for optional modules (ContributePage).
 // Missing keys are off. On decode error, returns (all-false func, err).
 func PluginsEnabledFunc(v cue.Value) (func(pluginKey string) bool, error) {
 	flags, err := PluginFlags(v)
-	fn := func(pluginKey string) bool {
-		if flags == nil {
-			return false
-		}
-		if b, ok := flags[pluginKey]; ok {
-			return b
-		}
-		return false
-	}
-	return fn, err
+	return func(pluginKey string) bool { return flags[pluginKey] }, err
 }

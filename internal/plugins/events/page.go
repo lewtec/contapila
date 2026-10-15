@@ -4,8 +4,6 @@ package events
 import (
 	"sort"
 
-	"github.com/a-h/templ"
-
 	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/web"
 )
@@ -28,7 +26,7 @@ func init() {
 			Sidebar: true,
 			Build:   true,
 			Fill:    fill,
-			Body:    func(d web.PageData) templ.Component { return eventsBody(d) },
+			Body:    eventsBody,
 		})
 	})
 }

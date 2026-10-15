@@ -47,7 +47,7 @@ func Apply(fileText string, filename string, incoming []ast.Directive) (string, 
 			if id == "" {
 				continue
 			}
-			meta := directiveMeta(d)
+			meta := d.GetMeta()
 			if meta.EndByte <= meta.StartByte {
 				return "", fmt.Errorf("%w for ingest_id %q", ErrMissingSourceSpan, id)
 			}
@@ -61,7 +61,6 @@ func Apply(fileText string, filename string, incoming []ast.Directive) (string, 
 	}
 	var replacements []repl
 	var appends []string
-	replaced := map[string]bool{}
 
 	for _, d := range incoming {
 		text, err := FormatDirective(d)
@@ -79,7 +78,6 @@ func Apply(fileText string, filename string, incoming []ast.Directive) (string, 
 		}
 		if sp, ok := idSpan[id]; ok {
 			replacements = append(replacements, repl{sp.start, sp.end, text})
-			replaced[id] = true
 			continue
 		}
 		appends = append(appends, text)
@@ -113,53 +111,12 @@ func Apply(fileText string, filename string, incoming []ast.Directive) (string, 
 		if len(out) > 0 && !strings.HasSuffix(out, "\n") {
 			b.WriteByte('\n')
 		}
-		if len(out) > 0 && !strings.HasSuffix(out, "\n\n") {
-			// single blank line before ingest block if file non-empty
-			if strings.HasSuffix(out, "\n") && !strings.HasSuffix(out, "\n\n") {
-				// keep single newline between last line and append
-			}
-		}
 		for _, a := range appends {
 			b.WriteString(a)
 		}
 		out = b.String()
 	}
 	return out, nil
-}
-
-func directiveMeta(d ast.Directive) ast.Meta {
-	switch v := d.(type) {
-	case ast.Option:
-		return v.Meta
-	case ast.Include:
-		return v.Meta
-	case ast.Commodity:
-		return v.Meta
-	case ast.Open:
-		return v.Meta
-	case ast.Close:
-		return v.Meta
-	case ast.Transaction:
-		return v.Meta
-	case ast.Price:
-		return v.Meta
-	case ast.Balance:
-		return v.Meta
-	case ast.Pad:
-		return v.Meta
-	case ast.Note:
-		return v.Meta
-	case ast.Event:
-		return v.Meta
-	case ast.Custom:
-		return v.Meta
-	case ast.Document:
-		return v.Meta
-	case ast.Unknown:
-		return v.Meta
-	default:
-		return ast.Meta{}
-	}
 }
 
 // WriteFileAtomic writes data to path via temp file + rename.

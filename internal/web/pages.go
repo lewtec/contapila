@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"sort"
@@ -392,10 +393,7 @@ func pageLabel(d PageData) string {
 	case "commodity":
 		return d.CommodityName
 	case "query":
-		if d.QueryName != "" {
-			return d.QueryName
-		}
-		return "Query"
+		return cmp.Or(d.QueryName, "Query")
 	case "":
 		return "Ledgers"
 	default:
@@ -406,47 +404,47 @@ func pageLabel(d PageData) string {
 func registerBuiltinPages(r *PageRegistry) {
 	r.Register(Page{
 		ID: "check", Label: "Check", Order: 10, Sidebar: true, Build: true,
-		Body: func(d PageData) templ.Component { return checkBody(d) },
+		Body: checkBody,
 	})
 	r.Register(Page{
 		ID: "balances", Label: "Balances", Order: 20, Sidebar: true, Build: true,
 		Fill: fillBalances,
-		Body: func(d PageData) templ.Component { return balancesBody(d) },
+		Body: balancesBody,
 	})
 	r.Register(Page{
 		ID: "journal", Label: "Journal", Order: 30, Sidebar: true, Build: true,
 		Fill: fillJournal,
-		Body: func(d PageData) templ.Component { return journalList(d) },
+		Body: journalList,
 	})
 	r.Register(Page{
 		ID: "pnl", Label: "Income statement", Order: 40, Sidebar: true, Build: true,
 		Fill: fillPnL,
-		Body: func(d PageData) templ.Component { return pnlBody(d) },
+		Body: pnlBody,
 	})
 	r.Register(Page{
 		ID: "networth", Label: "Net worth", Order: 50, Sidebar: true, Build: true,
 		Fill: fillNetWorth,
-		Body: func(d PageData) templ.Component { return networthBody(d) },
+		Body: networthBody,
 	})
 	r.Register(Page{
 		ID: "documents", Label: "Documents", Order: 60, Sidebar: true, Build: true,
 		Fill: fillDocuments,
-		Body: func(d PageData) templ.Component { return documentsBody(d) },
+		Body: documentsBody,
 	})
 	r.Register(Page{
 		ID: "prices", Label: "Prices", Order: 70, Sidebar: true, Build: true,
 		Fill: fillPrices,
-		Body: func(d PageData) templ.Component { return pricesBody(d) },
+		Body: pricesBody,
 	})
 	r.Register(Page{
 		ID: "plugins", Label: "Plugins", Order: 100, Section: "Debug", Sidebar: true, Build: true,
 		Fill: fillPlugins,
-		Body: func(d PageData) templ.Component { return pluginsBody(d) },
+		Body: pluginsBody,
 	})
 	r.Register(Page{
 		ID: "config", Label: "Config", Order: 110, Section: "Debug", Sidebar: true, Build: true,
 		Fill: fillConfig,
-		Body: func(d PageData) templ.Component { return configBody(d) },
+		Body: configBody,
 	})
 }
 

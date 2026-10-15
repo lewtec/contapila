@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -17,7 +16,6 @@ import (
 	"github.com/lucasew/contapila-go/internal/engine"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
-	"go.lsp.dev/uri"
 )
 
 // Server is the contapila language server.
@@ -74,8 +72,7 @@ func Run(ctx context.Context, conn io.ReadWriteCloser) error {
 // RunWith returns server + client dispatcher for in-process tests.
 func RunWith(ctx context.Context, stream jsonrpc2.Stream) (*Server, jsonrpc2.Conn, protocol.Client) {
 	s := NewWithContext(ctx)
-	ctx2, jconn, client := protocol.NewServer(ctx, s, stream)
-	_ = ctx2
+	_, jconn, client := protocol.NewServer(ctx, s, stream)
 	s.mu.Lock()
 	s.client = client
 	s.session.setClient(client)
@@ -187,8 +184,8 @@ func (s *Server) Completion(ctx context.Context, params *protocol.CompletionPara
 	off := byteOffset(text, params.Position)
 	prefix := linePrefixAt(text, off)
 	kind := completionKind(prefix)
-	tok, tokStart, tokEnd := tokenAt(text, off)
-	_ = tokEnd
+	tok, tokStart, _ := tokenAt(text, off)
+	tokLower := strings.ToLower(tok)
 
 	var items protocol.CompletionItemSlice
 	switch kind {
@@ -219,27 +216,23 @@ func (s *Server) Completion(ctx context.Context, params *protocol.CompletionPara
 		return protocol.CompletionItemSlice{}, nil
 	}
 
+	editRange := rangeFromBytes(text, tokStart, off, nil)
 	switch kind {
 	case "account":
 		ledger := s.session.resolveLedger(ctx, path)
 		accs := snap.Accounts[ledger]
 		names := make([]string, 0, len(accs))
 		for n := range accs {
-			if tok == "" || strings.HasPrefix(n, tok) || strings.Contains(strings.ToLower(n), strings.ToLower(tok)) {
+			if tok == "" || strings.Contains(strings.ToLower(n), tokLower) {
 				names = append(names, n)
 			}
 		}
 		sort.Strings(names)
-		k := protocol.CompletionItemKindVariable
 		for _, n := range names {
-			te := &protocol.TextEdit{
-				Range:   rangeFromBytes(text, tokStart, off, nil),
-				NewText: n,
-			}
 			items = append(items, protocol.CompletionItem{
 				Label:    n,
-				Kind:     k,
-				TextEdit: te,
+				Kind:     protocol.CompletionItemKindVariable,
+				TextEdit: &protocol.TextEdit{Range: editRange, NewText: n},
 			})
 		}
 	case "commodity":
@@ -255,19 +248,14 @@ func (s *Server) Completion(ctx context.Context, params *protocol.CompletionPara
 			}
 		}
 		sort.Strings(names)
-		k := protocol.CompletionItemKindUnit
 		for _, n := range names {
-			if tok != "" && !strings.HasPrefix(n, tok) && !strings.Contains(strings.ToLower(n), strings.ToLower(tok)) {
+			if tok != "" && !strings.Contains(strings.ToLower(n), tokLower) {
 				continue
-			}
-			te := &protocol.TextEdit{
-				Range:   rangeFromBytes(text, tokStart, off, nil),
-				NewText: n,
 			}
 			items = append(items, protocol.CompletionItem{
 				Label:    n,
-				Kind:     k,
-				TextEdit: te,
+				Kind:     protocol.CompletionItemKindUnit,
+				TextEdit: &protocol.TextEdit{Range: editRange, NewText: n},
 			})
 		}
 	}
@@ -281,26 +269,17 @@ func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionPara
 		return nil, nil
 	}
 	off := byteOffset(text, params.Position)
-	tok, tokStart, tokEnd := tokenAt(text, off)
-	_ = tokStart
-	_ = tokEnd
-	if tok == "" || !strings.Contains(tok, ":") {
-		// still try account-like without colon (unlikely)
-		if tok == "" {
-			return nil, nil
-		}
+	tok, _, _ := tokenAt(text, off)
+	if tok == "" {
+		return nil, nil
 	}
 	snap := s.session.snapshot()
 	if snap == nil {
 		return nil, nil
 	}
 	ledger := s.session.resolveLedger(ctx, path)
-	accs := snap.Accounts[ledger]
-	info, ok := accs[tok]
-	if !ok {
-		return nil, nil
-	}
-	if info.File == "" {
+	info, ok := snap.Accounts[ledger][tok]
+	if !ok || info.File == "" {
 		return nil, nil
 	}
 	// load text for range if possible
@@ -312,11 +291,10 @@ func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionPara
 	if err == nil && (info.StartByte > 0 || info.EndByte > info.StartByte) {
 		r = rangeFromBytes(defText, info.StartByte, info.EndByte, nil)
 	}
-	loc := &protocol.Location{
+	return &protocol.Location{
 		URI:   pathToURI(info.File),
 		Range: r,
-	}
-	return loc, nil
+	}, nil
 }
 
 func readMaybe(s *Server, path string) (string, error) {
@@ -345,16 +323,15 @@ func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*prot
 	if snap == nil {
 		return nil, nil
 	}
+	rng := rangeFromBytes(text, ts, te, nil)
 	// account?
 	if strings.Contains(tok, ":") {
 		ledger := s.session.resolveLedger(ctx, path)
 		if info, ok := snap.Accounts[ledger][tok]; ok {
-			mc := &protocol.MarkupContent{Kind: protocol.MarkupKindPlainText, Value: fmtAccountHover(info)}
-			return &protocol.Hover{Contents: mc, Range: rngPtr(rangeFromBytes(text, ts, te, nil))}, nil
+			return plainHover(fmtAccountHover(info), rng), nil
 		}
 		// unknown account — thin signal
-		mc := &protocol.MarkupContent{Kind: protocol.MarkupKindPlainText, Value: fmt.Sprintf("account %s\n(not opened in ledger %s)", tok, ledger)}
-		return &protocol.Hover{Contents: mc, Range: rngPtr(rangeFromBytes(text, ts, te, nil))}, nil
+		return plainHover(fmt.Sprintf("account %s\n(not opened in ledger %s)", tok, ledger), rng), nil
 	}
 	// commodity
 	pol := config.PolicyFor(snap.Policies, tok)
@@ -366,18 +343,15 @@ func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*prot
 		}
 		info = engine.CommodityInfo{Currency: tok}
 	}
-	mc := &protocol.MarkupContent{Kind: protocol.MarkupKindPlainText, Value: fmtCommodityHover(tok, info, pol)}
-	return &protocol.Hover{Contents: mc, Range: rngPtr(rangeFromBytes(text, ts, te, nil))}, nil
+	return plainHover(fmtCommodityHover(tok, info, pol), rng), nil
+}
+
+func plainHover(val string, r protocol.Range) *protocol.Hover {
+	return &protocol.Hover{
+		Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindPlainText, Value: val},
+		Range:    &r,
+	}
 }
 
 // Ensure server type satisfies protocol.Server at compile time.
-func rngPtr(r protocol.Range) *protocol.Range { return &r }
-
 var _ protocol.Server = (*Server)(nil)
-
-// silence unused imports if version path changes
-var (
-	_ = filepath.Separator
-	_ = slog.Info
-	_ = uri.File
-)

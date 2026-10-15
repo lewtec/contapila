@@ -1,7 +1,8 @@
 package config
 
 import (
-	"sort"
+	"maps"
+	"slices"
 	"sync"
 )
 
@@ -40,12 +41,7 @@ func IsKnownPlugin(id string) bool {
 func KnownPluginIDs() []string {
 	knownPluginMu.RLock()
 	defer knownPluginMu.RUnlock()
-	out := make([]string, 0, len(knownPlugins))
-	for id := range knownPlugins {
-		out = append(out, id)
-	}
-	sort.Strings(out)
-	return out
+	return slices.Sorted(maps.Keys(knownPlugins))
 }
 
 // resetKnownPluginsForTest clears the known set (tests only).

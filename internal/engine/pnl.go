@@ -27,14 +27,7 @@ func (l *Ledger) pnlTreeSection(m map[string]map[string]*big.Rat) []PnLLine {
 	flat := map[string]*big.Rat{}
 	for acct, byComm := range m {
 		sum := big.NewRat(0, 1)
-		for comm, n := range byComm {
-			if n == nil || n.Sign() == 0 {
-				continue
-			}
-			v, unpriced := l.marketConvert(comm, n, AsOfLatest, false)
-			_ = unpriced
-			sum.Add(sum, v)
-		}
+		l.addMarketValues(sum, byComm, AsOfLatest)
 		if sum.Sign() != 0 {
 			flat[acct] = sum
 		}
@@ -53,7 +46,7 @@ func (l *Ledger) pnlTreeSection(m map[string]map[string]*big.Rat) []PnLLine {
 	for _, n := range tree.Names {
 		tot := big.NewRat(0, 1)
 		for a, v := range flat {
-			if accountUnder(a, n) {
+			if AccountMatches(a, n) {
 				tot.Add(tot, v)
 			}
 		}
@@ -70,8 +63,8 @@ func (l *Ledger) pnlTreeSection(m map[string]map[string]*big.Rat) []PnLLine {
 		}
 		out = append(out, PnLLine{
 			Account:   n,
-			Name:      accountLeaf(n),
-			Depth:     accountDepth(n),
+			Name:      AccountLeaf(n),
+			Depth:     AccountDepth(n),
 			Amount:    new(big.Rat).Set(amt),
 			IsRollup:  tree.HasChild[n],
 			Commodity: l.OpCurrency,

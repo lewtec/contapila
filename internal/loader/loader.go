@@ -156,10 +156,5 @@ func expandInclude(ctx context.Context, fsys filesys.FS, baseDir, pattern string
 }
 
 func hasGlob(s string) bool {
-	for _, c := range s {
-		if c == '*' || c == '?' || c == '[' {
-			return true
-		}
-	}
-	return false
+	return strings.ContainsAny(s, "*?[")
 }

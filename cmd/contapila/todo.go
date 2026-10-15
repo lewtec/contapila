@@ -6,7 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/lewtec/lewkit/x/cmd"
@@ -45,9 +45,7 @@ func (c *todoCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	sort.SliceStable(items, func(i, j int) bool {
-		return earlierTodo(items[i], items[j])
-	})
+	slices.SortStableFunc(items, engine.CompareTodos)
 	findings, err := todoFindings(root, items)
 	if err != nil {
 		return err
@@ -56,16 +54,6 @@ func (c *todoCmd) Run(ctx context.Context) error {
 		Name:           "contapila",
 		InformationURI: "https://github.com/lewtec/contapila",
 	}, findings, nil)
-}
-
-func earlierTodo(a, b engine.Todo) bool {
-	if !a.Date.Equal(b.Date) {
-		return a.Date.Before(b.Date)
-	}
-	if a.File != b.File {
-		return a.File < b.File
-	}
-	return a.Line < b.Line
 }
 
 // todoRuleID is the tag todo, then Type:TODO accounts, comma-separated.

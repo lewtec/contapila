@@ -292,11 +292,13 @@ func classifyValue(f *excelize.File, sheet, ref string, cellType excelize.CellTy
 			return "blank", nil, nil
 		}
 		// try number then string
-		if _, perr := strconv.ParseFloat(s, 64); perr == nil && looksLikeDate(f, sheet, ref) {
-			return dateValue(s, display)
-		}
-		if n, perr := strconv.ParseFloat(s, 64); perr == nil && raw != "" {
-			return "number", n, nil
+		if n, perr := strconv.ParseFloat(s, 64); perr == nil {
+			if looksLikeDate(f, sheet, ref) {
+				return dateValue(s, display)
+			}
+			if raw != "" {
+				return "number", n, nil
+			}
 		}
 		return "string", s, nil
 	default:
@@ -307,13 +309,21 @@ func classifyValue(f *excelize.File, sheet, ref string, cellType excelize.CellTy
 	}
 }
 
-func looksLikeDate(f *excelize.File, sheet, ref string) bool {
+func cellStyle(f *excelize.File, sheet, ref string) *excelize.Style {
 	styleID, err := f.GetCellStyle(sheet, ref)
 	if err != nil {
-		return false
+		return nil
 	}
 	style, err := f.GetStyle(styleID)
-	if err != nil || style == nil {
+	if err != nil {
+		return nil
+	}
+	return style
+}
+
+func looksLikeDate(f *excelize.File, sheet, ref string) bool {
+	style := cellStyle(f, sheet, ref)
+	if style == nil {
 		return false
 	}
 	// Built-in Excel date/time format ids (common set).
@@ -322,24 +332,14 @@ func looksLikeDate(f *excelize.File, sheet, ref string) bool {
 		return true
 	}
 	if style.CustomNumFmt != nil {
-		cf := strings.ToLower(*style.CustomNumFmt)
-		if strings.Contains(cf, "y") || strings.Contains(cf, "d") || strings.Contains(cf, "m") {
-			// exclude pure number formats that use m for minutes only — keep simple
-			if strings.Contains(cf, "y") || strings.Contains(cf, "d") || strings.Contains(cf, "yy") {
-				return true
-			}
-		}
+		return strings.ContainsAny(strings.ToLower(*style.CustomNumFmt), "yd")
 	}
 	return false
 }
 
 func cellNumFmt(f *excelize.File, sheet, ref string) string {
-	styleID, err := f.GetCellStyle(sheet, ref)
-	if err != nil {
-		return ""
-	}
-	style, err := f.GetStyle(styleID)
-	if err != nil || style == nil {
+	style := cellStyle(f, sheet, ref)
+	if style == nil {
 		return ""
 	}
 	if style.CustomNumFmt != nil && *style.CustomNumFmt != "" {
@@ -377,8 +377,7 @@ func dateValue(raw, display string) (string, any, error) {
 		"01/02/2006",
 	} {
 		if t, err := time.ParseInLocation(layout, display, time.UTC); err == nil {
-			t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), time.UTC)
-			return "date", t, nil
+			return "date", t.UTC(), nil
 		}
 	}
 	return "string", display, nil

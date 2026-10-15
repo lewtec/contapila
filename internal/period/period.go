@@ -78,10 +78,8 @@ func Parse(s string, now time.Time) (Range, error) {
 		if err != nil {
 			return Range{}, fmt.Errorf("time range end %q: %w", right, err)
 		}
-		start, aEnd := a.bounds()
-		bStart, end := b.bounds()
-		_ = aEnd
-		_ = bStart
+		start, _ := a.bounds()
+		_, end := b.bounds()
 		if !start.IsZero() && !end.IsZero() && start.After(end) {
 			return Range{}, fmt.Errorf("%w: %s - %s", ErrTimeRangeOrder, left, right)
 		}

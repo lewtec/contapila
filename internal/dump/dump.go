@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
+	"strings"
 	"sync"
 )
 
@@ -63,12 +65,10 @@ func Register(dialect string, fn Extractor) {
 func Dialects() []string {
 	mu.RLock()
 	defer mu.RUnlock()
-	out := make([]string, 0, len(registry))
-	for id := range registry {
-		out = append(out, id)
+	if len(registry) == 0 {
+		return []string{}
 	}
-	sort.Strings(out)
-	return out
+	return slices.Sorted(maps.Keys(registry))
 }
 
 // Lookup returns the extractor for dialect, or false.
@@ -98,9 +98,5 @@ func joinDialects() string {
 	if len(ids) == 0 {
 		return "(none)"
 	}
-	out := ids[0]
-	for _, id := range ids[1:] {
-		out += ", " + id
-	}
-	return out
+	return strings.Join(ids, ", ")
 }

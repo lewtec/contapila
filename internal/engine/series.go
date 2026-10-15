@@ -158,13 +158,7 @@ func (l *Ledger) walkBalanceSeries(
 		if len(dirs) > 0 {
 			b.Book(dirs)
 		}
-		if day.IsZero() {
-			continue
-		}
-		if !from.IsZero() && day.Before(period.DateOnly(from)) {
-			continue
-		}
-		if !to.IsZero() && day.After(period.DateOnly(to)) {
+		if day.IsZero() || !inRange(day, period.DateOnly(from), period.DateOnly(to)) {
 			continue
 		}
 		// emit if this day could change relevant balances (txn, pad, balance+pad)
@@ -224,22 +218,24 @@ func hasTouchBalance(b *booking.Engine, touch func(string) bool) bool {
 	return false
 }
 
+func (l *Ledger) addMarketValues(total *big.Rat, unitsMap map[string]*big.Rat, asOf time.Time) {
+	for comm, units := range unitsMap {
+		if units == nil || units.Sign() == 0 {
+			continue
+		}
+		// Natural Beancount signs (liabilities are typically negative).
+		val, _ := l.marketConvert(comm, units, asOf, false)
+		total.Add(total, val)
+	}
+}
+
 // netWorthFromBook matches NetWorth table: book units only (not autointerest projection),
 // market prices as-of the sample date.
 func (l *Ledger) netWorthFromBook(b *booking.Engine, asOf time.Time) *big.Rat {
 	total := big.NewRat(0, 1)
 	for acct, m := range b.AllBalances() {
-		if !booking.IsAsset(acct) && !booking.IsLiability(acct) {
-			continue
-		}
-		for comm, units := range m {
-			if units == nil || units.Sign() == 0 {
-				continue
-			}
-			// Natural Beancount signs (liabilities are typically negative).
-			val, unpriced := l.marketConvert(comm, units, asOf, false)
-			_ = unpriced
-			total.Add(total, val)
+		if booking.IsAsset(acct) || booking.IsLiability(acct) {
+			l.addMarketValues(total, m, asOf)
 		}
 	}
 	return total
@@ -247,36 +243,18 @@ func (l *Ledger) netWorthFromBook(b *booking.Engine, asOf time.Time) *big.Rat {
 
 func (l *Ledger) accountValueFromBook(b *booking.Engine, account string, asOf time.Time) *big.Rat {
 	total := big.NewRat(0, 1)
-	for acct, m := range b.AllBalances() {
-		if !AccountMatches(acct, account) {
-			continue
-		}
-		unitsMap := l.unitsForDisplay(b, acct, m, asOf)
-		for comm, units := range unitsMap {
-			if units.Sign() == 0 {
-				continue
-			}
-			val, unpriced := l.marketConvert(comm, units, asOf, false)
-			_ = unpriced
-			total.Add(total, val)
+	bals := b.AllBalances()
+	for acct, m := range bals {
+		if AccountMatches(acct, account) {
+			l.addMarketValues(total, l.unitsForDisplay(b, acct, m, asOf), asOf)
 		}
 	}
 	// Projected-only autointerest under this prefix.
 	for _, a := range l.AutoInterest {
-		if !AccountMatches(a.Account, account) {
-			continue
-		}
-		if _, ok := b.AllBalances()[a.Account]; ok {
-			continue
-		}
-		unitsMap := l.unitsForDisplay(b, a.Account, nil, asOf)
-		for comm, units := range unitsMap {
-			if units.Sign() == 0 {
-				continue
+		if AccountMatches(a.Account, account) {
+			if _, ok := bals[a.Account]; !ok {
+				l.addMarketValues(total, l.unitsForDisplay(b, a.Account, nil, asOf), asOf)
 			}
-			val, unpriced := l.marketConvert(comm, units, asOf, false)
-			_ = unpriced
-			total.Add(total, val)
 		}
 	}
 	return total
@@ -378,23 +356,27 @@ func barEmpty(b BarPoint) bool {
 	return (b.Income == nil || b.Income.Sign() == 0) && (b.Expense == nil || b.Expense.Sign() == 0)
 }
 
-// trimEmptyEdgeBars removes zero-flow bins at the start and end of the series.
-// Interior empty bins are kept (gaps between active periods).
-func trimEmptyEdgeBars(bars []BarPoint) []BarPoint {
-	if len(bars) == 0 {
-		return bars
+func trimEdges[T any](items []T, empty func(T) bool) []T {
+	if len(items) == 0 {
+		return items
 	}
-	lo, hi := 0, len(bars)-1
-	for lo <= hi && barEmpty(bars[lo]) {
+	lo, hi := 0, len(items)-1
+	for lo <= hi && empty(items[lo]) {
 		lo++
 	}
-	for hi >= lo && barEmpty(bars[hi]) {
+	for hi >= lo && empty(items[hi]) {
 		hi--
 	}
 	if lo > hi {
 		return nil
 	}
-	return bars[lo : hi+1]
+	return items[lo : hi+1]
+}
+
+// trimEmptyEdgeBars removes zero-flow bins at the start and end of the series.
+// Interior empty bins are kept (gaps between active periods).
+func trimEmptyEdgeBars(bars []BarPoint) []BarPoint {
+	return trimEdges(bars, barEmpty)
 }
 
 func seriesPointEmpty(p SeriesPoint) bool {
@@ -404,27 +386,12 @@ func seriesPointEmpty(p SeriesPoint) bool {
 // trimZeroEdgeSeries drops leading/trailing zero net-worth samples.
 // Interior zeros (temporary wipeouts) are kept.
 func trimZeroEdgeSeries(pts []SeriesPoint) []SeriesPoint {
-	if len(pts) == 0 {
-		return pts
-	}
-	lo, hi := 0, len(pts)-1
-	for lo <= hi && seriesPointEmpty(pts[lo]) {
-		lo++
-	}
-	for hi >= lo && seriesPointEmpty(pts[hi]) {
-		hi--
-	}
-	if lo > hi {
-		return nil
-	}
-	return pts[lo : hi+1]
+	return trimEdges(pts, seriesPointEmpty)
 }
 
 func binLabel(b period.Range, kind period.BinKind) string {
 	switch kind {
-	case period.BinDay:
-		return b.Start.Format("2006-01-02")
-	case period.BinWeek:
+	case period.BinDay, period.BinWeek:
 		return b.Start.Format("2006-01-02")
 	case period.BinYear:
 		return b.Start.Format("2006")

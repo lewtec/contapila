@@ -1,10 +1,12 @@
 package ingest
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -40,15 +42,11 @@ func FormatDirective(d ast.Directive) (string, error) {
 		fmt.Fprintf(&b, "%s close %s\n", fmtDate(v.Date), v.Account)
 		writeMeta(&b, v.Metadata)
 	case ast.Transaction:
-		flag := v.Flag
-		if flag == "" {
-			flag = "*"
-		}
-		fmt.Fprintf(&b, "%s %s", fmtDate(v.Date), flag)
+		fmt.Fprintf(&b, "%s %s", fmtDate(v.Date), cmp.Or(v.Flag, "*"))
 		if v.Payee != "" {
-			fmt.Fprintf(&b, " %s %s", quoteStr(v.Payee), quoteStr(v.Narration))
+			fmt.Fprintf(&b, " %q %q", v.Payee, v.Narration)
 		} else if v.Narration != "" {
-			fmt.Fprintf(&b, " %s", quoteStr(v.Narration))
+			fmt.Fprintf(&b, " %q", v.Narration)
 		}
 		for _, t := range v.Tags {
 			fmt.Fprintf(&b, " #%s", t)
@@ -81,13 +79,13 @@ func FormatDirective(d ast.Directive) (string, error) {
 		fmt.Fprintf(&b, "%s pad %s %s\n", fmtDate(v.Date), v.Account, v.FromAccount)
 		writeMeta(&b, v.Metadata)
 	case ast.Note:
-		fmt.Fprintf(&b, "%s note %s %s\n", fmtDate(v.Date), v.Account, quoteStr(v.Comment))
+		fmt.Fprintf(&b, "%s note %s %q\n", fmtDate(v.Date), v.Account, v.Comment)
 		writeMeta(&b, v.Metadata)
 	case ast.Event:
-		fmt.Fprintf(&b, "%s event %s %s\n", fmtDate(v.Date), quoteStr(v.Type), quoteStr(v.Desc))
+		fmt.Fprintf(&b, "%s event %q %q\n", fmtDate(v.Date), v.Type, v.Desc)
 		writeMeta(&b, v.Metadata)
 	case ast.Custom:
-		fmt.Fprintf(&b, "%s custom %s", fmtDate(v.Date), quoteStr(v.Type))
+		fmt.Fprintf(&b, "%s custom %q", fmtDate(v.Date), v.Type)
 		for _, cv := range v.Values {
 			if cv.Number != nil {
 				num, err := formatRat(cv.Number)
@@ -96,16 +94,16 @@ func FormatDirective(d ast.Directive) (string, error) {
 				}
 				fmt.Fprintf(&b, " %s", num)
 			} else {
-				fmt.Fprintf(&b, " %s", quoteStr(cv.Text))
+				fmt.Fprintf(&b, " %q", cv.Text)
 			}
 		}
 		b.WriteByte('\n')
 		writeMeta(&b, v.Metadata)
 	case ast.Document:
-		fmt.Fprintf(&b, "%s document %s %s\n", fmtDate(v.Date), v.Account, quoteStr(v.Path))
+		fmt.Fprintf(&b, "%s document %s %q\n", fmtDate(v.Date), v.Account, v.Path)
 		writeMeta(&b, v.Metadata)
 	case ast.Query:
-		fmt.Fprintf(&b, "%s query %s %s\n", fmtDate(v.Date), quoteStr(v.Name), quoteStr(v.Query))
+		fmt.Fprintf(&b, "%s query %q %q\n", fmtDate(v.Date), v.Name, v.Query)
 		writeMeta(&b, v.Metadata)
 	case ast.Unknown:
 		return "", fmt.Errorf("%w: %q", ErrUnknownDirective, v.Kind)
@@ -156,16 +154,8 @@ func writePosting(b *strings.Builder, p ast.Posting) error {
 }
 
 func writeMeta(b *strings.Builder, md ast.Metadata) {
-	if len(md) == 0 {
-		return
-	}
-	keys := make([]string, 0, len(md))
-	for k := range md {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		fmt.Fprintf(b, "  %s: %s\n", k, quoteStr(md[k]))
+	for _, k := range slices.Sorted(maps.Keys(md)) {
+		fmt.Fprintf(b, "  %s: %q\n", k, md[k])
 	}
 }
 
@@ -174,10 +164,6 @@ func fmtDate(t time.Time) string {
 		return "1970-01-01"
 	}
 	return t.UTC().Format("2006-01-02")
-}
-
-func quoteStr(s string) string {
-	return fmt.Sprintf("%q", s)
 }
 
 // ratFormatPrec is decimal digits for non-integer big.Rat rendering: enough for

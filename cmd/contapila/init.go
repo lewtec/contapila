@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/lewtec/lewkit/x/cmd"
@@ -48,6 +49,6 @@ func (c *initCmd) Run(ctx context.Context) error {
 	if err := initfs.Copy(ctx, root, src); err != nil {
 		return err
 	}
-	fmt.Printf("wrote starter project to %s\n", root.Name())
-	return nil
+	_, err = fmt.Fprintf(os.Stdout, "wrote starter project to %s\n", root.Name())
+	return err
 }

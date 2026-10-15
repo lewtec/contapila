@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/lucasew/contapila-go/internal/ast"
@@ -291,10 +290,7 @@ func ProjectedUnits(
 			if e.set {
 				bal[e.comm] = new(big.Rat).Set(e.delta)
 			} else {
-				if bal[e.comm] == nil {
-					bal[e.comm] = big.NewRat(0, 1)
-				}
-				bal[e.comm] = new(big.Rat).Add(bal[e.comm], e.delta)
+				addToRatMap(bal, e.comm, e.delta)
 			}
 		}
 		// On open day only events (funding), no prior interest.
@@ -324,17 +320,10 @@ func ValidateAutoInterestRates(dirs []ast.Directive) diag.List {
 	var diags diag.List
 	for _, d := range dirs {
 		o, ok := d.(ast.Open)
-		if !ok || len(o.Metadata) == 0 {
+		if !ok {
 			continue
 		}
-		raw := o.Metadata["interest_rate"]
-		if strings.TrimSpace(raw) == "" {
-			raw = o.Metadata["interest-rate"]
-		}
-		if strings.TrimSpace(raw) == "" {
-			continue
-		}
-		if _, ok := ParseInterestRate(raw); !ok {
+		if _, raw, ok := InterestRateFromMeta(o.Metadata); !ok && raw != "" {
 			diags.Error(o.File, o.Line, fmt.Sprintf("invalid interest_rate %q on %s", raw, o.Account))
 		}
 	}

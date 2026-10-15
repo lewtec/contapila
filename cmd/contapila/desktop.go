@@ -75,7 +75,7 @@ func projectUI(ctx context.Context, fsys filesys.FS, cwd string, ledger *engine.
 		return nil, err
 	}
 	s.Files = fsys
-	printDiags(h.Diags)
+	printDiags(os.Stderr, h.Diags)
 	// The web view loads the origin root. When the user names a ledger,
 	// redirect that hit to /l/<ledger>/check so desktop matches the
 	// deep-link path that `web [ledger]` only prints.

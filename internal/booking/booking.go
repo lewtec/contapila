@@ -175,7 +175,7 @@ func sortedDirectives(dirs []ast.Directive) []ast.Directive {
 		if oa != ob {
 			return oa < ob
 		}
-		la, lb := directiveLine(a), directiveLine(b)
+		la, lb := a.GetLine(), b.GetLine()
 		if la != lb && la > 0 && lb > 0 {
 			return la < lb
 		}
@@ -203,14 +203,6 @@ func directiveOrder(d ast.Directive) int {
 		// Transaction, Note, Event, Price, Commodity, Option, …
 		return 1
 	}
-}
-
-func directiveLine(d ast.Directive) int {
-	type hasLine interface{ GetLine() int }
-	if x, ok := d.(hasLine); ok {
-		return x.GetLine()
-	}
-	return 0
 }
 
 func (e *Engine) bookOpen(o ast.Open) {
@@ -314,11 +306,8 @@ func (e *Engine) bookTxn(t ast.Transaction) {
 		// Inventory (model A): explicit cost, @/@@ as cost on increases, or reduce existing position.
 		buyUnitCost, buyCostComm, buyCostOK := resolveIncreaseCost(p, units)
 		hasInv := p.Cost != nil || e.hasPosition(p.Account, comm) || (units.Sign() > 0 && buyCostOK)
-		if p.Cost != nil || (units.Sign() < 0 && e.hasPosition(p.Account, comm)) {
-			hasInv = true
-		}
 
-		if hasInv && (p.Cost != nil || units.Sign() != 0) {
+		if hasInv {
 			k := invKey{p.Account, comm}
 			if units.Sign() > 0 {
 				// buy: {...} cost, or @/@@ price as cost basis
@@ -700,10 +689,7 @@ func (e *Engine) addBal(account, comm string, units *big.Rat) {
 	if e.Bal[account] == nil {
 		e.Bal[account] = map[string]*big.Rat{}
 	}
-	if e.Bal[account][comm] == nil {
-		e.Bal[account][comm] = big.NewRat(0, 1)
-	}
-	e.Bal[account][comm].Add(e.Bal[account][comm], units)
+	addToRatMap(e.Bal[account], comm, units)
 }
 
 func (e *Engine) balOf(account, comm string) *big.Rat {

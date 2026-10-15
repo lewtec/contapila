@@ -125,7 +125,7 @@ func BookWithClosing(ctx context.Context, dirs []ast.Directive, setup func(*Engi
 		}
 		return eng
 	}
-	if !hasClosingMeta(dirs) {
+	if !HasClosingMeta(dirs) {
 		e = newE()
 		if err := e.BookContext(ctx, dirs); err != nil {
 			diags.Error("", 0, err.Error())
@@ -157,10 +157,6 @@ func BookWithClosing(ctx context.Context, dirs []ast.Directive, setup func(*Engi
 
 // HasClosingMeta reports whether any posting has truthy closing metadata.
 func HasClosingMeta(dirs []ast.Directive) bool {
-	return hasClosingMeta(dirs)
-}
-
-func hasClosingMeta(dirs []ast.Directive) bool {
 	for _, d := range dirs {
 		t, ok := d.(ast.Transaction)
 		if !ok {

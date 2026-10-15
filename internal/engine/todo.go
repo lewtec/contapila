@@ -1,7 +1,8 @@
 package engine
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 	"strings"
 	"time"
 
@@ -47,9 +48,7 @@ func (l *Ledger) Todos() []Todo {
 		out = append(out, item)
 	}
 	// Oldest first, so the backlog starts at the top.
-	sort.SliceStable(out, func(i, j int) bool {
-		return todoBefore(out[i], out[j])
-	})
+	slices.SortStableFunc(out, CompareTodos)
 	if len(out) == 0 {
 		return nil
 	}
@@ -66,7 +65,7 @@ func todoItem(txn ast.Transaction) (Todo, bool) {
 		Flag:      txn.Flag,
 		Payee:     txn.Payee,
 		Narration: txn.Narration,
-		Tag:       hasTodoTag(txn.Tags),
+		Tag:       slices.Contains(txn.Tags, "todo"),
 	}
 	seen := map[string]bool{}
 	for _, posting := range txn.Postings {
@@ -82,15 +81,6 @@ func todoItem(txn ast.Transaction) (Todo, bool) {
 	return item, true
 }
 
-func hasTodoTag(tags []string) bool {
-	for _, tag := range tags {
-		if tag == "todo" {
-			return true
-		}
-	}
-	return false
-}
-
 // typeTODO reports whether account is Type:TODO.
 // Expenses:TODO matches. Expenses:TODO:Tax and Expenses:Food:TODO do not.
 func typeTODO(account string) bool {
@@ -98,12 +88,11 @@ func typeTODO(account string) bool {
 	return ok && accountType != "" && name == "TODO"
 }
 
-func todoBefore(a, b Todo) bool {
-	if !a.Date.Equal(b.Date) {
-		return a.Date.Before(b.Date)
-	}
-	if a.File != b.File {
-		return a.File < b.File
-	}
-	return a.Line < b.Line
+// CompareTodos orders Todo items by date, then file, then line.
+func CompareTodos(a, b Todo) int {
+	return cmp.Or(
+		a.Date.Compare(b.Date),
+		cmp.Compare(a.File, b.File),
+		cmp.Compare(a.Line, b.Line),
+	)
 }

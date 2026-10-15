@@ -2,6 +2,7 @@
 package docs
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -96,28 +97,13 @@ func parseFilenameDate(base string) (time.Time, string) {
 	if m == nil {
 		return time.Time{}, fmt.Sprintf("filename %q must start with yyyy, yyyymm, or yyyymmdd", base)
 	}
-	year, month, day := m[1], m[2], m[3]
-	if month == "" {
-		month = "01"
-	}
-	if day == "" {
-		day = "01"
-	}
+	year, month, day := m[1], cmp.Or(m[2], "01"), cmp.Or(m[3], "01")
 	prefix := year + month + day
 	// Show only what the user wrote when reporting calendar errors.
-	written := year
-	if m[2] != "" {
-		written += m[2]
-	}
-	if m[3] != "" {
-		written += m[3]
-	}
+	written := m[1] + m[2] + m[3]
 	dt, err := time.ParseInLocation("20060102", prefix, time.UTC)
-	if err != nil {
-		return time.Time{}, fmt.Sprintf("filename date prefix %q is not a valid calendar date", written)
-	}
-	// Reject Go normalization (e.g. 20240230 → March 1).
-	if dt.Format("20060102") != prefix {
+	// Reject parse errors and Go normalization (e.g. 20240230 → March 1).
+	if err != nil || dt.Format("20060102") != prefix {
 		return time.Time{}, fmt.Sprintf("filename date prefix %q is not a valid calendar date", written)
 	}
 	return dt, ""
@@ -220,8 +206,7 @@ func ForAccount(docs []ast.Document, account string) []ast.Document {
 // empty segments or ".." components (checked before Clean so they are not
 // folded away). The shape is verified on path.Clean form.
 func IsLedgerDocPath(rel string) bool {
-	rel = filepath.ToSlash(rel)
-	rel = strings.Trim(rel, "/")
+	rel = strings.Trim(filepath.ToSlash(rel), "/")
 	if rel == "" || rel == "." {
 		return false
 	}
@@ -235,13 +220,5 @@ func IsLedgerDocPath(rel string) bool {
 		return false
 	}
 	parts := strings.Split(cleaned, "/")
-	if len(parts) < 3 || parts[1] != "docs" {
-		return false
-	}
-	for _, p := range parts {
-		if p == "" || p == "." || p == ".." {
-			return false
-		}
-	}
-	return true
+	return len(parts) >= 3 && parts[1] == "docs"
 }
