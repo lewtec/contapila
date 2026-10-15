@@ -49,7 +49,6 @@ func evalNumberExpr(f *source.File, n *grammar.Node) *big.Rat {
 func evalUnaryExpr(f *source.File, n *grammar.Node) *big.Rat {
 	neg := false
 	var inner *big.Rat
-	// Prefer full child walk (ops may be unnamed in some builds).
 	for i := uint32(0); i < n.ChildCount(); i++ {
 		c := n.Child(i)
 		switch c.Type() {
@@ -57,17 +56,6 @@ func evalUnaryExpr(f *source.File, n *grammar.Node) *big.Rat {
 			neg = true
 		case "number", "unary_number_expr", "binary_number_expr":
 			inner = evalNumberExpr(f, c)
-		}
-	}
-	for i := uint32(0); i < n.NamedChildCount(); i++ {
-		c := n.NamedChild(i)
-		switch c.Type() {
-		case "minus":
-			neg = true
-		case "number", "unary_number_expr", "binary_number_expr":
-			if inner == nil {
-				inner = evalNumberExpr(f, c)
-			}
 		}
 	}
 	if inner == nil {
@@ -80,9 +68,6 @@ func evalUnaryExpr(f *source.File, n *grammar.Node) *big.Rat {
 	}
 	out := new(big.Rat).Set(inner)
 	if neg {
-		// If rat already parsed a leading minus from text, don't double-negate.
-		// Only negate when we saw a distinct minus token and value is positive,
-		// or always negate when token present and text doesn't start with '-'.
 		out.Neg(out)
 	}
 	return out
@@ -91,9 +76,8 @@ func evalUnaryExpr(f *source.File, n *grammar.Node) *big.Rat {
 func evalBinaryExpr(f *source.File, n *grammar.Node) *big.Rat {
 	var left, right *big.Rat
 	op := ""
-	// Named children order: left, op, right (ops are named: plus/minus/asterisk/slash).
-	for i := uint32(0); i < n.NamedChildCount(); i++ {
-		c := n.NamedChild(i)
+	for i := uint32(0); i < n.ChildCount(); i++ {
+		c := n.Child(i)
 		switch c.Type() {
 		case "number", "unary_number_expr", "binary_number_expr":
 			if left == nil {
@@ -101,36 +85,14 @@ func evalBinaryExpr(f *source.File, n *grammar.Node) *big.Rat {
 			} else {
 				right = evalNumberExpr(f, c)
 			}
-		case "plus":
+		case "plus", "+":
 			op = "+"
-		case "minus":
+		case "minus", "-":
 			op = "-"
-		case "asterisk":
+		case "asterisk", "*":
 			op = "*"
-		case "slash":
+		case "slash", "/":
 			op = "/"
-		}
-	}
-	// Unnamed operator tokens fallback.
-	if op == "" {
-		for i := uint32(0); i < n.ChildCount(); i++ {
-			c := n.Child(i)
-			t := c.Type()
-			if t == "+" || t == "-" || t == "*" || t == "/" {
-				op = t
-			}
-			if t == "plus" {
-				op = "+"
-			}
-			if t == "minus" && op == "" {
-				op = "-"
-			}
-			if t == "asterisk" {
-				op = "*"
-			}
-			if t == "slash" {
-				op = "/"
-			}
 		}
 	}
 	if left == nil || right == nil || op == "" {
