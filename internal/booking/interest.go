@@ -139,14 +139,11 @@ func stripSpaces(s string) string {
 
 // InterestRateFromMeta returns the rate from open metadata (interest_rate or interest-rate).
 func InterestRateFromMeta(md ast.Metadata) (InterestRate, string, bool) {
-	if len(md) == 0 {
-		return InterestRate{}, "", false
+	raw := md["interest_rate"]
+	if strings.TrimSpace(raw) == "" {
+		raw = md["interest-rate"]
 	}
-	raw, ok := md["interest_rate"]
-	if !ok || strings.TrimSpace(raw) == "" {
-		raw, ok = md["interest-rate"]
-	}
-	if !ok || strings.TrimSpace(raw) == "" {
+	if strings.TrimSpace(raw) == "" {
 		return InterestRate{}, "", false
 	}
 	ir, ok := ParseInterestRate(raw)
@@ -155,9 +152,8 @@ func InterestRateFromMeta(md ast.Metadata) (InterestRate, string, bool) {
 
 // IncomePassivoAccount maps Assets:… → Income:Passivo:… (plugin-compatible).
 func IncomePassivoAccount(asset string) string {
-	const prefix = "Assets"
-	if strings.HasPrefix(asset, prefix) {
-		return "Income:Passivo" + asset[len(prefix):]
+	if rest, ok := strings.CutPrefix(asset, "Assets"); ok {
+		return "Income:Passivo" + rest
 	}
 	return "Income:Passivo:" + asset
 }
