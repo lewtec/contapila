@@ -18,30 +18,20 @@ func fillPlugins(pc PageContext, data *PageData) {
 	cfg := pc.Project.Config.Value
 	flags, _ := config.PluginFlags(cfg)
 
-	infos := plugin.Infos()
 	seen := map[string]bool{}
-	for _, info := range infos {
+	for _, info := range plugin.Infos() {
 		seen[info.ID] = true
 		on := plugin.IsEnabled(cfg, info.ID)
 		if pc.Ledger != nil {
 			on = pc.Ledger.PluginEnabled(info.ID, info.DefaultOn)
 		}
-		inCfg := flags != nil && containsPluginFlag(flags, info.ID)
-		entry := plugin.PluginValue(cfg, info.ID)
-		entryStr := formatCUE(entry)
-		if !inCfg {
-			if info.DefaultOn {
-				entryStr = "(not in unified plugins map — DefaultOn)"
-			} else {
-				entryStr = "(not in unified plugins map — default off)"
-			}
-		}
+		_, inCfg := flags[info.ID]
 		data.PluginRows = append(data.PluginRows, PluginStatusRow{
 			ID:        info.ID,
 			Enabled:   on,
 			InConfig:  inCfg,
 			HasStream: info.HasStream,
-			EntryCUE:  entryStr, // plain; highlighted in templ via codeHighlight
+			EntryCUE:  pluginEntryCUE(cfg, info.ID, inCfg, info.DefaultOn),
 		})
 	}
 	// Stream expanders are first-party engine steps, not RegisterTyped modules.
@@ -54,43 +44,42 @@ func fillPlugins(pc PageContext, data *PageData) {
 		on := defaultOn
 		if pc.Ledger != nil {
 			on = pc.Ledger.PluginEnabled(id, defaultOn)
-		} else if flags != nil {
-			if b, ok := flags[id]; ok {
-				on = b
-			}
+		} else if b, ok := flags[id]; ok {
+			on = b
 		}
-		inCfg := flags != nil && containsPluginFlag(flags, id)
-		entryStr := formatCUE(plugin.PluginValue(cfg, id))
-		if !inCfg {
-			if defaultOn {
-				entryStr = "(not in unified plugins map — DefaultOn)"
-			} else {
-				entryStr = "(not in unified plugins map — default off)"
-			}
-		}
+		_, inCfg := flags[id]
 		data.PluginRows = append(data.PluginRows, PluginStatusRow{
 			ID:        id,
 			Enabled:   on,
 			InConfig:  inCfg,
 			HasStream: true,
-			EntryCUE:  entryStr,
+			EntryCUE:  pluginEntryCUE(cfg, id, inCfg, defaultOn),
 		})
 	}
 	for id, on := range flags {
 		if seen[id] {
 			continue
 		}
-		entry := plugin.PluginValue(cfg, id)
 		data.PluginRows = append(data.PluginRows, PluginStatusRow{
 			ID:       id,
 			Enabled:  on,
 			InConfig: true,
-			EntryCUE: formatCUE(entry),
+			EntryCUE: formatCUE(plugin.PluginValue(cfg, id)),
 		})
 	}
 
 	pluginsNode := cfg.LookupPath(cue.ParsePath("plugins"))
 	data.PluginsCUE = formatCUE(pluginsNode)
+}
+
+func pluginEntryCUE(cfg cue.Value, id string, inCfg, defaultOn bool) string {
+	if !inCfg {
+		if defaultOn {
+			return "(not in unified plugins map — DefaultOn)"
+		}
+		return "(not in unified plugins map — default off)"
+	}
+	return formatCUE(plugin.PluginValue(cfg, id))
 }
 
 func fillConfig(pc PageContext, data *PageData) {
@@ -108,11 +97,6 @@ func streamModuleDefaultOn(id string) bool {
 	default:
 		return true
 	}
-}
-
-func containsPluginFlag(flags map[string]bool, id string) bool {
-	_, ok := flags[id]
-	return ok
 }
 
 // formatCUE pretty-prints a unified CUE value as plain source text.
