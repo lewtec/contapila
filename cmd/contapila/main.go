@@ -24,6 +24,7 @@ import (
 	_ "github.com/lewtec/lewkit/x/driver/prelude" // registers host drivers, including the folder dialog
 	"github.com/lewtec/lewkit/x/driver/thread"
 	"github.com/lewtec/lewkit/x/entry"
+	"github.com/lewtec/lewkit/x/text/table"
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/engine"
@@ -308,11 +309,28 @@ func printCommodityAmounts(out io.Writer, m map[string]*big.Rat, empty string) {
 }
 
 type balancesCmd struct {
-	AsOf     cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
-	Account  []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
-	ByLedger ledgerEnum    `long:"ledger" help:"limit to this ledger" default:""`
-	Ledger   *engine.LedgerArg
+	cmd.Output `flatten:""`
+	AsOf       cmd.StringArg `long:"as-of" help:"YYYY-MM-DD" default:""`
+	Account    []RegexpArg   `long:"account" help:"RE2 pattern, unanchored; repeat to add another"`
+	ByLedger   ledgerEnum    `long:"ledger" help:"limit to this ledger" default:""`
+	Ledger     *engine.LedgerArg
 }
+
+type balanceRow struct {
+	Ledger    string `json:"LEDGER"`
+	Account   string `json:"ACCOUNT"`
+	Amount    string `json:"AMOUNT"`
+	Commodity string `json:"COMMODITY"`
+}
+
+type balanceSpec struct {
+	Ledger    table.Field[string]
+	Account   table.Field[string]
+	Amount    table.Field[string]
+	Commodity table.Field[string]
+}
+
+var balanceLayout = table.Must(table.Make[balanceRow](balanceSpec{}))
 
 func (balancesCmd) Description() string { return "Balances as-of" }
 
@@ -343,25 +361,22 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 		return err
 	}
 	// Single ledger: hierarchical tree. Multi-ledger: flat sorted table.
-	if len(names) == 1 {
+	if len(names) == 1 && c.Format.Value() == table.Table && c.Columns.Value() == "" {
 		return withLedgers(ctx, names, func(l *engine.Ledger) error {
 			writeLedgerBalances(os.Stdout, l, t, filters)
 			return nil
 		})
 	}
-	type row struct {
-		ledger, account, amount, commodity string
-	}
-	var rows []row
+	var rows []balanceRow
 	err = withLedgers(ctx, names, func(l *engine.Ledger) error {
 		bals := engine.SelectAccounts(l.BalancesAsOf(t), filters)
 		for _, a := range slices.Sorted(maps.Keys(bals)) {
 			for _, c := range slices.Sorted(maps.Keys(bals[a])) {
-				rows = append(rows, row{
-					ledger:    l.Name,
-					account:   a,
-					amount:    bals[a][c].FloatString(6),
-					commodity: c,
+				rows = append(rows, balanceRow{
+					Ledger:    l.Name,
+					Account:   a,
+					Amount:    bals[a][c].FloatString(6),
+					Commodity: c,
 				})
 			}
 		}
@@ -370,19 +385,14 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	slices.SortFunc(rows, func(a, b row) int {
+	slices.SortFunc(rows, func(a, b balanceRow) int {
 		return cmp.Or(
-			cmp.Compare(a.account, b.account),
-			cmp.Compare(a.commodity, b.commodity),
-			cmp.Compare(a.ledger, b.ledger),
+			cmp.Compare(a.Account, b.Account),
+			cmp.Compare(a.Commodity, b.Commodity),
+			cmp.Compare(a.Ledger, b.Ledger),
 		)
 	})
-	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "LEDGER\tACCOUNT\tAMOUNT\tCOMMODITY")
-	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ledger, r.account, r.amount, r.commodity)
-	}
-	return w.Flush()
+	return cmd.Rows(ctx, os.Stdout, slices.Values(rows), balanceLayout)
 }
 
 func writeLedgerBalances(w io.Writer, l *engine.Ledger, t time.Time, filters []*regexp.Regexp) {
