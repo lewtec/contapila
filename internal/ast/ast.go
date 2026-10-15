@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"maps"
 	"math/big"
 	"time"
 )
@@ -41,6 +42,8 @@ type Posting struct {
 type Directive interface {
 	GetDate() time.Time
 	GetFile() string
+	GetLine() int
+	GetMeta() Meta
 }
 
 type Meta struct {
@@ -56,6 +59,7 @@ type Meta struct {
 func (m Meta) GetDate() time.Time { return m.Date }
 func (m Meta) GetFile() string    { return m.File }
 func (m Meta) GetLine() int       { return m.Line }
+func (m Meta) GetMeta() Meta      { return m }
 
 type Option struct {
 	Meta
@@ -87,11 +91,7 @@ func (m Metadata) Clone() Metadata {
 	if len(m) == 0 {
 		return nil
 	}
-	out := make(Metadata, len(m))
-	for k, v := range m {
-		out[k] = v
-	}
-	return out
+	return maps.Clone(m)
 }
 
 type Commodity struct {
@@ -276,9 +276,9 @@ func WithIngestID(d Directive, id string) Directive {
 }
 
 func metaWith(md Metadata, k, v string) Metadata {
-	out := Metadata{}
-	for key, val := range md {
-		out[key] = val
+	out := maps.Clone(md)
+	if out == nil {
+		out = Metadata{}
 	}
 	out[k] = v
 	return out

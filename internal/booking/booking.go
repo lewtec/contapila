@@ -175,7 +175,7 @@ func sortedDirectives(dirs []ast.Directive) []ast.Directive {
 		if oa != ob {
 			return oa < ob
 		}
-		la, lb := directiveLine(a), directiveLine(b)
+		la, lb := a.GetLine(), b.GetLine()
 		if la != lb && la > 0 && lb > 0 {
 			return la < lb
 		}
@@ -203,14 +203,6 @@ func directiveOrder(d ast.Directive) int {
 		// Transaction, Note, Event, Price, Commodity, Option, …
 		return 1
 	}
-}
-
-func directiveLine(d ast.Directive) int {
-	type hasLine interface{ GetLine() int }
-	if x, ok := d.(hasLine); ok {
-		return x.GetLine()
-	}
-	return 0
 }
 
 func (e *Engine) bookOpen(o ast.Open) {
