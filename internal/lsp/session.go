@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -217,7 +218,7 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 	}
 
 	// project open diags
-	mergeDiags(snap.Diags, pdiags, "")
+	mergeDiags(snap.Diags, pdiags)
 
 	// Which ledgers have open files?
 	openLedgers := map[string]bool{}
@@ -250,11 +251,9 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 		}
 		// collect accounts
 		snap.Accounts[name] = led.Accounts
-		for c, info := range led.Commodities {
-			snap.Commodities[c] = info
-		}
+		maps.Copy(snap.Commodities, led.Commodities)
 		// merge commodity from CUE-only keys already in policies
-		mergeDiags(snap.Diags, led.Diags, "")
+		mergeDiags(snap.Diags, led.Diags)
 	}
 
 	// Also pull commodities from prices stream via project prices path parse is in pdb load diags already.
@@ -274,14 +273,8 @@ func (s *Session) rebuild(ctx context.Context, gen uint64, client protocol.Clien
 	s.root = p.Root
 	client = s.client
 	// publish combined diags for open ledger files
-	open := make(map[string]int32, len(s.openDocs))
-	for k, v := range s.openDocs {
-		open[k] = v
-	}
-	parseCopy := map[string][]protocol.Diagnostic{}
-	for k, v := range s.parseDiags {
-		parseCopy[k] = v
-	}
+	open := maps.Clone(s.openDocs)
+	parseCopy := maps.Clone(s.parseDiags)
 	s.mu.Unlock()
 
 	if client == nil {
@@ -340,7 +333,14 @@ func ledgerForPath(p *project.Project, path string) string {
 	return ""
 }
 
-func mergeDiags(dst map[string][]protocol.Diagnostic, list diag.List, _ string) {
+func diagSeverity(d diag.Diagnostic) protocol.DiagnosticSeverity {
+	if d.IsError() {
+		return protocol.DiagnosticSeverityError
+	}
+	return protocol.DiagnosticSeverityWarning
+}
+
+func mergeDiags(dst map[string][]protocol.Diagnostic, list diag.List) {
 	for _, d := range list {
 		if d.File == "" {
 			continue
@@ -349,27 +349,17 @@ func mergeDiags(dst map[string][]protocol.Diagnostic, list diag.List, _ string) 
 		if err != nil {
 			abs = d.File
 		}
-		// Need file text for ranges — use line-only when unknown.
-		text := ""
-		// try read later; for now line range with empty text still works
 		var r protocol.Range
 		if d.Line > 0 {
-			r = lineRange(text, d.Line)
-			if text == "" {
-				// zero-width at line start
-				r = protocol.Range{
-					Start: protocol.Position{Line: uint32(d.Line - 1), Character: 0},
-					End:   protocol.Position{Line: uint32(d.Line - 1), Character: 1},
-				}
+			// zero-width at line start when file text is not loaded
+			r = protocol.Range{
+				Start: protocol.Position{Line: uint32(d.Line - 1), Character: 0},
+				End:   protocol.Position{Line: uint32(d.Line - 1), Character: 1},
 			}
-		}
-		sev := protocol.DiagnosticSeverityWarning
-		if d.IsError() {
-			sev = protocol.DiagnosticSeverityError
 		}
 		dst[abs] = append(dst[abs], protocol.Diagnostic{
 			Range:    r,
-			Severity: sev,
+			Severity: diagSeverity(d),
 			Source:   protocol.NewOptional("contapila"),
 			Message:  protocol.String(d.Message),
 		})
@@ -411,17 +401,13 @@ func (s *Session) parseBuffer(path, text string) (hasErrors bool) {
 		if d.IsError() {
 			hasErrors = true
 		}
-		sev := protocol.DiagnosticSeverityWarning
-		if d.IsError() {
-			sev = protocol.DiagnosticSeverityError
-		}
-		r := lineRange(text, d.Line)
-		if d.Line <= 0 {
-			r = protocol.Range{}
+		var r protocol.Range
+		if d.Line > 0 {
+			r = lineRange(text, d.Line)
 		}
 		out = append(out, protocol.Diagnostic{
 			Range:    r,
-			Severity: sev,
+			Severity: diagSeverity(d),
 			Source:   protocol.NewOptional("contapila"),
 			Message:  protocol.String(d.Message),
 		})
@@ -467,13 +453,7 @@ func (s *Session) ledgerOf(path string) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.snap != nil {
-		if n, ok := s.snap.PathLedger[path]; ok {
-			return n
-		}
-		// try prefix
-		if s.snap.Root != "" {
-			// reconstruct
-		}
+		return s.snap.PathLedger[path]
 	}
 	return ""
 }
