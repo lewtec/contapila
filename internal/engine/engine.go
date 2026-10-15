@@ -636,19 +636,9 @@ func (l *Ledger) journalFiltered(from, to time.Time, account string) []JournalEn
 
 // AccountBalances returns balances for one account (and optional subaccounts rolled separately).
 func (l *Ledger) AccountBalances(account string, asOf time.Time) map[string]*big.Rat {
-	all := l.BalancesAsOf(asOf)
 	out := map[string]*big.Rat{}
-	for acct, byComm := range all {
-		if !AccountMatches(acct, account) {
-			continue
-		}
-		// only exact account for the summary strip; subaccounts listed separately in tree later
-		if acct != account {
-			continue
-		}
-		for c, n := range byComm {
-			out[c] = new(big.Rat).Set(n)
-		}
+	for c, n := range l.BalancesAsOf(asOf)[account] {
+		out[c] = new(big.Rat).Set(n)
 	}
 	return out
 }
@@ -757,11 +747,7 @@ func (l *Ledger) PnL(from, to time.Time) PnL {
 		m[acct][comm].Add(m[acct][comm], n)
 	}
 	for _, bt := range l.book.Txns {
-		d := bt.Txn.Date
-		if !from.IsZero() && d.Before(from) {
-			continue
-		}
-		if !to.IsZero() && d.After(to) {
+		if !inRange(bt.Txn.Date, from, to) {
 			continue
 		}
 		for _, p := range bt.Postings {

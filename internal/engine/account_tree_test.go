@@ -23,10 +23,10 @@ func TestNewAccountTree(t *testing.T) {
 	if tree.HasChild["Assets:Cash"] || tree.HasChild["Expenses:Food"] {
 		t.Fatalf("leaves should not have children: %v", tree.HasChild)
 	}
-	if accountLeaf("Assets:Bank:Checking") != "Checking" {
-		t.Fatal(accountLeaf("Assets:Bank:Checking"))
+	if AccountLeaf("Assets:Bank:Checking") != "Checking" {
+		t.Fatal(AccountLeaf("Assets:Bank:Checking"))
 	}
-	if !accountUnder("Assets:Cash", "Assets") || accountUnder("Expenses:Food", "Assets") {
-		t.Fatal("accountUnder")
+	if !AccountMatches("Assets:Cash", "Assets") || AccountMatches("Expenses:Food", "Assets") {
+		t.Fatal("AccountMatches")
 	}
 }

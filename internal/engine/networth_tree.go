@@ -84,7 +84,7 @@ func netWorthTreeFromLines(lines []NetWorthLine) []NetWorthTreeLine {
 		tot := big.NewRat(0, 1)
 		unpriced := false
 		for a, ag := range byAcct {
-			if accountUnder(a, n) {
+			if AccountMatches(a, n) {
 				tot.Add(tot, ag.value)
 				if ag.unpriced {
 					unpriced = true
@@ -104,25 +104,21 @@ func netWorthTreeFromLines(lines []NetWorthLine) []NetWorthTreeLine {
 			continue
 		}
 		child := tree.HasChild[n]
+		ag := byAcct[n]
 		row := NetWorthTreeLine{
 			Account:  n,
 			Path:     n,
-			Name:     accountLeaf(n),
-			Depth:    accountDepth(n),
+			Name:     AccountLeaf(n),
+			Depth:    AccountDepth(n),
 			Value:    new(big.Rat).Set(val),
-			IsRollup: child,
+			IsRollup: child || (ag != nil && len(ag.comms) > 1),
 			Unpriced: rollupUnpriced[n],
 		}
-		ag := byAcct[n]
 		if !child && ag != nil && len(ag.comms) == 1 {
 			for c, u := range ag.comms {
 				row.Commodity = c
 				row.Units = new(big.Rat).Set(u)
 			}
-		}
-		// Multi-commodity leaf account is a rollup of commodity sub-rows
-		if !child && ag != nil && len(ag.comms) > 1 {
-			row.IsRollup = true
 		}
 		out = append(out, row)
 
@@ -137,7 +133,7 @@ func netWorthTreeFromLines(lines []NetWorthLine) []NetWorthTreeLine {
 					Account:   n,
 					Path:      n + TreePathSep + c,
 					Name:      c,
-					Depth:     accountDepth(n) + 1,
+					Depth:     AccountDepth(n) + 1,
 					Units:     new(big.Rat).Set(ag.comms[c]),
 					Commodity: c,
 					Value:     new(big.Rat).Set(ag.commVal[c]),
