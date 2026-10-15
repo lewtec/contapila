@@ -110,6 +110,33 @@ func TestDiscovery(t *testing.T) {
 		}
 	})
 
+	t.Run("discoverLedgers skips gitignored directories", func(t *testing.T) {
+		if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("scratch/\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Join(root, "scratch"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "scratch", "main.beancount"), []byte(""), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		ledgers, err := discoverLedgers(filesys.OS{}, root)
+		if err != nil {
+			t.Fatalf("failed to discover ledgers: %v", err)
+		}
+		names := make(map[string]bool)
+		for _, l := range ledgers {
+			names[l.Name] = true
+		}
+		if names["scratch"] {
+			t.Fatalf("gitignored directory discovered as a ledger: %v", names)
+		}
+		if !names["personal"] || !names["business"] {
+			t.Fatalf("missing expected ledgers: %v", names)
+		}
+	})
+
 	t.Run("not a project", func(t *testing.T) {
 		_, err := findRoot(filesys.OS{}, tmp)
 		if err == nil {

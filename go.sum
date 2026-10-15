@@ -81,6 +81,8 @@ github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uh
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
 github.com/gdamore/tcell/v2 v2.6.0 h1:OKbluoP9VYmJwZwq/iLb4BxwKcwGthaa1YNBJIyCySg=
 github.com/gdamore/tcell/v2 v2.6.0/go.mod h1:be9omFATkdr0D9qewWW3d+MEvl5dha+Etb5y65J2H8Y=
+github.com/git-pkgs/gitignore v1.3.0 h1:/lcTRp3QYzZDG1CyCLBZO2gxMb6oQWC5EnttSQg4zmU=
+github.com/git-pkgs/gitignore v1.3.0/go.mod h1:zleLGZ4PhQrUXrJSsVQWKoeEllEjJH49+DjyKpzIFPM=
 github.com/go-json-experiment/json v0.0.0-20260623181947-01eb4420fa68 h1:KZaTBSyshWX3MP5jukJcNSuXDQTO+rNpt0J564dX/eg=
 github.com/go-json-experiment/json v0.0.0-20260623181947-01eb4420fa68/go.mod h1:tphK2c80bpPhMOI4v6bIc2xWywPfbqi1Z06+RcrMkDg=
 github.com/go-ng/slices v0.0.0-20230703171042-6195d35636a2 h1:UkoycH6lT7QfBw3LqHLe6GdFRhxScvVaI7A5oiAjy5s=

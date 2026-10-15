@@ -14,6 +14,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/filesys"
+	"github.com/lucasew/contapila-go/internal/ignore"
 	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/prices"
 )
@@ -107,14 +108,19 @@ func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
 	if err != nil {
 		return nil, err
 	}
+	rules := ignore.Load(root)
 
 	var ledgers []Ledger
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
+		ledgerDir := filepath.Join(root, entry.Name())
+		if rules.Ignored(ledgerDir, true) {
+			continue
+		}
 
-		ledgerPath := filepath.Join(root, entry.Name(), LedgerEntrypoint)
+		ledgerPath := filepath.Join(ledgerDir, LedgerEntrypoint)
 		if _, err := fsys.Stat(ledgerPath); err == nil {
 			ledgers = append(ledgers, Ledger{
 				Name:     entry.Name(),

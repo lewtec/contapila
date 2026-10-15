@@ -16,6 +16,7 @@ import (
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
+	"github.com/lucasew/contapila-go/internal/ignore"
 )
 
 // ByAccountDir is the account document folder under each ledger's docs/.
@@ -32,6 +33,7 @@ var datePrefix = regexp.MustCompile(`^(\d{4})(\d{2})?(\d{2})?(?:\D|$)`)
 // (omitted month/day default to 01). Under an account directory, any file that
 // does not parse is skipped and reported as an error diagnostic (project-relative
 // path). Files directly under by-account/ (no account segment) are ignored.
+// Paths skipped by the repository .gitignore are not visited.
 func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error) {
 	if ledger == "" {
 		return nil, nil, nil
@@ -50,11 +52,23 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 
 	var out []ast.Document
 	var diags diag.List
+	rules := ignore.Load(projectRoot)
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+		if rules.Ignored(path, d.IsDir()) {
+			if d.IsDir() {
+				return fs.SkipDir
+			}
+			return nil
+		}
 		if d.IsDir() {
+			return nil
+		}
+		// A rule file is not a document. Diagnosing it would fire for every
+		// by-account tree that carries its own .gitignore.
+		if d.Name() == ".gitignore" {
 			return nil
 		}
 		rel, err := filepath.Rel(root, path)
