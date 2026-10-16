@@ -451,6 +451,51 @@ include "parts/*"
 	}
 }
 
+func TestLoadFileGlobSkipsGitignored(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, ".gitignore", "skip.beancount\nhidden/\n")
+	writeFile(t, dir, "parts/ok.beancount", `
+2020-01-01 open Assets:OK
+`)
+	writeFile(t, dir, "parts/skip.beancount", `
+2020-01-01 open Assets:Skip
+`)
+	writeFile(t, dir, "hidden/secret.beancount", `
+2020-01-01 open Assets:Hidden
+`)
+	// Named include of an ignored file still loads. Globs do not.
+	writeFile(t, dir, "local.beancount", `
+2020-01-01 open Assets:Local
+`)
+	main := writeFile(t, dir, "main.beancount", `
+include "parts/*.beancount"
+include "hidden/*.beancount"
+include "local.beancount"
+2020-01-01 open Assets:Main
+`)
+
+	dirs, diags, err := LoadFile(t.Context(), main)
+	if err != nil {
+		t.Fatalf("LoadFile: %v", err)
+	}
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %v", diags)
+	}
+	if !hasDiagMsg(diags, diag.Warn, "include glob matched zero files") {
+		t.Fatalf("expected zero-match warn for ignored glob, diags=%v", diags)
+	}
+	got := openAccounts(dirs)
+	want := []string{"Assets:OK", "Assets:Local", "Assets:Main"}
+	if len(got) != len(want) {
+		t.Fatalf("opens=%v want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("opens=%v want %v", got, want)
+		}
+	}
+}
+
 func TestLoadFileInvalidGlobPattern(t *testing.T) {
 	dir := t.TempDir()
 	// Unclosed character class is an invalid filepath.Glob pattern.

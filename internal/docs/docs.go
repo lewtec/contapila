@@ -3,6 +3,7 @@ package docs
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
+	"github.com/lucasew/contapila-go/internal/ignore"
 )
 
 // ByAccountDir is the account document folder under each ledger's docs/.
@@ -32,11 +34,15 @@ var datePrefix = regexp.MustCompile(`^(\d{4})(\d{2})?(\d{2})?(?:\D|$)`)
 // (omitted month/day default to 01). Under an account directory, any file that
 // does not parse is skipped and reported as an error diagnostic (project-relative
 // path). Files directly under by-account/ (no account segment) are ignored.
-func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error) {
+// Paths skipped by the repository .gitignore are not visited.
+func ScanByAccount(ctx context.Context, projectRoot, ledger string) ([]ast.Document, diag.List, error) {
 	if ledger == "" {
 		return nil, nil, nil
 	}
 	root := filepath.Join(projectRoot, ledger, "docs", ByAccountDir)
+	if abs, absErr := filepath.Abs(root); absErr == nil {
+		root = abs
+	}
 	info, err := os.Stat(root)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -50,14 +56,30 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 
 	var out []ast.Document
 	var diags diag.List
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	rules, err := ignore.Open(ctx, projectRoot)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Walk the ignore filesystem so ignored names are not visited.
+	// root is the by-account directory; rules.Root may be a parent worktree.
+	walkFrom, err := filepath.Rel(rules.Root, root)
+	if err != nil || walkFrom == ".." || strings.HasPrefix(walkFrom, ".."+string(filepath.Separator)) {
+		return nil, nil, fmt.Errorf("docs path %s is outside %s", root, rules.Root)
+	}
+	err = fs.WalkDir(rules.FS, filepath.ToSlash(walkFrom), func(name string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
 			return nil
 		}
-		rel, err := filepath.Rel(root, path)
+		// A rule file is not a document. Diagnosing it would fire for every
+		// by-account tree that carries its own .gitignore.
+		if d.Name() == ".gitignore" {
+			return nil
+		}
+		abs := filepath.Join(rules.Root, filepath.FromSlash(name))
+		rel, err := filepath.Rel(root, abs)
 		if err != nil {
 			return err
 		}
@@ -84,6 +106,10 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 		return nil
 	})
 	if err != nil {
+		// The by-account directory itself is ignored.
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, diags, nil
+		}
 		return nil, diags, err
 	}
 	sortDocuments(out)

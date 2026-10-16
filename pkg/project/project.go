@@ -14,6 +14,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/filesys"
+	"github.com/lucasew/contapila-go/internal/ignore"
 	"github.com/lucasew/contapila-go/internal/plugin"
 	"github.com/lucasew/contapila-go/internal/prices"
 )
@@ -102,8 +103,12 @@ func findRoot(fsys filesys.FS, startDir string) (string, error) {
 	return "", fmt.Errorf("%w (searched upward for %s)", ErrNotAProject, ProjectMarker)
 }
 
-func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
+func discoverLedgers(ctx context.Context, fsys filesys.FS, root string) ([]Ledger, error) {
 	entries, err := fsys.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+	rules, err := ignore.Open(ctx, root)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +118,12 @@ func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
 		if !entry.IsDir() {
 			continue
 		}
+		ledgerDir := filepath.Join(root, entry.Name())
+		if rules.Ignored(ledgerDir) {
+			continue
+		}
 
-		ledgerPath := filepath.Join(root, entry.Name(), LedgerEntrypoint)
+		ledgerPath := filepath.Join(ledgerDir, LedgerEntrypoint)
 		if _, err := fsys.Stat(ledgerPath); err == nil {
 			ledgers = append(ledgers, Ledger{
 				Name:     entry.Name(),
@@ -128,7 +137,7 @@ func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
 
 // LedgerNames lists ledger directory names for the project that contains start.
 // start may be the project root or a directory inside it. Names are sorted.
-func LedgerNames(start string) ([]string, error) {
+func LedgerNames(ctx context.Context, start string) ([]string, error) {
 	if start == "" {
 		var err error
 		start, err = os.Getwd()
@@ -140,7 +149,7 @@ func LedgerNames(start string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	ledgers, err := discoverLedgers(filesys.OS{}, root)
+	ledgers, err := discoverLedgers(ctx, filesys.OS{}, root)
 	if err != nil {
 		return nil, fmt.Errorf("discover ledgers: %w", err)
 	}
@@ -174,7 +183,7 @@ func OpenProjectFS(ctx context.Context, fsys filesys.FS, cwd string) (*Project, 
 	}
 
 	// Discover ledgers first so CUE can type #LedgerName from the filesystem.
-	ledgers, err := discoverLedgers(fsys, root)
+	ledgers, err := discoverLedgers(ctx, fsys, root)
 	if err != nil {
 		return nil, fmt.Errorf("discover ledgers: %w", err)
 	}

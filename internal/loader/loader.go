@@ -13,6 +13,7 @@ import (
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/filesys"
+	"github.com/lucasew/contapila-go/internal/ignore"
 	"github.com/lucasew/contapila-go/internal/parser"
 	"github.com/lucasew/contapila-go/internal/source"
 )
@@ -46,11 +47,15 @@ func LoadFileFS(ctx context.Context, fsys filesys.FS, path string) ([]ast.Direct
 	seen := map[string]bool{}
 	stack := map[string]bool{}
 	var out []ast.Directive
-	err := loadOne(ctx, fsys, path, &out, &diags, seen, stack)
+	rules, err := ignore.Open(ctx, path)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = loadOne(ctx, fsys, rules, path, &out, &diags, seen, stack)
 	return out, diags, err
 }
 
-func loadOne(ctx context.Context, fsys filesys.FS, path string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
+func loadOne(ctx context.Context, fsys filesys.FS, rules *ignore.Rules, path string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -92,14 +97,14 @@ func loadOne(ctx context.Context, fsys filesys.FS, path string, out *[]ast.Direc
 			*out = append(*out, d)
 			continue
 		}
-		if err := expandInclude(ctx, fsys, dir, inc.Path, out, diags, seen, stack); err != nil {
+		if err := expandInclude(ctx, fsys, rules, dir, inc.Path, out, diags, seen, stack); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func expandInclude(ctx context.Context, fsys filesys.FS, baseDir, pattern string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
+func expandInclude(ctx context.Context, fsys filesys.FS, rules *ignore.Rules, baseDir, pattern string, out *[]ast.Directive, diags *diag.List, seen, stack map[string]bool) error {
 	pattern = strings.TrimSpace(pattern)
 	if pattern == "" {
 		diags.Error(baseDir, 0, "include path is empty")
@@ -123,7 +128,8 @@ func expandInclude(ctx context.Context, fsys filesys.FS, baseDir, pattern string
 			diags.Error(baseDir, 0, fmt.Sprintf("include is a directory: %s", pattern))
 			return fmt.Errorf("%w: %s", ErrIncludeIsDir, pattern)
 		}
-		return loadOne(ctx, fsys, target, out, diags, seen, stack)
+		// A named include is not a discovery walk; gitignore does not drop it.
+		return loadOne(ctx, fsys, rules, target, out, diags, seen, stack)
 	}
 
 	// Glob still uses the process FS (overlay files without disk names won't appear).
@@ -136,6 +142,8 @@ func expandInclude(ctx context.Context, fsys filesys.FS, baseDir, pattern string
 		return nil
 	}
 	sort.Strings(matches)
+	sawFile := false
+	loaded := 0
 	for _, m := range matches {
 		info, err := fsys.Stat(m)
 		if err != nil {
@@ -148,9 +156,17 @@ func expandInclude(ctx context.Context, fsys filesys.FS, baseDir, pattern string
 		if info.IsDir() {
 			continue
 		}
-		if err := loadOne(ctx, fsys, m, out, diags, seen, stack); err != nil {
+		sawFile = true
+		if rules.Ignored(m) {
+			continue
+		}
+		if err := loadOne(ctx, fsys, rules, m, out, diags, seen, stack); err != nil {
 			return err
 		}
+		loaded++
+	}
+	if sawFile && loaded == 0 {
+		diags.Warn(baseDir, 0, fmt.Sprintf("include glob matched zero files: %s", pattern))
 	}
 	return nil
 }

@@ -15,11 +15,11 @@ func TestLedgerNames(t *testing.T) {
 	require.NoError(t, err)
 	want := []string{"acme", "ong", "personal", "smuggle"}
 	for _, start := range []string{root, filepath.Join(root, "personal")} {
-		names, err := LedgerNames(start)
+		names, err := LedgerNames(t.Context(), start)
 		require.NoError(t, err)
 		assert.Equal(t, want, names, "LedgerNames(%s)", start)
 	}
-	_, err = LedgerNames(t.TempDir())
+	_, err = LedgerNames(t.Context(), t.TempDir())
 	require.ErrorIs(t, err, ErrNotAProject)
 }
 
@@ -75,7 +75,7 @@ func TestDiscovery(t *testing.T) {
 	})
 
 	t.Run("discoverLedgers", func(t *testing.T) {
-		ledgers, err := discoverLedgers(filesys.OS{}, root)
+		ledgers, err := discoverLedgers(t.Context(), filesys.OS{}, root)
 		if err != nil {
 			t.Fatalf("failed to discover ledgers: %v", err)
 		}
@@ -107,6 +107,33 @@ func TestDiscovery(t *testing.T) {
 		}
 		if !p.PricesMissing {
 			t.Errorf("expected prices missing")
+		}
+	})
+
+	t.Run("discoverLedgers skips gitignored directories", func(t *testing.T) {
+		if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("scratch/\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Join(root, "scratch"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "scratch", "main.beancount"), []byte(""), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		ledgers, err := discoverLedgers(t.Context(), filesys.OS{}, root)
+		if err != nil {
+			t.Fatalf("failed to discover ledgers: %v", err)
+		}
+		names := make(map[string]bool)
+		for _, l := range ledgers {
+			names[l.Name] = true
+		}
+		if names["scratch"] {
+			t.Fatalf("gitignored directory discovered as a ledger: %v", names)
+		}
+		if !names["personal"] || !names["business"] {
+			t.Fatalf("missing expected ledgers: %v", names)
 		}
 	})
 

@@ -27,7 +27,7 @@ func TestScanByAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, diags, err := ScanByAccount(root, "personal")
+	got, diags, err := ScanByAccount(t.Context(), root, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestScanByAccount_badFilenames(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, diags, err := ScanByAccount(root, "personal")
+	got, diags, err := ScanByAccount(t.Context(), root, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,6 +111,55 @@ func TestScanByAccount_badFilenames(t *testing.T) {
 		if !found {
 			t.Errorf("missing diag for %s in %v", tc.name, diags)
 		}
+	}
+}
+
+func TestScanByAccount_gitignore(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("*.draft\nsecret/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(root, "personal", "docs", "by-account", "Assets", "Cash")
+	if err := os.MkdirAll(filepath.Join(dir, "secret"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "nested"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "nested", ".gitignore"), []byte("*.pdf\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	files := []string{
+		filepath.Join(dir, "20240301_ok.txt"),
+		filepath.Join(dir, "20240301_skip.draft"),
+		filepath.Join(dir, "secret", "20240302_hidden.txt"),
+		filepath.Join(dir, "nested", "20240303_keep.txt"),
+		filepath.Join(dir, "nested", "20240303_drop.pdf"),
+	}
+	for _, path := range files {
+		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, diags, err := ScanByAccount(t.Context(), root, "personal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diags.HasErrors() {
+		t.Fatalf("ignored paths should not be diagnosed: %v", diags)
+	}
+	var paths []string
+	for _, d := range got {
+		paths = append(paths, d.Path)
+	}
+	// Newest date first, matching sortDocuments.
+	want := []string{
+		"personal/docs/by-account/Assets/Cash/nested/20240303_keep.txt",
+		"personal/docs/by-account/Assets/Cash/20240301_ok.txt",
+	}
+	if strings.Join(paths, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("paths=%v want %v", paths, want)
 	}
 }
 

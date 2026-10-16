@@ -316,7 +316,7 @@ func OpenLedgerFS(ctx context.Context, fsys filesys.FS, p *project.Project, pdb 
 	}
 	var synthDocs []ast.Document
 	if on("docs_folder", true) {
-		synth, sdiags, err := docs.ScanByAccount(root, name)
+		synth, sdiags, err := docs.ScanByAccount(ctx, root, name)
 		diags.Merge(sdiags)
 		if err != nil {
 			slog.Warn("docs scan failed", "ledger", name, "err", err)
