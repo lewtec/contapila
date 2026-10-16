@@ -3,6 +3,7 @@ package docs
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -39,6 +40,9 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 		return nil, nil, nil
 	}
 	root := filepath.Join(projectRoot, ledger, "docs", ByAccountDir)
+	if abs, absErr := filepath.Abs(root); absErr == nil {
+		root = abs
+	}
 	info, err := os.Stat(root)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -52,16 +56,19 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 
 	var out []ast.Document
 	var diags diag.List
-	rules := ignore.Load(projectRoot)
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	rules, err := ignore.Open(context.Background(), projectRoot)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Walk the ignore filesystem so ignored names are not visited.
+	// root is the by-account directory; rules.Root may be a parent worktree.
+	walkFrom, err := filepath.Rel(rules.Root, root)
+	if err != nil || walkFrom == ".." || strings.HasPrefix(walkFrom, ".."+string(filepath.Separator)) {
+		return nil, nil, fmt.Errorf("docs path %s is outside %s", root, rules.Root)
+	}
+	err = fs.WalkDir(rules.FS, filepath.ToSlash(walkFrom), func(name string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
-		}
-		if rules.Ignored(path, d.IsDir()) {
-			if d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
 		}
 		if d.IsDir() {
 			return nil
@@ -71,7 +78,8 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 		if d.Name() == ".gitignore" {
 			return nil
 		}
-		rel, err := filepath.Rel(root, path)
+		abs := filepath.Join(rules.Root, filepath.FromSlash(name))
+		rel, err := filepath.Rel(root, abs)
 		if err != nil {
 			return err
 		}
@@ -98,6 +106,10 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 		return nil
 	})
 	if err != nil {
+		// The by-account directory itself is ignored.
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, diags, nil
+		}
 		return nil, diags, err
 	}
 	sortDocuments(out)

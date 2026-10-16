@@ -108,7 +108,10 @@ func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
 	if err != nil {
 		return nil, err
 	}
-	rules := ignore.Load(root)
+	rules, err := ignore.Open(context.Background(), root)
+	if err != nil {
+		return nil, err
+	}
 
 	var ledgers []Ledger
 	for _, entry := range entries {
@@ -116,7 +119,7 @@ func discoverLedgers(fsys filesys.FS, root string) ([]Ledger, error) {
 			continue
 		}
 		ledgerDir := filepath.Join(root, entry.Name())
-		if rules.Ignored(ledgerDir, true) {
+		if rules.Ignored(ledgerDir) {
 			continue
 		}
 

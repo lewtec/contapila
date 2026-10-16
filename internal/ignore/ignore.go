@@ -1,160 +1,123 @@
-// Package ignore reports paths skipped by a repository's gitignore rules.
+// Package ignore collects a repository's gitignore rules.
 //
-// lewkit has no gitignore matcher. Matching uses github.com/git-pkgs/gitignore
-// (the library other lewtec tools already call). Rules come from the
-// worktree .gitignore files and .git/info/exclude. The user's global
-// excludes file is not consulted.
+// Matching is github.com/lewtec/lewkit/x/fs/ignore. This package only
+// chooses the directory that collector reads: the git worktree that
+// contains start, or start's own directory when there is no worktree.
 package ignore
 
 import (
+	"context"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/git-pkgs/gitignore"
+	fsignore "github.com/lewtec/lewkit/x/fs/ignore"
 )
 
-// Rules is a gitignore matcher rooted at a worktree (or at start, when
-// there is no .git). A nil Rules ignores nothing.
+// ErrNilContext is returned when [Open] is called with a nil context.
+var ErrNilContext = errors.New("nil context")
+
+// Rules is the lewkit ignore filesystem for one tree.
+// A nil Rules ignores nothing.
 type Rules struct {
-	root string
-	m    *gitignore.Matcher
+	// FS hides ignored names. Paths are slash-separated, relative to Root.
+	FS *fsignore.FS
+	// Root is the absolute directory FS is rooted at.
+	Root string
 }
 
-// Load reads ignore rules that apply to start. start may be a file or a
-// directory. The root is the nearest .git worktree walking upward, or
-// start's directory when there is none, so a .gitignore next to the
-// files still applies.
-func Load(start string) *Rules {
-	dir := filepath.Clean(start)
-	if dir == "" || dir == "." {
-		abs, err := filepath.Abs(start)
-		if err != nil {
-			return &Rules{}
-		}
-		dir = abs
+// Open reads the ignore rules that apply to start.
+// start may be a file or a directory. Inside a git worktree, Root is the
+// worktree root, so a parent .gitignore applies. Without a worktree, Root
+// is start's directory.
+func Open(ctx context.Context, start string) (*Rules, error) {
+	if ctx == nil {
+		return nil, ErrNilContext
 	}
-	if !filepath.IsAbs(dir) {
-		abs, err := filepath.Abs(dir)
-		if err != nil {
-			return &Rules{}
-		}
-		dir = abs
-	}
-	if info, err := os.Stat(dir); err == nil && !info.IsDir() {
-		dir = filepath.Dir(dir)
-	}
-
-	root := findGitRoot(dir)
-	if root == "" {
-		root = dir
-	}
-
-	m := gitignore.New("")
-	m.AddFromFile(filepath.Join(root, ".git", "info", "exclude"), "")
-	m.AddFromFile(filepath.Join(root, ".gitignore"), "")
-	loadAncestorGitignores(m, root, dir)
-	walkNestedGitignores(m, root, dir)
-	return &Rules{root: root, m: m}
-}
-
-// Ignored reports whether path is skipped by r. Directories named .git
-// are always ignored. Paths outside r's root are not.
-func (r *Rules) Ignored(path string, isDir bool) bool {
-	if r == nil || r.m == nil || r.root == "" {
-		return false
-	}
-	abs, err := filepath.Abs(path)
+	dir, err := startDir(start)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// A virtual root such as the content provider path is not on disk.
+			// Scanning its parent would walk the filesystem root.
+			return &Rules{}, nil
+		}
+		return nil, err
+	}
+	root := worktreeRoot(dir)
+	collected, err := fsignore.Collect(ctx, os.DirFS(root), fsignore.Config{
+		// .git is not a ledger path. The collector already refuses to
+		// descend into it while reading rules.
+		SkipDirs: []string{".git"},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Rules{FS: collected, Root: root}, nil
+}
+
+// Ignored reports whether path is skipped.
+// Paths outside Root, and Root itself, are not ignored.
+func (r *Rules) Ignored(path string) bool {
+	if r == nil || r.FS == nil || r.Root == "" {
 		return false
+	}
+	rel, ok := relUnder(r.Root, path)
+	if !ok {
+		return false
+	}
+	return r.FS.Ignored(rel)
+}
+
+func startDir(start string) (string, error) {
+	if strings.TrimSpace(start) == "" {
+		return "", fs.ErrInvalid
+	}
+	abs, err := filepath.Abs(start)
+	if err != nil {
+		return "", err
 	}
 	abs = filepath.Clean(abs)
-	if isDir && filepath.Base(abs) == ".git" {
-		return true
+	info, err := os.Stat(abs)
+	if err != nil {
+		return "", err
 	}
-	rel, err := filepath.Rel(r.root, abs)
-	if err != nil || rel == "." || rel == "" {
-		return false
+	if !info.IsDir() {
+		return filepath.Dir(abs), nil
 	}
-	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return false
-	}
-	return r.m.MatchPath(filepath.ToSlash(rel), isDir)
+	return abs, nil
 }
 
-func findGitRoot(start string) string {
-	dir := filepath.Clean(start)
-	for {
-		if isGitWorkTree(dir) {
+func worktreeRoot(dir string) string {
+	for d := dir; ; {
+		if isGitWorkTree(d) {
+			return d
+		}
+		parent := filepath.Dir(d)
+		if parent == d {
 			return dir
 		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
+		d = parent
 	}
 }
 
-func isGitWorkTree(root string) bool {
-	st, err := os.Lstat(filepath.Join(root, ".git"))
+func isGitWorkTree(dir string) bool {
+	st, err := os.Lstat(filepath.Join(dir, ".git"))
 	if err != nil {
 		return false
 	}
 	return st.IsDir() || st.Mode().IsRegular()
 }
 
-// loadAncestorGitignores adds .gitignore files on the path from root
-// (exclusive) down to start (inclusive). root's own file is loaded by Load.
-func loadAncestorGitignores(m *gitignore.Matcher, root, start string) {
-	if start == root {
-		return
-	}
-	rel, err := filepath.Rel(root, start)
+func relUnder(root, path string) (string, bool) {
+	abs, err := filepath.Abs(path)
 	if err != nil {
-		return
+		return "", false
 	}
-	rel = filepath.ToSlash(rel)
-	if rel == ".." || strings.HasPrefix(rel, "../") {
-		return
+	rel, err := filepath.Rel(root, abs)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", false
 	}
-	var b strings.Builder
-	for _, part := range strings.Split(rel, "/") {
-		if part == "" || part == "." {
-			continue
-		}
-		if b.Len() > 0 {
-			b.WriteByte('/')
-		}
-		b.WriteString(part)
-		dirRel := b.String()
-		m.AddFromFile(filepath.Join(root, filepath.FromSlash(dirRel), ".gitignore"), dirRel)
-	}
-}
-
-// walkNestedGitignores loads .gitignore files under start. A directory's
-// rules are added before its children are considered, and an ignored
-// directory is not entered.
-func walkNestedGitignores(m *gitignore.Matcher, root, start string) {
-	_ = filepath.WalkDir(start, func(path string, d os.DirEntry, err error) error {
-		if err != nil || path == start || !d.IsDir() {
-			return nil
-		}
-		if d.Name() == ".git" {
-			return filepath.SkipDir
-		}
-		rel, relErr := filepath.Rel(root, path)
-		if relErr != nil {
-			return nil
-		}
-		rel = filepath.ToSlash(rel)
-		if rel == ".." || strings.HasPrefix(rel, "../") {
-			return filepath.SkipDir
-		}
-		if m.MatchPath(rel, true) {
-			return filepath.SkipDir
-		}
-		m.AddFromFile(filepath.Join(path, ".gitignore"), rel)
-		return nil
-	})
+	return filepath.ToSlash(rel), true
 }

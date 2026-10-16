@@ -55,7 +55,7 @@ func main() {
 	// A release stamp with empty argv is the desktop app (lewkit release run).
 	// Any argument stays on the CLI.
 	if wantWindow(os.Args[1:]) {
-		entry.Main(runApp)
+		entry.Main(context.Background(), runApp)
 		return
 	}
 

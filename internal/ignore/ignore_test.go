@@ -17,7 +17,16 @@ func writeFile(t *testing.T, dir, name, content string) {
 	}
 }
 
-func TestLoadSkipsGitignorePatterns(t *testing.T) {
+func open(t *testing.T, start string) *Rules {
+	t.Helper()
+	rules, err := Open(t.Context(), start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rules
+}
+
+func TestOpenSkipsGitignorePatterns(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, ".gitignore", "*.draft\nsecret/\n")
 	writeFile(t, root, "keep.txt", "k")
@@ -28,31 +37,31 @@ func TestLoadSkipsGitignorePatterns(t *testing.T) {
 	writeFile(t, root, "docs/keep.pdf", "p")
 	writeFile(t, root, "docs/b.txt", "t")
 
-	rules := Load(root)
-	if rules.Ignored(filepath.Join(root, "keep.txt"), false) {
+	rules := open(t, root)
+	if rules.Ignored(filepath.Join(root, "keep.txt")) {
 		t.Fatal("keep.txt should not be ignored")
 	}
-	if !rules.Ignored(filepath.Join(root, "note.draft"), false) {
+	if !rules.Ignored(filepath.Join(root, "note.draft")) {
 		t.Fatal("note.draft should be ignored")
 	}
-	if !rules.Ignored(filepath.Join(root, "secret"), true) {
+	if !rules.Ignored(filepath.Join(root, "secret")) {
 		t.Fatal("secret/ should be ignored")
 	}
-	if !rules.Ignored(filepath.Join(root, "secret", "hidden.txt"), false) {
+	if !rules.Ignored(filepath.Join(root, "secret", "hidden.txt")) {
 		t.Fatal("file under ignored directory should be ignored")
 	}
-	if !rules.Ignored(filepath.Join(root, "docs", "a.pdf"), false) {
+	if !rules.Ignored(filepath.Join(root, "docs", "a.pdf")) {
 		t.Fatal("nested gitignore should ignore docs/a.pdf")
 	}
-	if rules.Ignored(filepath.Join(root, "docs", "keep.pdf"), false) {
+	if rules.Ignored(filepath.Join(root, "docs", "keep.pdf")) {
 		t.Fatal("nested negation should keep docs/keep.pdf")
 	}
-	if rules.Ignored(filepath.Join(root, "docs", "b.txt"), false) {
+	if rules.Ignored(filepath.Join(root, "docs", "b.txt")) {
 		t.Fatal("docs/b.txt should not be ignored")
 	}
 }
 
-func TestLoadUsesParentWorktreeGitignore(t *testing.T) {
+func TestOpenUsesParentWorktreeGitignore(t *testing.T) {
 	root := t.TempDir()
 	// .git directory marks the worktree. A .gitignore above the project applies.
 	if err := os.MkdirAll(filepath.Join(root, ".git"), 0o755); err != nil {
@@ -63,16 +72,16 @@ func TestLoadUsesParentWorktreeGitignore(t *testing.T) {
 	writeFile(t, proj, "skip-me/file.txt", "x")
 	writeFile(t, proj, "keep/file.txt", "y")
 
-	rules := Load(proj)
-	if !rules.Ignored(filepath.Join(proj, "skip-me"), true) {
+	rules := open(t, proj)
+	if !rules.Ignored(filepath.Join(proj, "skip-me")) {
 		t.Fatal("parent worktree pattern should ignore skip-me/")
 	}
-	if rules.Ignored(filepath.Join(proj, "keep", "file.txt"), false) {
+	if rules.Ignored(filepath.Join(proj, "keep", "file.txt")) {
 		t.Fatal("keep/file.txt should not be ignored")
 	}
 }
 
-func TestLoadExcludeOverriddenByGitignore(t *testing.T) {
+func TestOpenExcludeOverriddenByGitignore(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".git", "info"), 0o755); err != nil {
 		t.Fatal(err)
@@ -82,11 +91,11 @@ func TestLoadExcludeOverriddenByGitignore(t *testing.T) {
 	writeFile(t, root, "drop.tmp", "d")
 	writeFile(t, root, "keep.tmp", "k")
 
-	rules := Load(root)
-	if !rules.Ignored(filepath.Join(root, "drop.tmp"), false) {
+	rules := open(t, root)
+	if !rules.Ignored(filepath.Join(root, "drop.tmp")) {
 		t.Fatal("exclude should ignore drop.tmp")
 	}
-	if rules.Ignored(filepath.Join(root, "keep.tmp"), false) {
+	if rules.Ignored(filepath.Join(root, "keep.tmp")) {
 		t.Fatal(".gitignore negation should override exclude for keep.tmp")
 	}
 }
@@ -97,11 +106,11 @@ func TestIgnoredOutsideRoot(t *testing.T) {
 	other := t.TempDir()
 	writeFile(t, other, "file.txt", "x")
 
-	rules := Load(root)
-	if rules.Ignored(filepath.Join(other, "file.txt"), false) {
+	rules := open(t, root)
+	if rules.Ignored(filepath.Join(other, "file.txt")) {
 		t.Fatal("path outside the root should not be ignored")
 	}
-	if rules.Ignored(root, true) {
+	if rules.Ignored(root) {
 		t.Fatal("the root directory itself should not be ignored")
 	}
 }
@@ -111,8 +120,8 @@ func TestGitDirAlwaysIgnored(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".git", "objects"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	rules := Load(root)
-	if !rules.Ignored(filepath.Join(root, ".git"), true) {
+	rules := open(t, root)
+	if !rules.Ignored(filepath.Join(root, ".git")) {
 		t.Fatal(".git directory should be ignored")
 	}
 }
@@ -120,13 +129,25 @@ func TestGitDirAlwaysIgnored(t *testing.T) {
 func TestNoRulesIgnoresNothing(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "a.txt", "a")
-	rules := Load(root)
-	if rules.Ignored(filepath.Join(root, "a.txt"), false) {
+	rules := open(t, root)
+	if rules.Ignored(filepath.Join(root, "a.txt")) {
 		t.Fatal("without rules, a.txt should not be ignored")
 	}
 	var none *Rules
-	if none.Ignored(filepath.Join(root, "a.txt"), false) {
+	if none.Ignored(filepath.Join(root, "a.txt")) {
 		t.Fatal("nil Rules should ignore nothing")
+	}
+}
+
+func TestOpenMissingPathIgnoresNothing(t *testing.T) {
+	root := t.TempDir()
+	rules, err := Open(t.Context(), filepath.Join(root, "missing", "nope.beancount"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, root, "secret.txt", "s")
+	if rules.Ignored(filepath.Join(root, "secret.txt")) {
+		t.Fatal("a missing start path should not invent ignore rules")
 	}
 }
 
@@ -136,8 +157,8 @@ func TestParentGitignoreWithoutWorktreeDoesNotApply(t *testing.T) {
 	child := filepath.Join(parent, "child")
 	writeFile(t, child, "secret.txt", "s")
 
-	rules := Load(child)
-	if rules.Ignored(filepath.Join(child, "secret.txt"), false) {
+	rules := open(t, child)
+	if rules.Ignored(filepath.Join(child, "secret.txt")) {
 		t.Fatal("a parent .gitignore should not apply without a .git worktree")
 	}
 }

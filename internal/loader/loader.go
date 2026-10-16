@@ -47,8 +47,11 @@ func LoadFileFS(ctx context.Context, fsys filesys.FS, path string) ([]ast.Direct
 	seen := map[string]bool{}
 	stack := map[string]bool{}
 	var out []ast.Directive
-	rules := ignore.Load(path)
-	err := loadOne(ctx, fsys, rules, path, &out, &diags, seen, stack)
+	rules, err := ignore.Open(ctx, path)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = loadOne(ctx, fsys, rules, path, &out, &diags, seen, stack)
 	return out, diags, err
 }
 
@@ -154,7 +157,7 @@ func expandInclude(ctx context.Context, fsys filesys.FS, rules *ignore.Rules, ba
 			continue
 		}
 		sawFile = true
-		if rules.Ignored(m, false) {
+		if rules.Ignored(m) {
 			continue
 		}
 		if err := loadOne(ctx, fsys, rules, m, out, diags, seen, stack); err != nil {
