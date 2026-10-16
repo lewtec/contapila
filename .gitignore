@@ -2,3 +2,4 @@ dist/
 
 # Grok agent worktrees / local tooling
 .grok/
+.DS_Store
