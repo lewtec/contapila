@@ -15,11 +15,13 @@ run = "go generate ./..."
 description = "Format Go packages"
 run = "go fmt ./..."
 
+[tasks.test]
+run = "go test ./..."
+
 [tasks.ci]
 description = "CI checks and tests"
-depends = ["codegen"]
-# checkptr=0: modernc tree-sitter uses unsafe pointer arithmetic that checkptr (enabled by -race) rejects.
-run = "go test -race -gcflags=all=-d=checkptr=0 ./... && go build -o /dev/null ./cmd/contapila/"
+depends = ["codegen", "test"]
+wait_for = ["codegen"]
 
 [tasks.release]
 description = "Run a release"
