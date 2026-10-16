@@ -1,7 +1,7 @@
 package main
 
 import (
-	"os"
+	"strings"
 	"testing"
 
 	"github.com/lewtec/lewkit/x/cmd"
@@ -98,7 +98,8 @@ func TestBalancesLedgerFlag(t *testing.T) {
 	t.Chdir(dir)
 	lewtest.DiscardSlog(t)
 
-	err := cmd.ParseErr[cmd.App[root]](t, "balances", "--ledger", "nope")
+	badLedger := cmd.ParseOK[cmd.App[root]](t, "balances", "--ledger", "nope")
+	err := badLedger.Run(t.Context())
 	require.ErrorIs(t, err, cmd.ErrInvalidArgument)
 	assert.Contains(t, err.Error(), "acme, ong, personal, smuggle")
 
@@ -138,32 +139,35 @@ func TestBalancesHelpLedgerChoices(t *testing.T) {
 	assert.Contains(t, out, "--account")
 	assert.Contains(t, out, "unanchored")
 	assert.Contains(t, out, "--ledger")
-	assert.Contains(t, out, "choices: acme, ong, personal, smuggle")
-
-	t.Chdir(t.TempDir())
-	out = balancesHelp(t, "balances", "--help")
-	assert.Contains(t, out, "--ledger")
-	assert.NotContains(t, out, "--ledger  limit to this ledger (choices:")
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, "--ledger") {
+			assert.NotContains(t, line, "choices:")
+		}
+	}
 }
 
-func TestBalancesHelpDirectoryFlag(t *testing.T) {
+func TestBalancesLedgerFlagDirectory(t *testing.T) {
 	dir := exampleDir(t)
 	t.Chdir(t.TempDir())
 	t.Setenv("CONTAPILA_DIRECTORY", t.TempDir())
-	withArgs(t, "contapila", "-C", dir, "balances", "--help")
 	lewtest.DiscardSlog(t)
-	out := balancesHelp(t, "-C", dir, "balances", "--help")
-	assert.Contains(t, out, "choices: acme, ong, personal, smuggle")
+
+	app := cmd.ParseOK[cmd.App[root]](t, "-C", dir, "balances", "--ledger", "nope")
+	err := app.Run(t.Context())
+	require.ErrorIs(t, err, cmd.ErrInvalidArgument)
+	assert.Contains(t, err.Error(), "acme, ong, personal, smuggle")
 }
 
-func TestBalancesHelpDirectoryEnv(t *testing.T) {
+func TestBalancesLedgerFlagDirectoryEnv(t *testing.T) {
 	dir := exampleDir(t)
 	t.Chdir(t.TempDir())
 	t.Setenv("CONTAPILA_DIRECTORY", dir)
-	withArgs(t, "contapila", "balances", "--help")
 	lewtest.DiscardSlog(t)
-	out := balancesHelp(t, "balances", "--help")
-	assert.Contains(t, out, "choices: acme, ong, personal, smuggle")
+
+	app := cmd.ParseOK[cmd.App[root]](t, "balances", "--ledger", "nope")
+	err := app.Run(t.Context())
+	require.ErrorIs(t, err, cmd.ErrInvalidArgument)
+	assert.Contains(t, err.Error(), "acme, ong, personal, smuggle")
 }
 
 func TestDirectoryFromArgs(t *testing.T) {
@@ -206,11 +210,4 @@ func balancesHelp(t *testing.T, args ...string) string {
 	return lewtest.Stdout(t, func() {
 		require.NoError(t, app.Run(t.Context()))
 	})
-}
-
-func withArgs(t *testing.T, args ...string) {
-	t.Helper()
-	orig := os.Args
-	t.Cleanup(func() { os.Args = orig })
-	os.Args = args
 }

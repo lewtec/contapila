@@ -53,7 +53,6 @@ var (
 
 func main() {
 	ctx := context.Background()
-	parseContext = ctx
 	// A release stamp with empty argv is the desktop app (lewkit release run).
 	// Any argument stays on the CLI.
 	if wantWindow(os.Args[1:]) {
@@ -67,7 +66,6 @@ func main() {
 	// thread.Run keeps the process main thread free for the macOS web view.
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	parseContext = ctx
 	err := thread.Run(ctx, func(ctx context.Context) error {
 		return execute(ctx, os.Args[1:])
 	})
@@ -337,9 +335,22 @@ var balanceLayout = table.Must(table.Make[balanceRow](balanceSpec{}))
 
 func (balancesCmd) Description() string { return "Balances as-of" }
 
-func (c *balancesCmd) ledgerNames() ([]string, error) {
+func (c *balancesCmd) ledgerNames(ctx context.Context) ([]string, error) {
 	flag := c.ByLedger.Value()
 	pos := optionalName(c.Ledger)
+	if flag != "" {
+		cwd, err := projectCwd(ctx)
+		if err != nil {
+			return nil, err
+		}
+		names, err := project.LedgerNames(ctx, cwd)
+		if err != nil {
+			return nil, err
+		}
+		if !slices.Contains(names, flag) {
+			return nil, fmt.Errorf("%w: want one of %s", cmd.ErrInvalidArgument, strings.Join(names, ", "))
+		}
+	}
 	if flag != "" && len(pos) == 1 && flag != pos[0] {
 		return nil, fmt.Errorf("%w: %s and %s", ErrLedgerConflict, pos[0], flag)
 	}
@@ -359,7 +370,7 @@ func (c *balancesCmd) Run(ctx context.Context) error {
 		t = engine.AsOfLatest
 	}
 	filters := cmd.Values(c.Account)
-	names, err := c.ledgerNames()
+	names, err := c.ledgerNames(ctx)
 	if err != nil {
 		return err
 	}
