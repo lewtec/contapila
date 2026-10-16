@@ -15,11 +15,11 @@ func TestLedgerNames(t *testing.T) {
 	require.NoError(t, err)
 	want := []string{"acme", "ong", "personal", "smuggle"}
 	for _, start := range []string{root, filepath.Join(root, "personal")} {
-		names, err := LedgerNames(start)
+		names, err := LedgerNames(t.Context(), start)
 		require.NoError(t, err)
 		assert.Equal(t, want, names, "LedgerNames(%s)", start)
 	}
-	_, err = LedgerNames(t.TempDir())
+	_, err = LedgerNames(t.Context(), t.TempDir())
 	require.ErrorIs(t, err, ErrNotAProject)
 }
 
@@ -75,7 +75,7 @@ func TestDiscovery(t *testing.T) {
 	})
 
 	t.Run("discoverLedgers", func(t *testing.T) {
-		ledgers, err := discoverLedgers(filesys.OS{}, root)
+		ledgers, err := discoverLedgers(t.Context(), filesys.OS{}, root)
 		if err != nil {
 			t.Fatalf("failed to discover ledgers: %v", err)
 		}
@@ -121,7 +121,7 @@ func TestDiscovery(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		ledgers, err := discoverLedgers(filesys.OS{}, root)
+		ledgers, err := discoverLedgers(t.Context(), filesys.OS{}, root)
 		if err != nil {
 			t.Fatalf("failed to discover ledgers: %v", err)
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,6 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	parseContext = context.Background()
+	os.Exit(m.Run())
+}
 
 func exampleDir(t *testing.T) string {
 	t.Helper()

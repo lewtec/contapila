@@ -35,7 +35,7 @@ var datePrefix = regexp.MustCompile(`^(\d{4})(\d{2})?(\d{2})?(?:\D|$)`)
 // does not parse is skipped and reported as an error diagnostic (project-relative
 // path). Files directly under by-account/ (no account segment) are ignored.
 // Paths skipped by the repository .gitignore are not visited.
-func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error) {
+func ScanByAccount(ctx context.Context, projectRoot, ledger string) ([]ast.Document, diag.List, error) {
 	if ledger == "" {
 		return nil, nil, nil
 	}
@@ -56,7 +56,7 @@ func ScanByAccount(projectRoot, ledger string) ([]ast.Document, diag.List, error
 
 	var out []ast.Document
 	var diags diag.List
-	rules, err := ignore.Open(context.Background(), projectRoot)
+	rules, err := ignore.Open(ctx, projectRoot)
 	if err != nil {
 		return nil, nil, err
 	}

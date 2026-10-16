@@ -27,7 +27,7 @@ func TestScanByAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, diags, err := ScanByAccount(root, "personal")
+	got, diags, err := ScanByAccount(t.Context(), root, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestScanByAccount_badFilenames(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, diags, err := ScanByAccount(root, "personal")
+	got, diags, err := ScanByAccount(t.Context(), root, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestScanByAccount_gitignore(t *testing.T) {
 		}
 	}
 
-	got, diags, err := ScanByAccount(root, "personal")
+	got, diags, err := ScanByAccount(t.Context(), root, "personal")
 	if err != nil {
 		t.Fatal(err)
 	}

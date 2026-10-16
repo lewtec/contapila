@@ -16,9 +16,6 @@ import (
 	fsignore "github.com/lewtec/lewkit/x/fs/ignore"
 )
 
-// ErrNilContext is returned when [Open] is called with a nil context.
-var ErrNilContext = errors.New("nil context")
-
 // Rules is the lewkit ignore filesystem for one tree.
 // A nil Rules ignores nothing.
 type Rules struct {
@@ -33,9 +30,6 @@ type Rules struct {
 // worktree root, so a parent .gitignore applies. Without a worktree, Root
 // is start's directory.
 func Open(ctx context.Context, start string) (*Rules, error) {
-	if ctx == nil {
-		return nil, ErrNilContext
-	}
 	dir, err := startDir(start)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {

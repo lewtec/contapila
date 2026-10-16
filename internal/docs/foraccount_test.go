@@ -85,7 +85,7 @@ func TestForAccount(t *testing.T) {
 func TestScanByAccount_edges(t *testing.T) {
 	t.Run("missing by-account dir", func(t *testing.T) {
 		root := t.TempDir()
-		got, diags, err := ScanByAccount(root, "personal")
+		got, diags, err := ScanByAccount(t.Context(), root, "personal")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -98,7 +98,7 @@ func TestScanByAccount_edges(t *testing.T) {
 	})
 
 	t.Run("empty ledger name", func(t *testing.T) {
-		got, diags, err := ScanByAccount(t.TempDir(), "")
+		got, diags, err := ScanByAccount(t.Context(), t.TempDir(), "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -119,7 +119,7 @@ func TestScanByAccount_edges(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "20240101_loose.txt"), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		got, diags, err := ScanByAccount(root, "personal")
+		got, diags, err := ScanByAccount(t.Context(), root, "personal")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,7 +140,7 @@ func TestScanByAccount_edges(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "20240515_note.pdf"), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		got, diags, err := ScanByAccount(root, "personal")
+		got, diags, err := ScanByAccount(t.Context(), root, "personal")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -171,7 +171,7 @@ func TestScanByAccount_edges(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("x"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		got, diags, err := ScanByAccount(root, "personal")
+		got, diags, err := ScanByAccount(t.Context(), root, "personal")
 		if err != nil {
 			t.Fatal(err)
 		}

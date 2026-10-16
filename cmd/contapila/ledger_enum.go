@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"slices"
@@ -9,6 +10,11 @@ import (
 	"github.com/lewtec/lewkit/x/cmd"
 	"github.com/lucasew/contapila-go/pkg/project"
 )
+
+// parseContext is the process context seen by flag parsing.
+// ArgChoices and Parse take no context argument, so main installs the
+// root context here before argv is read.
+var parseContext context.Context
 
 // ledgerEnum is --ledger. ArgChoices lists project ledgers when help is rendered.
 type ledgerEnum struct {
@@ -20,7 +26,7 @@ func (e *ledgerEnum) Parse(s string) error {
 		e.name = ""
 		return nil
 	}
-	names, err := ledgerChoices()
+	names, err := ledgerChoices(parseContext)
 	if err != nil {
 		return err
 	}
@@ -35,16 +41,16 @@ func (e ledgerEnum) Value() string { return e.name }
 
 // ArgChoices runs when usage text is built, so the set matches the project at --help.
 func (ledgerEnum) ArgChoices() []string {
-	names, _ := ledgerChoices()
+	names, _ := ledgerChoices(parseContext)
 	return names
 }
 
-func ledgerChoices() ([]string, error) {
+func ledgerChoices(ctx context.Context) ([]string, error) {
 	start, err := ledgerSearchStart(os.Args[1:])
 	if err != nil {
 		return nil, err
 	}
-	return project.LedgerNames(start)
+	return project.LedgerNames(ctx, start)
 }
 
 func ledgerSearchStart(args []string) (string, error) {

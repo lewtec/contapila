@@ -52,10 +52,12 @@ var (
 )
 
 func main() {
+	ctx := context.Background()
+	parseContext = ctx
 	// A release stamp with empty argv is the desktop app (lewkit release run).
 	// Any argument stays on the CLI.
 	if wantWindow(os.Args[1:]) {
-		entry.Main(context.Background(), runApp)
+		entry.Main(ctx, runApp)
 		return
 	}
 
@@ -63,8 +65,9 @@ func main() {
 	applyDesktopRewrite()
 
 	// thread.Run keeps the process main thread free for the macOS web view.
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+	parseContext = ctx
 	err := thread.Run(ctx, func(ctx context.Context) error {
 		return execute(ctx, os.Args[1:])
 	})
