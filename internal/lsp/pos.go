@@ -4,7 +4,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar"
+	lewtext "github.com/lewtec/lewkit/x/text"
 	"go.lsp.dev/protocol"
 )
 
@@ -42,7 +42,7 @@ func byteOffset(text string, pos protocol.Position) int {
 }
 
 // rangeFromBytes maps exclusive-end byte span to an LSP Range (UTF-16).
-func rangeFromBytes(text string, start, end int, lines *grammar.LineIndex) protocol.Range {
+func rangeFromBytes(text string, start, end int, lines *lewtext.LineIndex) protocol.Range {
 	if start < 0 {
 		start = 0
 	}
@@ -53,7 +53,7 @@ func rangeFromBytes(text string, start, end int, lines *grammar.LineIndex) proto
 		end = len(text)
 	}
 	if lines == nil {
-		lines = grammar.NewLineIndex(text)
+		lines = lewtext.NewLineIndex(text)
 	}
 	sl, sc := lines.LineColumnAt(start)
 	el, ec := lines.LineColumnAt(end)
@@ -66,7 +66,7 @@ func rangeFromBytes(text string, start, end int, lines *grammar.LineIndex) proto
 
 // lineRange is a whole-line range (1-based line).
 func lineRange(text string, line1 int) protocol.Range {
-	lines := grammar.NewLineIndex(text)
+	lines := lewtext.NewLineIndex(text)
 	start := lineStartByte(text, max(1, line1))
 	end := start
 	for end < len(text) && text[end] != '\n' {

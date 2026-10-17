@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"cuelang.org/go/cue"
-
-	"github.com/lucasew/contapila-go/internal/period"
+	"github.com/lewtec/lewkit/x/period"
 )
 
 // LedgerPlotFrom looks up ledgers.<name>.plot_from.

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/lewtec/lewkit/x/period"
 
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/engine"
-	"github.com/lucasew/contapila-go/internal/period"
 	"github.com/lucasew/contapila-go/internal/prices"
 	"github.com/lucasew/contapila-go/pkg/project"
 )

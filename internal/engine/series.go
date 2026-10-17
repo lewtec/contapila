@@ -5,9 +5,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/lewtec/lewkit/x/period"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/booking"
-	"github.com/lucasew/contapila-go/internal/period"
 )
 
 // SeriesPoint is one chart sample in operating currency.
