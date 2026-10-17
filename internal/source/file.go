@@ -2,8 +2,9 @@
 package source
 
 import (
+	lewtext "github.com/lewtec/lewkit/x/text"
+
 	"github.com/lucasew/contapila-go/internal/filesys"
-	"github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar"
 )
 
 // File is a named UTF-8 text buffer plus a line index for diagnostics and AST Meta.
@@ -13,8 +14,8 @@ type File struct {
 	// Text is the file contents (UTF-8). Prefer string over []byte so callers
 	// stay in the encoding domain Go and ParseString already use.
 	Text string
-	// Lines maps byte offsets to 1-based lines (grammar.LineIndex).
-	Lines *grammar.LineIndex
+	// Lines maps byte offsets to 1-based lines.
+	Lines *lewtext.LineIndex
 }
 
 // New reads path from disk (as UTF-8 text) and builds the line index.
@@ -39,7 +40,7 @@ func NewString(path, text string) *File {
 	return &File{
 		Path:  path,
 		Text:  text,
-		Lines: grammar.NewLineIndex(text),
+		Lines: lewtext.NewLineIndex(text),
 	}
 }
 

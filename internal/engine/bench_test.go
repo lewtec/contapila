@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lucasew/contapila-go/internal/period"
+	"github.com/lewtec/lewkit/x/period"
 )
 
 func exampleRoot() string {

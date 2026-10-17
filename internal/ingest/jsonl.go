@@ -9,8 +9,9 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/lewtec/lewkit/x/period"
+
 	"github.com/lucasew/contapila-go/internal/ast"
-	"github.com/lucasew/contapila-go/internal/period"
 )
 
 // Sentinel errors for JSONL decode.

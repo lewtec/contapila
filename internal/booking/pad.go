@@ -4,9 +4,10 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/lewtec/lewkit/x/period"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
-	"github.com/lucasew/contapila-go/internal/period"
 )
 
 // ExpandPads materializes Beancount pad directives as synthetic transactions

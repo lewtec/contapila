@@ -24,14 +24,15 @@ import (
 	_ "github.com/lewtec/lewkit/x/driver/prelude" // registers host drivers, including the folder dialog
 	"github.com/lewtec/lewkit/x/driver/thread"
 	"github.com/lewtec/lewkit/x/entry"
+	"github.com/lewtec/lewkit/x/period"
 	"github.com/lewtec/lewkit/x/text/table"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/ingest"
 	"github.com/lucasew/contapila-go/internal/lsp"
 	"github.com/lucasew/contapila-go/internal/parser"
-	"github.com/lucasew/contapila-go/internal/period"
 	"github.com/lucasew/contapila-go/internal/web"
 	"github.com/lucasew/contapila-go/pkg/project"
 

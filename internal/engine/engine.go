@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"cuelang.org/go/cue"
+	"github.com/lewtec/lewkit/x/period"
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/booking"
@@ -20,7 +21,6 @@ import (
 	"github.com/lucasew/contapila-go/internal/docs"
 	"github.com/lucasew/contapila-go/internal/filesys"
 	"github.com/lucasew/contapila-go/internal/loader"
-	"github.com/lucasew/contapila-go/internal/period"
 	"github.com/lucasew/contapila-go/internal/prices"
 	"github.com/lucasew/contapila-go/pkg/project"
 )

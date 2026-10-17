@@ -68,7 +68,7 @@ Implementation (daisyUI way):
 ## Components
 
 navbar/topbar, drawer, menu, table, alert, badge, breadcrumbs, input, theme-controller,  
-Cmd+K via reusable `pkg/cmdpalette`
+Cmd+K via lewkit `x/ui/web/cmdpalette`
 
 ## Charts (uPlot, vendored)
 
@@ -80,7 +80,7 @@ Cmd+K via reusable `pkg/cmdpalette`
 
 ## Cmd+K
 
-- **Reusable UI:** `pkg/cmdpalette` — `Palette` + `Button()` / `Modal()` / `Assets()` (templ + embedded CSS/JS)
+- **Reusable UI:** lewkit `x/ui/web/cmdpalette` — `Palette` + `Button()` / `Modal()` / `Assets()` (templ + embedded CSS/JS)
 - **Contapila catalog:** `commandItems` / `jumpPalette` in `internal/web` — ledgers, reports, queries, accounts, commodities, `PluginCommands`
 - **Plugins:** `reg.Palette(web.Palette{DefaultEnabled, Fill})` (plugin hook, not the UI type). Example: `web_queries` “All queries”
 - **Theme bridge:** CSS vars `--cmdpalette-accent` etc. set from contapila tokens in `internal/web/input.css`

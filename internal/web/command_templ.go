@@ -8,7 +8,7 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Contapila jump palette — thin wrapper over pkg/cmdpalette.
+// Contapila jump palette — thin wrapper over lewkit x/ui/web/cmdpalette.
 // Catalog assembly stays in command.go; UI is reusable.
 func jumpPaletteButton(d pageData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

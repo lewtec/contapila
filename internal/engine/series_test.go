@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lewtec/lewkit/x/period"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/booking"
-	"github.com/lucasew/contapila-go/internal/period"
 )
 
 func TestExampleNetWorthSeries(t *testing.T) {

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/lewtec/lewkit/x/build"
 
 	"github.com/lucasew/contapila-go/internal/dump"
 )
@@ -71,7 +72,7 @@ func TestExtractClosesFile(t *testing.T) {
 
 	// On Linux, unlinking succeeds while the file is still open — check /proc
 	// for an fd still pointing at the path.
-	if runtime.GOOS == "linux" {
+	if build.HostGOOS() == build.GOOSLinux {
 		if fdStillOpen(t, abs) {
 			t.Fatalf("source PDF still open after Extract: %s", abs)
 		}
@@ -81,7 +82,7 @@ func TestExtractClosesFile(t *testing.T) {
 	if _, err := Extract(path, dump.Options{}); err != nil {
 		t.Fatalf("second Extract: %v", err)
 	}
-	if runtime.GOOS == "linux" && fdStillOpen(t, abs) {
+	if build.HostGOOS() == build.GOOSLinux && fdStillOpen(t, abs) {
 		t.Fatalf("source PDF still open after second Extract: %s", abs)
 	}
 }
