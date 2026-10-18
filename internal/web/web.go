@@ -26,6 +26,7 @@ import (
 
 	"cuelang.org/go/cue"
 	"github.com/a-h/templ"
+	"github.com/lewtec/lewkit/x/http/asset"
 	"github.com/lewtec/lewkit/x/period"
 
 	"github.com/lucasew/contapila-go/internal/ast"
@@ -158,7 +159,7 @@ func (s *Server) withSession(next http.Handler) http.Handler {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	DefaultRegistry(s).Mount(mux)
-	return withSecurityHeaders(s.withSession(mux))
+	return withSecurityHeaders(asset.Mount(s.withSession(mux)))
 }
 
 // PageData is the render model for ledger reports. First-party plugins outside

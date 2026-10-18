@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lewtec/lewkit/x/http/asset"
 	"github.com/lewtec/lewkit/x/http/asset/daisyui"
 	"github.com/lewtec/lewkit/x/http/asset/tailwindcss"
 
@@ -161,12 +160,10 @@ func registerStatic(r *Registry) {
 	})
 }
 
-// registerLewkitAssets serves the daisyUI stylesheet and Tailwind browser
-// script the pages load. The static build copies those two files.
+// registerLewkitAssets lists the daisyUI stylesheet and Tailwind browser
+// script so the static build copies them. Handler serves both with asset.Mount.
 func registerLewkitAssets(r *Registry) {
 	r.Register(Route{
-		Pattern: "GET /__lewkit__/",
-		Handle:  asset.Mount(http.NotFoundHandler()),
 		Expand: func(context.Context, *Session) ([]Instance, error) {
 			return []Instance{
 				{Path: daisyui.Path, Kind: KindStatic},
