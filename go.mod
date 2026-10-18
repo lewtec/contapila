@@ -7,7 +7,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
-	github.com/lewtec/lewkit v0.0.0-20261016142726-384c6f65ceab
+	github.com/lewtec/lewkit v0.0.0-20261018164858-d12f10429850
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
@@ -74,7 +74,6 @@ require (
 	github.com/ktr0731/go-fuzzyfinder v0.9.0 // indirect
 	github.com/lewtec/leaven v0.0.0-20260814142252-666e23083398 // indirect
 	github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9 // indirect
-	github.com/lewtec/lewkit/x/toolchain/go/src/std/syscall/unix v0.0.0-00010101000000-000000000000 // indirect
 	github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0 // indirect
 	github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260927175003-766673523e06 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
@@ -126,9 +125,6 @@ require (
 )
 
 replace github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar => github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260713221032-8673315d25fc
-
-// The pinned lewkit module imports this path from its copied linker and does not contain the package.
-replace github.com/lewtec/lewkit/x/toolchain/go/src/std/syscall/unix => ./third_party/lewkit-syscall-unix
 
 tool (
 	github.com/a-h/templ/cmd/templ
