@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/lewtec/lewkit/x/http/asset/daisyui"
+	"github.com/lewtec/lewkit/x/http/asset/tailwindcss"
 )
 
 func TestBuildExample(t *testing.T) {
@@ -21,6 +24,8 @@ func TestBuildExample(t *testing.T) {
 		"static/app.css",
 		"static/charts.js",
 		"static/logo.png",
+		"__lewkit__/daisyui.css",
+		"__lewkit__/tailwindcss.js",
 		"l/personal/index.html", // ledger root (live redirect → check)
 		"l/acme/index.html",
 		// *.html files + rewritten hrefs so static hosts hit real files (not …/index.html).
@@ -52,6 +57,9 @@ func TestBuildExample(t *testing.T) {
 	}
 	if !strings.Contains(string(index), `href="/l/personal/check.html"`) {
 		t.Fatalf("index missing rewritten personal check link: %s", truncate(string(index), 200))
+	}
+	if !strings.Contains(string(index), daisyui.Path) || !strings.Contains(string(index), tailwindcss.Path) {
+		t.Fatal("index missing lewkit stylesheet or Tailwind script")
 	}
 	if strings.Contains(string(index), `href="/l/personal/check"`) &&
 		!strings.Contains(string(index), `href="/l/personal/check.html"`) {

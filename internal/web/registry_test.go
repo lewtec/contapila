@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lewtec/lewkit/x/http/asset/daisyui"
+	"github.com/lewtec/lewkit/x/http/asset/tailwindcss"
+
 	"github.com/lucasew/contapila-go/internal/engine"
 )
 
@@ -41,6 +44,8 @@ func TestDefaultRegistryMountParity(t *testing.T) {
 		{"/", http.StatusOK},
 		{"/static/app.css", http.StatusOK},
 		{"/static/logo.png", http.StatusOK},
+		{daisyui.Path, http.StatusOK},
+		{tailwindcss.Path, http.StatusOK},
 		{"/l/personal/check", http.StatusOK},
 		{"/l/personal/balances", http.StatusOK},
 		{"/l/personal/journal", http.StatusOK},
@@ -58,6 +63,19 @@ func TestDefaultRegistryMountParity(t *testing.T) {
 		h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, tc.path, nil))
 		if rr.Code != tc.code {
 			t.Errorf("%s: status %d want %d body=%s", tc.path, rr.Code, tc.code, truncate(rr.Body.String(), 120))
+		}
+	}
+	for _, tc := range []struct {
+		path   string
+		substr string
+	}{
+		{daisyui.Path, daisyui.Version},
+		{tailwindcss.Path, tailwindcss.Version},
+	} {
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, tc.path, nil))
+		if !strings.Contains(rr.Body.String(), tc.substr) {
+			t.Errorf("%s: body missing %q", tc.path, tc.substr)
 		}
 	}
 }
@@ -107,6 +125,12 @@ func TestRegistryInstancesExample(t *testing.T) {
 	if _, ok := byPath["/static/app.css"]; !ok {
 		t.Error("missing /static/app.css")
 	}
+	if byPath[daisyui.Path] != KindStatic {
+		t.Errorf("missing daisyUI asset %s", daisyui.Path)
+	}
+	if byPath[tailwindcss.Path] != KindStatic {
+		t.Errorf("missing Tailwind asset %s", tailwindcss.Path)
+	}
 	if _, ok := byPath["/static/logo.png"]; !ok {
 		t.Error("missing /static/logo.png")
 	}
@@ -150,6 +174,7 @@ func TestFileRel(t *testing.T) {
 		{Instance{Path: "/l/personal/check", Kind: KindPage}, "l/personal/check.html"},
 		{Instance{Path: "/l/personal/account/Assets:Cash", Kind: KindPage}, "l/personal/account/Assets:Cash.html"},
 		{Instance{Path: "/static/app.css", Kind: KindStatic}, "static/app.css"},
+		{Instance{Path: "/__lewkit__/daisyui.css", Kind: KindStatic}, "__lewkit__/daisyui.css"},
 		{Instance{Path: "/docfile/personal/docs/README.md", Kind: KindDoc}, "docfile/personal/docs/README.md"},
 	}
 	for _, tc := range tests {
