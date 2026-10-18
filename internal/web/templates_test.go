@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
+	"github.com/lewtec/lewkit/x/http/asset/daisyui"
+	"github.com/lewtec/lewkit/x/http/asset/tailwindcss"
 
 	"github.com/lucasew/contapila-go/internal/engine"
 )
@@ -59,6 +61,18 @@ func TestTemplatesParseAndRenderShell(t *testing.T) {
 		}
 		if bytes.Contains(html, []byte(`data:image/svg+xml`)) {
 			t.Fatalf("%s: old inline favicon still present", page)
+		}
+		if !bytes.Contains(html, []byte(daisyui.Path)) {
+			t.Fatalf("%s: missing daisyUI stylesheet", page)
+		}
+		if !bytes.Contains(html, []byte(tailwindcss.Path)) {
+			t.Fatalf("%s: missing Tailwind script", page)
+		}
+		if !bytes.Contains(html, []byte(`M4 5h16`)) {
+			t.Fatalf("%s: missing Lucide menu icon", page)
+		}
+		if bytes.Contains(html, []byte(`M19 9l-7 7-7-7`)) || bytes.Contains(html, []byte(`M3.75 6.75h16.5`)) {
+			t.Fatalf("%s: hand-rolled chrome icon still present", page)
 		}
 	}
 	// account + commodity

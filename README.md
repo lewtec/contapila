@@ -157,7 +157,7 @@ Ledger arguments are **directory names** under the project root.
 
 ## Development
 
-Standard Go module (`github.com/lucasew/contapila-go`). Go version is pinned in [`mise.toml`](mise.toml) if you use mise for the toolchain. CSS is compiled by [tailgopher](https://github.com/lewtec/tailgopher) via `go generate` — no Node or Bun.
+Standard Go module (`github.com/lucasew/contapila-go`). Go version is pinned in [`mise.toml`](mise.toml) if you use mise for the toolchain. daisyUI, Tailwind, and Lucide come from lewkit `x/http/asset`. Brand tokens stay in `internal/web/static/app.css`. `go generate` runs templ. No Node or Bun.
 
 ```bash
 go test ./...
@@ -165,7 +165,7 @@ go build -o contapila ./cmd/contapila/
 
 # optional: mise-managed toolchain + CI-shaped checks
 mise run install    # go mod tidy
-mise run codegen    # templ + embedded web CSS
+mise run codegen    # templ
 mise run ci         # codegen + tests + build
 ```
 

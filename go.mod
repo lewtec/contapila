@@ -45,9 +45,6 @@ require (
 	github.com/cyphar/filepath-securejoin v0.5.1 // indirect
 	github.com/diskfs/go-diskfs v1.9.4 // indirect
 	github.com/dlclark/regexp2/v2 v2.5.2 // indirect
-	github.com/dop251/base64dec v0.0.0-20231022112746-c6c9f9a96217 // indirect
-	github.com/dop251/goja v0.0.0-20260903201622-f87b40ad7341 // indirect
-	github.com/dop251/goja_nodejs v0.0.0-20260212111938-1f56ff5bcf14 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/emicklei/proto v1.14.3 // indirect
@@ -64,9 +61,7 @@ require (
 	github.com/go-ng/sort v0.0.0-20220617173827-2cc7cd04f7c7 // indirect
 	github.com/go-ng/xsort v0.0.0-20220617174223-1d146907bccc // indirect
 	github.com/go-restruct/restruct v1.2.0-alpha // indirect
-	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
-	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jezek/xgb v1.3.1 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
@@ -74,7 +69,6 @@ require (
 	github.com/ktr0731/go-fuzzyfinder v0.9.0 // indirect
 	github.com/lewtec/leaven v0.0.0-20260814142252-666e23083398 // indirect
 	github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9 // indirect
-	github.com/lewtec/tailgopher v0.0.0-20260905002949-8a94d7d5b2e0 // indirect
 	github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260927175003-766673523e06 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -126,7 +120,4 @@ require (
 
 replace github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar => github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260713221032-8673315d25fc
 
-tool (
-	github.com/a-h/templ/cmd/templ
-	github.com/lewtec/tailgopher/cmd/tailwind
-)
+tool github.com/a-h/templ/cmd/templ

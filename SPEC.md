@@ -63,7 +63,7 @@ Inherited C (cite the file):
 | TEC-02 | Project discovery in this repo | implement | A database | `path:pkg/project` |
 | TEC-02 | modernc Beancount grammar | wrap | A hand parser, Python Beancount, gobean | `path:internal/parser` |
 | TEC-02 | `math/big.Rat` | adopt | `float64` for money | `stdlib:math/big` |
-| TEC-03 | templ, daisyUI, tailgopher | adopt | An SPA as the page model | org:templ |
+| TEC-03 | templ, lewkit `x/http/asset` (daisyUI, Tailwind, Lucide) | adopt | An SPA as the page model | org:lewkit |
 | TEC-03 | Pages in this repo | implement | A second page model beside templ | `path:internal/web` |
 | TEC-03 | vendored uPlot | wrap | A second chart series API | `path:internal/web/static/vendor/uplot` |
 | TEC-04 | lewkit `x/driver/webview` | adopt | Embed Chromium. Launch Helium or the system browser. Bind a port for `desktop` | org:lewkit |

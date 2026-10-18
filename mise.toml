@@ -8,7 +8,7 @@ svu = "3.3.0"
 run = "go mod tidy && go get -v ./..."
 
 [tasks.codegen]
-description = "Generate templ components and rebuild embedded web CSS"
+description = "Generate templ components"
 run = "go generate ./..."
 
 [tasks.format]

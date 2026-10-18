@@ -13,6 +13,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/lewtec/lewkit/x/http/asset/daisyui"
+	"github.com/lewtec/lewkit/x/http/asset/tailwindcss"
+
 	docsutil "github.com/lucasew/contapila-go/internal/docs"
 	"github.com/lucasew/contapila-go/internal/engine"
 )
@@ -121,6 +124,7 @@ func (r *Registry) Instances(ctx context.Context, sess *Session) ([]Instance, er
 func DefaultRegistry(s *Server) *Registry {
 	r := NewRegistry()
 	registerStatic(r)
+	registerLewkitAssets(r)
 	registerDocFile(r, s)
 	registerIndex(r, s)
 	registerAccount(r, s)
@@ -152,6 +156,19 @@ func registerStatic(r *Registry) {
 			}
 			sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
 			return out, nil
+		},
+	})
+}
+
+// registerLewkitAssets lists the daisyUI stylesheet and Tailwind browser
+// script so the static build copies them. Handler serves both with asset.Mount.
+func registerLewkitAssets(r *Registry) {
+	r.Register(Route{
+		Expand: func(context.Context, *Session) ([]Instance, error) {
+			return []Instance{
+				{Path: daisyui.Path, Kind: KindStatic},
+				{Path: tailwindcss.Path, Kind: KindStatic},
+			}, nil
 		},
 	})
 }
