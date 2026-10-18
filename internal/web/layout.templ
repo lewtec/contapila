@@ -8,13 +8,6 @@ import (
 
 // App shell: head, topbar, sidebar, main slot. Every page uses appLayout.
 
-// glyph draws one Lucide icon. class is extra Tailwind/daisyUI classes on the box.
-templ glyph(name lucide.Name, class string) {
-	<span class={ "cp-icon " + class } aria-hidden="true">
-		@lucide.Icon(name)
-	</span>
-}
-
 templ head(d pageData) {
 	<meta charset="utf-8"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -106,7 +99,9 @@ templ breadcrumbs(d pageData) {
 								} else {
 									ledger
 								}
-								@glyph(lucide.NameChevronDown, "cp-icon-sm opacity-50 ml-0.5")
+								<span class="ml-0.5 inline-flex shrink-0 opacity-50 [&>svg]:size-3" aria-hidden="true">
+									@lucide.Icon(lucide.NameChevronDown)
+								</span>
 							</summary>
 							<ul class="dropdown-content menu menu-sm bg-base-100 rounded-box z-[70] w-48 p-1.5 shadow-md border border-base-300">
 								for _, name := range d.Ledgers {
@@ -147,7 +142,9 @@ templ topbar(d pageData) {
 	<header class="w-full shrink-0 navbar h-10 min-h-0 max-h-10 py-0 bg-base-200 border-b border-base-300 px-2 sm:px-3 gap-2 sticky top-0 z-50 overflow-visible">
 		<div class="navbar-start gap-1 min-w-0 flex-1 h-full items-center overflow-visible">
 			<label for="nav-open" class="btn btn-ghost btn-xs btn-square shrink-0 lg:hidden" aria-label="Open menu">
-				@glyph(lucide.NameMenu, "")
+				<span class="inline-flex [&>svg]:size-4" aria-hidden="true">
+					@lucide.Icon(lucide.NameMenu)
+				</span>
 			</label>
 			@breadcrumbs(d)
 		</div>
@@ -156,8 +153,12 @@ templ topbar(d pageData) {
 			@timeFilter(d)
 			<label class="swap swap-rotate btn btn-ghost btn-xs btn-square" title="Toggle light / dark">
 				<input id="theme-toggle" type="checkbox" class="theme-controller" value="contapila-dark" aria-label="Toggle dark theme"/>
-				@glyph(lucide.NameSun, "swap-off")
-				@glyph(lucide.NameMoon, "swap-on")
+				<span class="swap-off inline-flex [&>svg]:size-4" aria-hidden="true">
+					@lucide.Icon(lucide.NameSun)
+				</span>
+				<span class="swap-on inline-flex [&>svg]:size-4" aria-hidden="true">
+					@lucide.Icon(lucide.NameMoon)
+				</span>
 			</label>
 		</div>
 	</header>
@@ -177,7 +178,9 @@ templ sidebarCurrentEntity(title, name string) {
 }
 
 templ breadcrumbTail(name string) {
-	<span class="breadcrumbs-sep opacity-40 mx-1.5 shrink-0 text-[0.65rem]" aria-hidden="true">›</span>
+	<span class="mx-1.5 inline-flex shrink-0 opacity-40 [&>svg]:size-3" aria-hidden="true">
+		@lucide.Icon(lucide.NameChevronRight)
+	</span>
 	<span class="min-w-0 flex-1 overflow-x-auto font-mono text-xs whitespace-nowrap py-0" title={ name }>{ name }</span>
 }
 

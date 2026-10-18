@@ -1,6 +1,8 @@
 package web
 
 import (
+	"github.com/lewtec/lewkit/x/http/asset/lucide"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/engine"
 )
@@ -185,7 +187,14 @@ templ amountWithCommodityLink(s *Session, amount, commodity, ledger, timeFilter 
 
 templ treeToggle(isRollup bool) {
 	if isRollup {
-		<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
+		<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">
+			<span data-pnl-open class="inline-flex [&>svg]:size-3" aria-hidden="true">
+				@lucide.Icon(lucide.NameChevronDown)
+			</span>
+			<span data-pnl-closed hidden class="inline-flex [&>svg]:size-3" aria-hidden="true">
+				@lucide.Icon(lucide.NameChevronRight)
+			</span>
+		</button>
 	} else {
 		<span class="inline-block h-5 w-5 align-middle" aria-hidden="true"></span>
 	}

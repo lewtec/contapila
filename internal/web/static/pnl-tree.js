@@ -37,7 +37,10 @@
       var tr = btn.closest("tr");
       if (!tr) return;
       var collapsed = tr.classList.toggle("pnl-collapsed");
-      btn.textContent = collapsed ? "▶" : "▼";
+      var openIcon = btn.querySelector("[data-pnl-open]");
+      var closedIcon = btn.querySelector("[data-pnl-closed]");
+      if (openIcon) openIcon.hidden = collapsed;
+      if (closedIcon) closedIcon.hidden = !collapsed;
       btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
       btn.setAttribute("title", collapsed ? "Expand" : "Collapse");
       refresh(table);
