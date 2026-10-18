@@ -17,7 +17,7 @@ func TestNewStringBuildsLines(t *testing.T) {
 	if f.Lines == nil {
 		t.Fatal("Lines is nil")
 	}
-	// Spot-check wiring to grammar.LineIndex (full table lives upstream).
+	// Spot-check wiring to x/text.LineIndex (full table lives upstream).
 	if got := f.Lines.LineAt(5); got != 3 {
 		t.Fatalf("Lines.LineAt(5)=%d; want 3", got)
 	}

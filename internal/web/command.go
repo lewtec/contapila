@@ -4,10 +4,11 @@ import (
 	"cmp"
 	"sort"
 
+	"github.com/lewtec/lewkit/x/ui/web/cmdpalette"
+
 	"github.com/lucasew/contapila-go/internal/config"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/prices"
-	"github.com/lucasew/contapila-go/pkg/cmdpalette"
 	"github.com/lucasew/contapila-go/pkg/project"
 )
 
@@ -16,7 +17,7 @@ type CommandItem = cmdpalette.Item
 
 // Palette is a command-palette contribution registered via plugin.Reg.Palette.
 // Enablement matches Page: DefaultEnabled when CUE omits plugins.<module>.enabled.
-// UI lives in pkg/cmdpalette; this type is only the plugin hook.
+// UI lives in lewkit x/ui/web/cmdpalette; this type is only the plugin hook.
 type Palette struct {
 	// DefaultEnabled: when true, on if contapila.cue omits the plugin key.
 	// When false, omit means off (opt-in). Explicit plugins.<key>.enabled wins.

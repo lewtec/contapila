@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lewtec/lewkit/x/period"
+
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
-	"github.com/lucasew/contapila-go/internal/period"
 )
 
 // ExpandClosing turns posting metadata closing: TRUE into synthetic directives:

@@ -27,13 +27,13 @@ import (
 
 	"cuelang.org/go/cue"
 	"github.com/a-h/templ"
+	"github.com/lewtec/lewkit/x/period"
 
 	"github.com/lucasew/contapila-go/internal/ast"
 	"github.com/lucasew/contapila-go/internal/diag"
 	docsutil "github.com/lucasew/contapila-go/internal/docs"
 	"github.com/lucasew/contapila-go/internal/engine"
 	"github.com/lucasew/contapila-go/internal/filesys"
-	"github.com/lucasew/contapila-go/internal/period"
 	"github.com/lucasew/contapila-go/internal/prices"
 	"github.com/lucasew/contapila-go/pkg/project"
 )

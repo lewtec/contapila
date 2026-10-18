@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lucasew/contapila-go/internal/ast"
-	"github.com/lucasew/contapila-go/internal/diag"
-	"github.com/lucasew/contapila-go/internal/period"
-	"github.com/lucasew/contapila-go/internal/source"
+	"github.com/lewtec/lewkit/x/period"
 	"github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar"
 	bc "github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount"
+
+	"github.com/lucasew/contapila-go/internal/ast"
+	"github.com/lucasew/contapila-go/internal/diag"
+	"github.com/lucasew/contapila-go/internal/source"
 )
 
 // Sentinel errors for ParseFile preconditions.
