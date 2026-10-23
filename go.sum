@@ -150,6 +150,8 @@ github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9 
 github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260927175155-6b7c6c643bc9/go.mod h1:OxqZKICIWGwyxFEx8Wri6I4DCUU7lg0tSLzX73tkHQ8=
 github.com/lewtec/lewkit v0.0.0-20261018164858-d12f10429850 h1:imPvj4erOtnl1VBn7JrMnGe6kcllops6j7fTRRY1GaM=
 github.com/lewtec/lewkit v0.0.0-20261018164858-d12f10429850/go.mod h1:NZgXdc+sytm6NG3Cz5PIzCUP/jn5VC21SVVY22cMCUM=
+github.com/lewtec/lewkit v0.0.0-20261022170717-cded6ad35127 h1:/F5ACjW1O0Pd205mZzDeopzkfN1fpBI5cIlOCYuundk=
+github.com/lewtec/lewkit v0.0.0-20261022170717-cded6ad35127/go.mod h1:n7dWIrZq9bIAtWJyGUc1Ifejx33KGULml1ExAmPaoUA=
 github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260927175003-766673523e06 h1:qYGqfJ5fiQeRfSxsvcOwVbADQsZy8raGYr6l1EpaaOc=
 github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260927175003-766673523e06/go.mod h1:xwgf7PJSOWRAqcuffR314NyyEYgsyeTP/Y1FxvykQBk=
 github.com/lib/pq v1.12.3 h1:tTWxr2YLKwIvK90ZXEw8GP7UFHtcbTtty8zsI+YjrfQ=
