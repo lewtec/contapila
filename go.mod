@@ -7,7 +7,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/dslipak/pdf v0.0.2
-	github.com/lewtec/lewkit v0.0.0-20261018164858-d12f10429850
+	github.com/lewtec/lewkit v0.0.0-20261026134556-0b80f61ca97e
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/beancount v0.0.0-20260713221032-8673315d25fc
