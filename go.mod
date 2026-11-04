@@ -118,6 +118,6 @@ require (
 	software.sslmate.com/src/go-pkcs12 v0.7.3 // indirect
 )
 
-replace github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar => github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260713221032-8673315d25fc
+replace github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar => github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260801004327-2c4586c945d8
 
 tool github.com/a-h/templ/cmd/templ
