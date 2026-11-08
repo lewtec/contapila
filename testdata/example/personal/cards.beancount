@@ -1,0 +1,201 @@
+; Pay credit-card invoices
+
+2023-09-08 * "BancoAlfa" "Card bill 202308"
+  Liabilities:BR:Alfa:Credito:202308  431.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-10-08 * "BancoAlfa" "Card bill 202309"
+  Liabilities:BR:Alfa:Credito:202309  432.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-11-08 * "BancoAlfa" "Card bill 202310"
+  Liabilities:BR:Alfa:Credito:202310  433.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-08 * "BancoAlfa" "Card bill 202311"
+  Liabilities:BR:Alfa:Credito:202311  434.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-01-08 * "BancoAlfa" "Card bill 202312"
+  Liabilities:BR:Alfa:Credito:202312  435.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-08 * "BancoAlfa" "Card bill 202401"
+  Liabilities:BR:Alfa:Credito:202401  425.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-08 * "BancoAlfa" "Card bill 202402"
+  Liabilities:BR:Alfa:Credito:202402  426.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-12 * "CorretoraBeta" "Card bill 202402"
+  Liabilities:BR:Beta:Credito:202402  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2024-04-08 * "BancoAlfa" "Card bill 202403"
+  Liabilities:BR:Alfa:Credito:202403  427.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-05-08 * "BancoAlfa" "Card bill 202404"
+  Liabilities:BR:Alfa:Credito:202404  428.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-05-12 * "CorretoraBeta" "Card bill 202404"
+  Liabilities:BR:Beta:Credito:202404  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2024-06-08 * "BancoAlfa" "Card bill 202405"
+  Liabilities:BR:Alfa:Credito:202405  429.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-08 * "BancoAlfa" "Card bill 202406"
+  Liabilities:BR:Alfa:Credito:202406  430.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-12 * "CorretoraBeta" "Card bill 202406"
+  Liabilities:BR:Beta:Credito:202406  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2024-08-08 * "BancoAlfa" "Card bill 202407"
+  Liabilities:BR:Alfa:Credito:202407  431.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-08 * "BancoAlfa" "Card bill 202408"
+  Liabilities:BR:Alfa:Credito:202408  432.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-12 * "CorretoraBeta" "Card bill 202408"
+  Liabilities:BR:Beta:Credito:202408  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2024-10-08 * "BancoAlfa" "Card bill 202409"
+  Liabilities:BR:Alfa:Credito:202409  433.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-11-08 * "BancoAlfa" "Card bill 202410"
+  Liabilities:BR:Alfa:Credito:202410  434.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-11-12 * "CorretoraBeta" "Card bill 202410"
+  Liabilities:BR:Beta:Credito:202410  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2024-12-08 * "BancoAlfa" "Card bill 202411"
+  Liabilities:BR:Alfa:Credito:202411  435.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-08 * "BancoAlfa" "Card bill 202412"
+  Liabilities:BR:Alfa:Credito:202412  436.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-12 * "CorretoraBeta" "Card bill 202412"
+  Liabilities:BR:Beta:Credito:202412  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2025-02-08 * "BancoAlfa" "Card bill 202501"
+  Liabilities:BR:Alfa:Credito:202501  426.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-08 * "BancoAlfa" "Card bill 202502"
+  Liabilities:BR:Alfa:Credito:202502  427.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-12 * "CorretoraBeta" "Card bill 202502"
+  Liabilities:BR:Beta:Credito:202502  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2025-04-08 * "BancoAlfa" "Card bill 202503"
+  Liabilities:BR:Alfa:Credito:202503  428.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-05-08 * "BancoAlfa" "Card bill 202504"
+  Liabilities:BR:Alfa:Credito:202504  429.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-05-12 * "CorretoraBeta" "Card bill 202504"
+  Liabilities:BR:Beta:Credito:202504  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2025-06-08 * "BancoAlfa" "Card bill 202505"
+  Liabilities:BR:Alfa:Credito:202505  430.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-07-08 * "BancoAlfa" "Card bill 202506"
+  Liabilities:BR:Alfa:Credito:202506  431.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-07-12 * "CorretoraBeta" "Card bill 202506"
+  Liabilities:BR:Beta:Credito:202506  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2025-08-08 * "BancoAlfa" "Card bill 202507"
+  Liabilities:BR:Alfa:Credito:202507  432.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-08 * "BancoAlfa" "Card bill 202508"
+  Liabilities:BR:Alfa:Credito:202508  433.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-12 * "CorretoraBeta" "Card bill 202508"
+  Liabilities:BR:Beta:Credito:202508  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2025-10-08 * "BancoAlfa" "Card bill 202509"
+  Liabilities:BR:Alfa:Credito:202509  434.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-11-08 * "BancoAlfa" "Card bill 202510"
+  Liabilities:BR:Alfa:Credito:202510  435.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-11-12 * "CorretoraBeta" "Card bill 202510"
+  Liabilities:BR:Beta:Credito:202510  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2025-12-08 * "BancoAlfa" "Card bill 202511"
+  Liabilities:BR:Alfa:Credito:202511  436.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-01-08 * "BancoAlfa" "Card bill 202512"
+  Liabilities:BR:Alfa:Credito:202512  437.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-01-12 * "CorretoraBeta" "Card bill 202512"
+  Liabilities:BR:Beta:Credito:202512  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2026-02-08 * "BancoAlfa" "Card bill 202601"
+  Liabilities:BR:Alfa:Credito:202601  427.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-08 * "BancoAlfa" "Card bill 202602"
+  Liabilities:BR:Alfa:Credito:202602  428.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-12 * "CorretoraBeta" "Card bill 202602"
+  Liabilities:BR:Beta:Credito:202602  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2026-04-08 * "BancoAlfa" "Card bill 202603"
+  Liabilities:BR:Alfa:Credito:202603  429.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-05-08 * "BancoAlfa" "Card bill 202604"
+  Liabilities:BR:Alfa:Credito:202604  430.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-05-12 * "CorretoraBeta" "Card bill 202604"
+  Liabilities:BR:Beta:Credito:202604  189.00 BRL
+  Assets:BR:Beta:ContaCorrente
+
+2026-06-08 * "BancoAlfa" "Card bill 202605"
+  Liabilities:BR:Alfa:Credito:202605  431.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-07-08 * "BancoAlfa" "Card bill 202606"
+  Liabilities:BR:Alfa:Credito:202606  432.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-07-12 * "CorretoraBeta" "Card bill 202606"
+  Liabilities:BR:Beta:Credito:202606  189.00 BRL
+  Assets:BR:Beta:ContaCorrente

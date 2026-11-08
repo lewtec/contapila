@@ -1,0 +1,22 @@
+package web
+
+// QueryPage is the named journal query detail (BQL stored; engine later).
+templ QueryPage(d pageData) {
+	@reportLayout(d) {
+		@queryDetailBody(d)
+	}
+}
+
+templ queryDetailBody(d pageData) {
+	<section class="mb-4">
+		<h1 class="text-sm font-medium font-mono mb-2">{ d.QueryName }</h1>
+		if d.QueryText != "" {
+			<div class="bg-base-200 border border-base-300 p-3 overflow-x-auto">
+				@codeHighlight(d.QueryText, "bql")
+			</div>
+		}
+		<p class="mt-3 text-xs text-base-content/60">
+			Query results are not available yet (BQL engine later).
+		</p>
+	</section>
+}

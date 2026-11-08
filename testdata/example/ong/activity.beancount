@@ -1,0 +1,457 @@
+; Grants with deferred recognition + programs
+
+2024-01-15 * "Fundacao Lago" "Grant award education"
+  Assets:Receivable:Grant:FundacaoLago  30000.00 BRL
+  Liabilities:Deferred:Grant
+
+2024-02-10 * "Fundacao Lago" "Installment 1"
+  Assets:BR:Alfa:ContaCorrente  15000.00 BRL
+  Assets:Receivable:Grant:FundacaoLago
+
+2024-02-10 * "Recognize education grant"
+  Liabilities:Deferred:Grant  15000.00 BRL
+  Income:Grants:Education
+
+2024-08-10 * "Fundacao Lago" "Installment 2"
+  Assets:BR:Alfa:ContaCorrente  15000.00 BRL
+  Assets:Receivable:Grant:FundacaoLago
+
+2024-08-10 * "Recognize education grant"
+  Liabilities:Deferred:Grant  15000.00 BRL
+  Income:Grants:Education
+
+2025-03-01 * "Instituto Verde" "Research grant award"
+  Assets:Receivable:Grant:InstitutoVerde  18000.00 BRL
+  Liabilities:Deferred:Grant
+
+2025-04-05 * "Instituto Verde" "Research grant cash"
+  Assets:BR:Alfa:ContaCorrente  18000.00 BRL
+  Assets:Receivable:Grant:InstitutoVerde
+
+2025-04-05 * "Recognize research grant"
+  Liabilities:Deferred:Grant  18000.00 BRL
+  Income:Grants:Research
+
+2023-11-20 * "Anonymous" "Donation drive"
+  Assets:BR:Alfa:ContaCorrente  1020.00 BRL
+  Income:Donations
+
+2024-05-20 * "Anonymous" "Donation drive"
+  Assets:BR:Alfa:ContaCorrente  900.00 BRL
+  Income:Donations
+
+2024-11-20 * "Anonymous" "Donation drive"
+  Assets:BR:Alfa:ContaCorrente  1020.00 BRL
+  Income:Donations
+
+2025-05-20 * "Anonymous" "Donation drive"
+  Assets:BR:Alfa:ContaCorrente  900.00 BRL
+  Income:Donations
+
+2025-11-20 * "Anonymous" "Donation drive"
+  Assets:BR:Alfa:ContaCorrente  1020.00 BRL
+  Income:Donations
+
+2026-05-20 * "Anonymous" "Donation drive"
+  Assets:BR:Alfa:ContaCorrente  900.00 BRL
+  Income:Donations
+
+2023-08-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  980.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-08-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-08-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  440.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-09-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  990.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-09-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-09-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-10-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-10-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-10-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  450.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-11-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1010.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-11-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1020.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  460.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-12-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-01-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  910.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-01-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  920.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  410.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  930.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-03-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-04-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  940.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-04-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-04-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  420.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-05-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  950.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-05-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  960.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  430.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-06-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  970.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-08-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  980.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-08-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-08-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  440.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  990.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-09-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-10-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-10-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-10-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  450.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-11-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1010.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-11-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1020.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  460.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-12-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  910.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-01-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-02-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  920.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-02-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-02-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  410.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  930.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-03-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-04-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  940.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-04-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-04-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  420.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-05-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  950.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-05-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  960.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  430.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-06-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-07-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  970.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-07-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-08-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  980.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-08-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-08-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  440.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  990.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-10-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-10-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-10-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  450.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-11-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1010.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-11-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  1020.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  460.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-12-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-01-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  910.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-01-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-02-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  920.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-02-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-02-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  410.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  930.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-03-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-04-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  940.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-04-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-04-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  420.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-05-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  950.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-05-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-12 * "Escola Parceira" "Education workshop"
+  Expenses:Program:Education  960.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-05 * "Office Rent Co" "Admin office"
+  Expenses:Admin:Office  600.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-18 * "Lab Supplies" "Research materials"
+  Expenses:Program:Research  430.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2026-06-08 * "Contador ONG" "Accounting"
+  Expenses:Admin:Accounting  350.00 BRL
+  Assets:BR:Alfa:ContaCorrente

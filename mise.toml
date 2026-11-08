@@ -1,0 +1,36 @@
+# Warning: Do not unify this file with others. Keep tool definitions localized.
+[tools]
+go = "1.27.0"
+goreleaser = "2.17.0"
+svu = "3.3.0"
+
+[tasks.install]
+run = "go mod tidy && go get -v ./..."
+
+[tasks.codegen]
+description = "Generate templ components and rebuild embedded web CSS"
+run = "go generate ./..."
+
+[tasks.format]
+description = "Format Go packages"
+run = "go fmt ./..."
+
+[tasks.ci]
+description = "CI checks and tests"
+depends = ["codegen"]
+# checkptr=0: modernc tree-sitter uses unsafe pointer arithmetic that checkptr (enabled by -race) rejects.
+run = "go test -race -gcflags=all=-d=checkptr=0 ./... && go build -o /dev/null ./cmd/contapila/"
+
+[tasks.release]
+description = "Run a release"
+depends = ["ci"]
+usage = '''
+arg "<version>" help="New version" {
+  choices "next" "major" "minor" "patch"
+  default "next"
+}
+'''
+run = '''
+git tag $(svu ${usage_version})
+goreleaser release --clean
+'''

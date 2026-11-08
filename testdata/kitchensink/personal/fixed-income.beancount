@@ -1,0 +1,45 @@
+; fixed income maturities
+
+2021-08-10 * "BancoAlfa" "Buy CDB 20230615"
+  Assets:BR:Alfa:Investimento:CDB:20230615  5000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2022-03-05 * "BancoAlfa" "Buy CDB 20240301"
+  Assets:BR:Alfa:Investimento:CDB:20240301  8000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2022-09-01 * "BancoAlfa" "Buy LCA 20230901"
+  Assets:BR:Alfa:Investimento:LCA:20230901  3000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-06-15 * "BancoAlfa" "Buy CDB 20241201"
+  Assets:BR:Alfa:Investimento:CDB:20241201  10000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-01-20 * "BancoAlfa" "Buy LCA 20241115"
+  Assets:BR:Alfa:Investimento:LCA:20241115  4500.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2024-07-08 * "BancoAlfa" "Buy CDB 20250601"
+  Assets:BR:Alfa:Investimento:CDB:20250601  12000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2025-02-14 * "BancoAlfa" "Buy CDB 20260315"
+  Assets:BR:Alfa:Investimento:CDB:20260315  7000.00 BRL
+  Assets:BR:Alfa:ContaCorrente
+
+2023-06-16 * "BancoAlfa" "Redeem CDB 20230615"
+  Assets:BR:Alfa:Investimento:CDB:20230615  -5000.00 BRL
+  Assets:BR:Alfa:ContaCorrente  5480.00 BRL
+  Income:Passivo:BR:Alfa:Investimento:CDB:20230615
+
+2024-03-02 * "BancoAlfa" "Redeem CDB 20240301"
+  Assets:BR:Alfa:Investimento:CDB:20240301  -8000.00 BRL
+  Assets:BR:Alfa:ContaCorrente  8720.00 BRL
+  Income:Passivo:BR:Alfa:Investimento:CDB:20240301
+
+2023-09-02 * "BancoAlfa" "Redeem LCA 20230901"
+  Assets:BR:Alfa:Investimento:LCA:20230901  -3000.00 BRL
+  Assets:BR:Alfa:ContaCorrente  3180.00 BRL
+  Income:Passivo:BR:Alfa:Investimento:LCA:20230901
+

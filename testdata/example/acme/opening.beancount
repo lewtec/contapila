@@ -1,0 +1,5 @@
+; Seed
+
+2023-07-01 * "Capital contribution"
+  Assets:BR:Alfa:ContaCorrente  40000.00 BRL
+  Equity:Aporte

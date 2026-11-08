@@ -1,0 +1,4 @@
+dist/
+
+# Grok agent worktrees / local tooling
+.grok/

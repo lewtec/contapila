@@ -1,0 +1,236 @@
+package main
+
+import (
+	"bytes"
+	"errors"
+	"io"
+	"io/fs"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/lewtec/lewkit/x/release"
+	"github.com/lucasew/contapila-go/internal/engine"
+)
+
+// exampleDir is the multi-ledger fixture used for CLI smoke tests.
+func exampleDir(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.Abs(filepath.Join("..", "..", "testdata", "example"))
+	if err != nil {
+		t.Fatalf("abs example dir: %v", err)
+	}
+	if st, err := os.Stat(dir); err != nil || !st.IsDir() {
+		t.Fatalf("example fixture missing at %s: %v", dir, err)
+	}
+	return dir
+}
+
+// runCLI executes the CLI with args, capturing stdout/stderr. Resets package
+// globals bound by -C between calls. Uses execute() (not main()) so failures
+// return instead of os.Exit.
+func runCLI(t *testing.T, args ...string) (stdout, stderr string, err error) {
+	t.Helper()
+
+	oldOut, oldErr := os.Stdout, os.Stderr
+	or, ow, pipeErr := os.Pipe()
+	if pipeErr != nil {
+		t.Fatalf("stdout pipe: %v", pipeErr)
+	}
+	er, ew, pipeErr := os.Pipe()
+	if pipeErr != nil {
+		t.Fatalf("stderr pipe: %v", pipeErr)
+	}
+	os.Stdout, os.Stderr = ow, ew
+
+	// Point slog at the pipe so --verbose noise does not leak into the runner.
+	slog.SetDefault(slog.New(slog.NewTextHandler(ew, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
+	execErr := execute(t.Context(), args)
+
+	if err := ow.Close(); err != nil {
+		t.Logf("stdout writer close: %v", err)
+	}
+	if err := ew.Close(); err != nil {
+		t.Logf("stderr writer close: %v", err)
+	}
+	os.Stdout, os.Stderr = oldOut, oldErr
+
+	var outBuf, errBuf bytes.Buffer
+	if _, err := io.Copy(&outBuf, or); err != nil {
+		t.Logf("stdout copy: %v", err)
+	}
+	if _, err := io.Copy(&errBuf, er); err != nil {
+		t.Logf("stderr copy: %v", err)
+	}
+	if err := or.Close(); err != nil {
+		t.Logf("stdout reader close: %v", err)
+	}
+	if err := er.Close(); err != nil {
+		t.Logf("stderr reader close: %v", err)
+	}
+
+	return outBuf.String(), errBuf.String(), execErr
+}
+
+func TestStatusExample(t *testing.T) {
+	dir := exampleDir(t)
+	out, _, err := runCLI(t, "-C", dir, "status")
+	if err != nil {
+		t.Fatalf("status: %v\nstdout:\n%s", err, out)
+	}
+	for _, want := range []string{
+		"Project root:",
+		"Ledgers (4):",
+		"personal",
+		"acme",
+		"CUE:               Unified OK",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("status stdout missing %q\n%s", want, out)
+		}
+	}
+}
+
+func TestCheckExample(t *testing.T) {
+	dir := exampleDir(t)
+	out, errOut, err := runCLI(t, "-C", dir, "check")
+	if err != nil {
+		t.Fatalf("check: %v\nstdout:\n%s\nstderr:\n%s", err, out, errOut)
+	}
+	// One OK line per ledger in the example fixture.
+	if strings.Count(out, "OK") < 4 {
+		t.Errorf("check expected OK for each ledger, got:\n%s", out)
+	}
+	for _, name := range []string{"acme", "ong", "personal", "smuggle"} {
+		if !strings.Contains(out, "== "+name+" ==") {
+			t.Errorf("check missing ledger header %q\n%s", name, out)
+		}
+	}
+}
+
+func TestCheckExampleSingleLedger(t *testing.T) {
+	dir := exampleDir(t)
+	out, errOut, err := runCLI(t, "-C", dir, "check", "personal")
+	if err != nil {
+		t.Fatalf("check personal: %v\nstdout:\n%s\nstderr:\n%s", err, out, errOut)
+	}
+	if !strings.Contains(out, "== personal ==") {
+		t.Errorf("missing personal header\n%s", out)
+	}
+	if !strings.Contains(out, "OK") {
+		t.Errorf("missing OK\n%s", out)
+	}
+	if strings.Contains(out, "== acme ==") {
+		t.Errorf("single-ledger check should not load acme\n%s", out)
+	}
+}
+
+func TestParseCommodities(t *testing.T) {
+	path, err := filepath.Abs(filepath.Join("..", "..", "testdata", "example", "commodities.beancount"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, errOut, err := runCLI(t, "parse", path)
+	if err != nil {
+		t.Fatalf("parse: %v\nstdout:\n%s\nstderr:\n%s", err, out, errOut)
+	}
+	if !strings.Contains(out, "ast.Commodity") {
+		t.Errorf("parse expected commodity directives, got:\n%s", out)
+	}
+}
+
+func TestHelpListsCommands(t *testing.T) {
+	out, _, err := runCLI(t, "--help")
+	if err != nil {
+		t.Fatalf("help: %v\n%s", err, out)
+	}
+	for _, want := range []string{"status", "check", "dump", "web", "desktop", "version", "--directory"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("help missing %q\n%s", want, out)
+		}
+	}
+}
+
+func TestVersionFlag(t *testing.T) {
+	out, _, err := runCLI(t, "--version")
+	if err != nil {
+		t.Fatalf("version: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(out); got != release.Version() {
+		t.Errorf("version=%q want %q", got, release.Version())
+	}
+}
+
+func TestVersionCommand(t *testing.T) {
+	out, _, err := runCLI(t, "version")
+	if err != nil {
+		t.Fatalf("version: %v\n%s", err, out)
+	}
+	if got := strings.TrimSpace(out); got != release.Version() {
+		t.Errorf("version=%q want %q", got, release.Version())
+	}
+}
+
+func TestUnknownLedger(t *testing.T) {
+	dir := exampleDir(t)
+	_, _, err := runCLI(t, "-C", dir, "check", "nope")
+	if err == nil {
+		t.Fatal("expected error for unknown ledger")
+	}
+	if !errors.Is(err, engine.ErrUnknownLedger) {
+		t.Errorf("err=%v want engine.ErrUnknownLedger", err)
+	}
+}
+
+func TestDirectoryEnv(t *testing.T) {
+	dir := exampleDir(t)
+	t.Setenv("CONTAPILA_DIRECTORY", dir)
+	out, _, err := runCLI(t, "status")
+	if err != nil {
+		t.Fatalf("status via CONTAPILA_DIRECTORY: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "Ledgers (4):") {
+		t.Errorf("status stdout:\n%s", out)
+	}
+}
+
+func TestDirectoryAfterCommand(t *testing.T) {
+	dir := exampleDir(t)
+	out, _, err := runCLI(t, "status", "-C", dir)
+	if err != nil {
+		t.Fatalf("status -C: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "Ledgers (4):") {
+		t.Errorf("status -C stdout:\n%s", out)
+	}
+}
+
+func TestDirectoryAfterLedger(t *testing.T) {
+	dir := exampleDir(t)
+	t.Chdir(t.TempDir())
+	out, _, err := runCLI(t, "check", "personal", "-C", dir)
+	if err != nil {
+		t.Fatalf("check personal -C: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "== personal ==") {
+		t.Errorf("missing personal header\n%s", out)
+	}
+}
+
+func TestDirectoryFlagMissing(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "no-such-project-root")
+	_, errOut, err := runCLI(t, "-C", missing, "status")
+	if err == nil {
+		t.Fatal("expected error for missing -C directory")
+	}
+	if !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("err=%v want fs.ErrNotExist; stderr=%q", err, errOut)
+	}
+	// Message should identify the -C / --directory flag.
+	if !strings.Contains(err.Error(), "-C") && !strings.Contains(err.Error(), "--directory") && !strings.Contains(errOut, "-C") {
+		t.Errorf("error should mention -C/--directory; err=%v stderr=%q", err, errOut)
+	}
+}

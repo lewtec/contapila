@@ -1,0 +1,164 @@
+; broker / investments
+
+2021-09-15 * "Clearinghouse B3" "Buy PETR4"
+  Assets:BR:B3:Acao  50 B3_PETR4 {29.80 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-02-10 * "Clearinghouse B3" "Buy WEGE3"
+  Assets:BR:B3:Acao  30 B3_WEGE3 {34.20 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-05-20 * "Clearinghouse B3" "Buy BBAS3"
+  Assets:BR:B3:Acao  80 B3_BBAS3 {14.50 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-11-08 * "Clearinghouse B3" "Buy PETR4"
+  Assets:BR:B3:Acao  40 B3_PETR4 {31.00 BRL}
+  Assets:BR:Alfa:ContaCorrente
+
+2023-01-12 * "Clearinghouse B3" "Buy MXRF11"
+  Assets:BR:B3:FII  200 B3_MXRF11 {10.15 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2023-08-03 * "Clearinghouse B3" "Buy MXRF11"
+  Assets:BR:B3:FII  100 B3_MXRF11 {10.80 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-08-15 * "Buy Tesouro"
+  Assets:BR:TesouroDireto  2.5 TDBR_SELIC_2029 {990.00 BRL}
+  Assets:BR:Alfa:ContaCorrente
+
+2024-02-20 * "Buy Tesouro"
+  Assets:BR:TesouroDireto  1.0 TDBR_SELIC_2029 {1020.00 BRL}
+  Assets:BR:Alfa:ContaCorrente
+
+2023-04-05 * "Buy SPDW"
+  Assets:US:Delta:Stock  25 SPDW {32.50 USD}
+  Assets:US:Delta:ContaCorrente
+
+2024-06-12 * "Buy SPDW"
+  Assets:US:Delta:Stock  15 SPDW {36.20 USD}
+  Assets:US:Delta:ContaCorrente
+
+2022-06-01 * "Buy BTC"
+  Assets:Cripto:Wallet  0.01500000 BTC {145000.00 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-11-22 * "Buy BTC"
+  Assets:Cripto:Wallet  0.00800000 BTC {420000.00 BRL}
+  Assets:BR:Alfa:ContaCorrente
+
+2025-09-05 * "Clearinghouse B3" "Buy BBAS3"
+  Assets:BR:B3:Acao  50 B3_BBAS3 {18.20 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2023-10-18 * "Clearinghouse B3" "Sell PETR4 partial"
+  Assets:BR:B3:Acao  -60 B3_PETR4 @@ 2100.00 BRL
+  Assets:BR:Beta:ContaCorrente  2100.00 BRL
+  Income:Gains
+
+2025-03-10 * "Clearinghouse B3" "Trim WEGE3"
+  Assets:BR:B3:Acao  -10 B3_WEGE3 @@ 480.00 BRL
+  Assets:BR:Beta:ContaCorrente  480.00 BRL
+  Income:Gains
+
+2024-08-16 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  2 B3_WEGE3 {26.48 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2023-03-12 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  5 B3_WEGE3 {32.73 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-11-12 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  5 B3_WEGE3 {30.87 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-01-02 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {31.43 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-06-02 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {36.30 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-05-04 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {36.12 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-01-12 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {28.23 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-09-30 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  5 B3_WEGE3 {32.22 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-04-02 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  5 B3_WEGE3 {35.90 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-06-14 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  3 B3_WEGE3 {34.42 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-09-07 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  5 B3_WEGE3 {37.73 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-01-25 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  3 B3_WEGE3 {38.95 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-08-19 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  2 B3_WEGE3 {38.82 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2021-11-07 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {34.12 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-11-24 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  4 B3_WEGE3 {25.56 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-01-06 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  3 B3_WEGE3 {26.90 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-03-11 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {34.99 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-10-31 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  3 B3_WEGE3 {33.84 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-06-04 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {39.12 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-09-10 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  4 B3_WEGE3 {37.01 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2024-09-13 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  5 B3_WEGE3 {38.52 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2021-12-05 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {34.29 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2022-02-15 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  3 B3_WEGE3 {28.00 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-07-27 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {32.43 BRL}
+  Assets:BR:Beta:ContaCorrente
+
+2025-01-06 * "Clearinghouse B3" "Top-up WEGE3"
+  Assets:BR:B3:Acao  1 B3_WEGE3 {26.12 BRL}
+  Assets:BR:Beta:ContaCorrente
+

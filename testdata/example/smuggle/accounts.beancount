@@ -1,0 +1,12 @@
+; smuggle — inventory stress (fictional packs)
+2023-07-01 open Equity:Opening-Balances
+2023-07-01 open Assets:Cash:Stash
+2023-07-01 open Assets:Inventory:Cigarettes:Warehouse
+2023-07-01 open Assets:Inventory:Cigarettes:InTransit
+2023-07-01 open Assets:Inventory:Cigarettes:MonzaCache
+2023-07-01 open Liabilities:Payable:Supplier:Border
+2023-07-01 open Income:Gains
+2023-07-01 open Expenses:Logistics:Fuel
+2023-07-01 open Expenses:Logistics:Fee
+2023-07-01 open Expenses:Loss:Confiscation
+2023-07-01 open Expenses:Living

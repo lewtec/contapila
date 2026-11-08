@@ -1,0 +1,10 @@
+# Contapila LSP dogfood — run `contapila` from PATH (or set command to absolute binary).
+[language-server.contapila]
+command = "contapila"
+args = ["lsp"]
+
+[[language]]
+name = "beancount"
+scope = "source.beancount"
+file-types = ["beancount", "bean"]
+language-servers = ["contapila"]

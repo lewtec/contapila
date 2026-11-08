@@ -1,0 +1,30 @@
+package events
+
+import "github.com/lucasew/contapila-go/internal/web"
+
+templ eventsBody(d web.PageData) {
+	if len(d.EventList) == 0 {
+		<p class="text-xs text-base-content/60">No events in this period.</p>
+	} else {
+		<div class="overflow-x-auto border border-base-300">
+			<table class="table table-xs">
+				<thead>
+					<tr>
+						<th class="w-28">Date</th>
+						<th class="w-40">Type</th>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, row := range d.EventList {
+						<tr>
+							<td class="tabular text-xs whitespace-nowrap">{ row.Date }</td>
+							<td class="font-mono text-[0.7rem]">{ row.Type }</td>
+							<td class="text-xs">{ row.Desc }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}

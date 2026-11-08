@@ -1,0 +1,129 @@
+package web
+
+import (
+	"fmt"
+	"strings"
+
+	"cuelang.org/go/cue"
+
+	"github.com/lucasew/contapila-go/internal/config"
+	"github.com/lucasew/contapila-go/internal/plugin"
+)
+
+func fillPlugins(pc PageContext, data *PageData) {
+	if pc.Project == nil || pc.Project.Config == nil {
+		data.Error = "no project config"
+		return
+	}
+	cfg := pc.Project.Config.Value
+	flags, _ := config.PluginFlags(cfg)
+
+	infos := plugin.Infos()
+	seen := map[string]bool{}
+	for _, info := range infos {
+		seen[info.ID] = true
+		on := plugin.IsEnabled(cfg, info.ID)
+		if pc.Ledger != nil {
+			on = pc.Ledger.PluginEnabled(info.ID, info.DefaultOn)
+		}
+		inCfg := flags != nil && containsPluginFlag(flags, info.ID)
+		entry := plugin.PluginValue(cfg, info.ID)
+		entryStr := formatCUE(entry)
+		if !inCfg {
+			if info.DefaultOn {
+				entryStr = "(not in unified plugins map — DefaultOn)"
+			} else {
+				entryStr = "(not in unified plugins map — default off)"
+			}
+		}
+		data.PluginRows = append(data.PluginRows, PluginStatusRow{
+			ID:        info.ID,
+			Enabled:   on,
+			InConfig:  inCfg,
+			HasStream: info.HasStream,
+			EntryCUE:  entryStr, // plain; highlighted in templ via codeHighlight
+		})
+	}
+	// Stream expanders are first-party engine steps, not RegisterTyped modules.
+	for _, id := range config.KnownPluginIDs() {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		defaultOn := streamModuleDefaultOn(id)
+		on := defaultOn
+		if pc.Ledger != nil {
+			on = pc.Ledger.PluginEnabled(id, defaultOn)
+		} else if flags != nil {
+			if b, ok := flags[id]; ok {
+				on = b
+			}
+		}
+		inCfg := flags != nil && containsPluginFlag(flags, id)
+		entryStr := formatCUE(plugin.PluginValue(cfg, id))
+		if !inCfg {
+			if defaultOn {
+				entryStr = "(not in unified plugins map — DefaultOn)"
+			} else {
+				entryStr = "(not in unified plugins map — default off)"
+			}
+		}
+		data.PluginRows = append(data.PluginRows, PluginStatusRow{
+			ID:        id,
+			Enabled:   on,
+			InConfig:  inCfg,
+			HasStream: true,
+			EntryCUE:  entryStr,
+		})
+	}
+	for id, on := range flags {
+		if seen[id] {
+			continue
+		}
+		entry := plugin.PluginValue(cfg, id)
+		data.PluginRows = append(data.PluginRows, PluginStatusRow{
+			ID:       id,
+			Enabled:  on,
+			InConfig: true,
+			EntryCUE: formatCUE(entry),
+		})
+	}
+
+	pluginsNode := cfg.LookupPath(cue.ParsePath("plugins"))
+	data.PluginsCUE = formatCUE(pluginsNode)
+}
+
+func fillConfig(pc PageContext, data *PageData) {
+	if pc.Project == nil || pc.Project.Config == nil {
+		data.Error = "no project config"
+		return
+	}
+	data.ConfigCUE = formatCUE(pc.Project.Config.Value)
+}
+
+func streamModuleDefaultOn(id string) bool {
+	switch id {
+	case "check_closing", "web_accounts":
+		return false
+	default:
+		return true
+	}
+}
+
+func containsPluginFlag(flags map[string]bool, id string) bool {
+	_, ok := flags[id]
+	return ok
+}
+
+// formatCUE pretty-prints a unified CUE value as plain source text.
+func formatCUE(v cue.Value) string {
+	if !v.Exists() {
+		return "(absent)"
+	}
+	s := fmt.Sprintf("%v", v)
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "(empty)"
+	}
+	return s
+}

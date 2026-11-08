@@ -1,0 +1,70 @@
+// Package queries is the web_queries report module (journal query directives).
+package queries
+
+import (
+	"github.com/a-h/templ"
+
+	"github.com/lucasew/contapila-go/internal/plugin"
+	"github.com/lucasew/contapila-go/internal/web"
+)
+
+// PluginKey is the journal plugin / CUE plugins map key (no '/').
+const PluginKey = "web_queries"
+
+// PageID is the URL slug under /l/{ledger}/{PageID}.
+const PageID = "queries"
+
+// Settings is plugins.web_queries.settings (none yet).
+type Settings struct{}
+
+func init() {
+	plugin.RegisterTyped(PluginKey, func(reg *plugin.Reg[Settings]) {
+		reg.Page(web.Page{
+			ID:             PageID,
+			Label:          "Queries",
+			Order:          65,
+			Section:        "Queries", // sidebar group; named queries attach here
+			Sidebar:        false,     // list page is /queries; names are dynamic nav
+			Build:          true,
+			DefaultEnabled: true,
+			Fill:           fill,
+			Body:           func(d web.PageData) templ.Component { return queriesBody(d) },
+		})
+		// List page is not Sidebar; expose it (and named queries) in Cmd+K.
+		reg.Palette(web.Palette{
+			DefaultEnabled: true,
+			Fill:           palette,
+		})
+	})
+}
+
+func palette(pc web.PageContext) []web.CommandItem {
+	// Named queries already appear via QueryNav → sidebar sections.
+	// The list page is Sidebar:false, so expose it only here.
+	if pc.LedgerName == "" {
+		return nil
+	}
+	return []web.CommandItem{
+		web.Command("Queries", "All queries", web.LedgerHref(pc.Sess, pc.LedgerName, PageID, pc.Time), "queries", "list"),
+	}
+}
+
+func fill(pc web.PageContext, data *web.PageData) {
+	if pc.Ledger == nil {
+		return
+	}
+	qs := pc.Ledger.Queries()
+	rows := make([]web.QueryListRow, 0, len(qs))
+	for _, q := range qs {
+		date := ""
+		if !q.Date.IsZero() {
+			date = q.Date.Format("2006-01-02")
+		}
+		rows = append(rows, web.QueryListRow{
+			Date: date,
+			Name: q.Name,
+			Text: q.Query,
+		})
+	}
+	data.QueryList = rows
+}
