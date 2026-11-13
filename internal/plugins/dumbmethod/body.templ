@@ -1,0 +1,169 @@
+package dumbmethod
+
+import "github.com/lucasew/contapila-go/internal/web"
+
+templ dumbMethodBody(d web.PageData) {
+	if d.DumbMethod == nil {
+		<p class="text-xs text-base-content/60">No contribution plan loaded.</p>
+	} else {
+		<section class="mb-4">
+			<form method="get" class="flex flex-wrap items-center gap-2">
+				<label class="flex flex-col gap-1">
+					<span class="text-[0.65rem] uppercase tracking-wide text-base-content/50">Contribution</span>
+					<input
+						type="text"
+						inputmode="decimal"
+						name="amount"
+						value={ d.DumbMethod.Amount }
+						placeholder="0.00"
+						class="input input-xs w-40 tabular h-6 min-h-0 py-0 leading-none"
+					/>
+				</label>
+				<button type="submit" class="btn btn-ghost btn-xs h-6 min-h-0">Plan</button>
+				if d.Time != "" {
+					<input type="hidden" name="time" value={ d.Time }/>
+				}
+				<span class="text-xs text-base-content/60 max-w-xl">
+					Buy-only: money goes to classes and assets below target. Nothing is sold.
+				</span>
+			</form>
+		</section>
+
+		<div class="mb-4 flex flex-wrap items-baseline gap-2 border border-base-300 bg-base-200 px-3 py-2 text-xs">
+			<span>Contribution <strong class="tabular">{ d.DumbMethod.Amount }</strong> { d.DumbMethod.OpCurrency }</span>
+			<span>Current <strong class="tabular">{ d.DumbMethod.Total }</strong></span>
+			<span>After <strong class="tabular">{ d.DumbMethod.NewTotal }</strong></span>
+			<span>Invested <strong class="tabular">{ d.DumbMethod.Allocated }</strong></span>
+			<span>Left <strong class="tabular">{ d.DumbMethod.Uninvested }</strong></span>
+			if d.DumbMethod.AsOf != "" {
+				<span class="text-base-content/50">as of { d.DumbMethod.AsOf }</span>
+			}
+		</div>
+
+		if d.DumbMethod.Hint != "" {
+			<div class="mb-4 border border-base-300 px-3 py-2 text-xs text-base-content/70">
+				{ d.DumbMethod.Hint }
+			</div>
+		}
+
+		if len(d.DumbMethod.Warnings) > 0 {
+			<div class="mb-4 border border-base-300 px-3 py-2 text-xs text-warning">
+				<div class="mb-1 font-medium">Warnings</div>
+				for _, w := range d.DumbMethod.Warnings {
+					<div class="mt-1">• { w }</div>
+				}
+			</div>
+		}
+
+		<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Classes</h2>
+		if len(d.DumbMethod.Classes) == 0 {
+			<p class="mb-4 text-xs text-base-content/60">No target classes configured.</p>
+		} else {
+			<div class="mb-4 overflow-x-auto border border-base-300">
+				<table class="table table-xs">
+					<thead>
+						<tr>
+							<th>Class</th>
+							<th class="text-right">Target</th>
+							<th class="text-right">Current</th>
+							<th class="text-right">Current %</th>
+							<th class="text-right">Desired</th>
+							<th class="text-right">Gap</th>
+							<th class="text-right">Budget</th>
+							<th class="text-right">Buy</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, row := range d.DumbMethod.Classes {
+							<tr>
+								<td class="font-mono text-[0.7rem]">{ row.Class }</td>
+								<td class="tabular text-right">{ row.Target }</td>
+								<td class="tabular text-right">{ row.Current }</td>
+								<td class="tabular text-right">{ row.CurrentPct }</td>
+								<td class="tabular text-right">{ row.Desired }</td>
+								<td class="tabular text-right">{ row.Gap }</td>
+								<td class="tabular text-right">{ row.Budget }</td>
+								<td class="tabular text-right">{ row.Spent }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+
+		<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Assets</h2>
+		if len(d.DumbMethod.Assets) == 0 {
+			<p class="mb-4 text-xs text-base-content/60">No classified assets yet.</p>
+		} else {
+			<div class="mb-4 overflow-x-auto border border-base-300">
+				<table class="table table-xs">
+					<thead>
+						<tr>
+							<th>Class</th>
+							<th>Asset</th>
+							<th>Commodity</th>
+							<th>Accounts</th>
+							<th class="text-right">Force</th>
+							<th class="text-right">Current</th>
+							<th class="text-right">Price</th>
+							<th class="text-right">Desired</th>
+							<th class="text-right">Gap</th>
+							<th class="text-right">Buy</th>
+							<th class="text-right">Units</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, row := range d.DumbMethod.Assets {
+							<tr>
+								<td class="font-mono text-[0.7rem]">{ row.Class }</td>
+								<td class="font-mono text-[0.7rem]">{ row.Asset }</td>
+								<td class="font-mono text-[0.7rem]">{ row.Commodity }</td>
+								<td class="font-mono text-[0.7rem] max-w-xl truncate" title={ row.Accounts }>{ row.Accounts }</td>
+								<td class="tabular text-right">{ row.Force }</td>
+								<td class="tabular text-right">{ row.Current }</td>
+								<td class="tabular text-right">{ row.Price }</td>
+								<td class="tabular text-right">{ row.Desired }</td>
+								<td class="tabular text-right">{ row.Gap }</td>
+								<td class="tabular text-right font-medium">{ row.Buy }</td>
+								<td class="tabular text-right">{ row.Units }</td>
+								<td class="text-xs text-base-content/60">{ row.Status }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+
+		if len(d.DumbMethod.Unclassified) > 0 {
+			<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Unclassified</h2>
+			<p class="mb-2 text-xs text-base-content/60">
+				These holdings count toward the portfolio total but no rule routed them into a class.
+			</p>
+			<div class="overflow-x-auto border border-base-300">
+				<table class="table table-xs">
+					<thead>
+						<tr>
+							<th>Account</th>
+							<th>Commodity</th>
+							<th class="text-right">Units</th>
+							<th class="text-right">Value</th>
+							<th>Note</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, row := range d.DumbMethod.Unclassified {
+							<tr>
+								<td class="font-mono text-[0.7rem]">{ row.Account }</td>
+								<td class="font-mono text-[0.7rem]">{ row.Commodity }</td>
+								<td class="tabular text-right">{ row.Units }</td>
+								<td class="tabular text-right">{ row.Value }</td>
+								<td class="text-xs text-base-content/60">{ row.Note }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	}
+}

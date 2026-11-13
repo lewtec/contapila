@@ -202,6 +202,8 @@ type pageData struct {
 	AccountList []AccountListRow
 	// EventList is the /events report (plugin web_events).
 	EventList []EventListRow
+	// DumbMethod is the /dumb_method contribution planner (plugin dumb_method).
+	DumbMethod *DumbMethodReport
 	// QueryNav is named journal queries for the sidebar (any page).
 	QueryNav []QueryNavItem
 	// JumpAccounts / JumpCommodities feed the command palette (sorted keys).
@@ -256,6 +258,62 @@ type EventListRow struct {
 	Date string
 	Type string
 	Desc string
+}
+
+// DumbMethodReport is the /dumb_method buy-only contribution planner.
+type DumbMethodReport struct {
+	Amount     string
+	AsOf       string
+	OpCurrency string
+	Total      string
+	NewTotal   string
+	Allocated  string
+	Uninvested string
+	Classes    []DumbMethodClassRow
+	Assets     []DumbMethodAssetRow
+	// Unclassified holds asset lines that no rule routed into a class. They
+	// still count toward Total so new money dilutes them.
+	Unclassified []DumbMethodHoldingRow
+	Warnings     []string
+	// Hint is shown when the user has not authored settings.#Classify yet.
+	Hint string
+}
+
+// DumbMethodClassRow is one class allocation line.
+type DumbMethodClassRow struct {
+	Class      string
+	Target     string
+	Current    string
+	CurrentPct string
+	Desired    string
+	Gap        string
+	Budget     string
+	Spent      string
+}
+
+// DumbMethodAssetRow is one asset suggestion.
+type DumbMethodAssetRow struct {
+	Class     string
+	Asset     string
+	Commodity string
+	Accounts  string
+	Force     string
+	Current   string
+	Price     string
+	Desired   string
+	Gap       string
+	Buy       string
+	Units     string
+	Status    string
+}
+
+// DumbMethodHoldingRow is one unclassified asset line.
+type DumbMethodHoldingRow struct {
+	Account   string
+	Commodity string
+	Units     string
+	Value     string
+	Note      string
 }
 
 // QueryNavItem is one named query in the sidebar.

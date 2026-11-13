@@ -45,3 +45,25 @@ commodities: {
 		t.Fatalf("default prec=%d", d.Precision)
 	}
 }
+
+func TestCommodityPolicyForPattern(t *testing.T) {
+	user := []byte(`
+commodities: {
+  [=~"^B3_"]: { precision: 0 }
+  BRL: { precision: 2 }
+}
+`)
+	cfg, err := Load(user, "t.cue", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := CommodityPolicyFor(cfg.Value, "B3_PETR4"); p.Precision != 0 {
+		t.Fatalf("pattern precision=%d want 0", p.Precision)
+	}
+	if p := CommodityPolicyFor(cfg.Value, "BRL"); p.Precision != 2 {
+		t.Fatalf("BRL precision=%d want 2", p.Precision)
+	}
+	if p := CommodityPolicyFor(cfg.Value, "USD"); p.Precision != 5 {
+		t.Fatalf("default precision=%d want 5", p.Precision)
+	}
+}
