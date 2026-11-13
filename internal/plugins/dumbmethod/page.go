@@ -106,6 +106,7 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 	rep.NewTotal = money(plan.NewTotal)
 	rep.Allocated = money(plan.Allocated)
 	rep.Uninvested = money(plan.Uninvested)
+	rep.Excluded = money(plan.Excluded)
 	rep.Warnings = append(rep.Warnings, plan.Warnings...)
 
 	for _, cp := range plan.Classes {

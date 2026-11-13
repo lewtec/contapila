@@ -63,11 +63,15 @@ type AssetPlan struct {
 
 // Plan is a complete buy-only contribution plan.
 type Plan struct {
-	Amount       *big.Rat
-	Total        *big.Rat
-	NewTotal     *big.Rat
-	Allocated    *big.Rat
-	Uninvested   *big.Rat
+	Amount *big.Rat
+	// Total is the value of classified holdings only (the allocation base).
+	Total      *big.Rat
+	NewTotal   *big.Rat
+	Allocated  *big.Rat
+	Uninvested *big.Rat
+	// Excluded is the value of holdings with no class (or an unknown class).
+	// They are listed for visibility but do not affect the allocation.
+	Excluded     *big.Rat
 	Classes      []ClassPlan
 	Assets       []AssetPlan
 	Unclassified []HoldingInput
@@ -75,8 +79,8 @@ type Plan struct {
 }
 
 // Compute splits amount across classes and assets using buy-only target
-// convergence. Holdings with Value <= 0 are ignored. Unclassified holdings
-// still count toward the portfolio total so new money dilutes them.
+// convergence. Holdings with Value <= 0 are ignored. Holdings without a known
+// class are listed in Unclassified and excluded from the allocation base.
 func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Plan {
 	if amount == nil || amount.Sign() < 0 {
 		amount = new(big.Rat)
@@ -87,6 +91,7 @@ func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Pla
 		NewTotal:   new(big.Rat),
 		Allocated:  new(big.Rat),
 		Uninvested: new(big.Rat),
+		Excluded:   new(big.Rat),
 	}
 
 	classIndex := make(map[string]int, len(classes))
@@ -120,21 +125,23 @@ func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Pla
 		if h.Value == nil || h.Value.Sign() <= 0 {
 			continue
 		}
-		p.Total.Add(p.Total, h.Value)
 
 		idx, known := classIndex[h.Class]
 		if h.Class == "" {
 			p.Unclassified = append(p.Unclassified, h)
+			p.Excluded.Add(p.Excluded, h.Value)
 			continue
 		}
 		if !known {
 			p.Unclassified = append(p.Unclassified, h)
+			p.Excluded.Add(p.Excluded, h.Value)
 			if !seenUnknown[h.Class] {
 				seenUnknown[h.Class] = true
-				p.warnf("holding class %q is not under settings.classes; counted as unclassified", h.Class)
+				p.warnf("holding class %q is not under settings.classes; excluded from the allocation", h.Class)
 			}
 			continue
 		}
+		p.Total.Add(p.Total, h.Value)
 		p.Classes[idx].Current.Add(p.Classes[idx].Current, h.Value)
 
 		id := h.AssetID

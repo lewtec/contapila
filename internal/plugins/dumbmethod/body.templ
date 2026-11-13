@@ -31,10 +31,13 @@ templ dumbMethodBody(d web.PageData) {
 
 		<div class="mb-4 flex flex-wrap items-baseline gap-2 border border-base-300 bg-base-200 px-3 py-2 text-xs">
 			<span>Contribution <strong class="tabular">{ d.DumbMethod.Amount }</strong> { d.DumbMethod.OpCurrency }</span>
-			<span>Current <strong class="tabular">{ d.DumbMethod.Total }</strong></span>
+			<span>Classified <strong class="tabular">{ d.DumbMethod.Total }</strong></span>
 			<span>After <strong class="tabular">{ d.DumbMethod.NewTotal }</strong></span>
 			<span>Invested <strong class="tabular">{ d.DumbMethod.Allocated }</strong></span>
 			<span>Left <strong class="tabular">{ d.DumbMethod.Uninvested }</strong></span>
+			if len(d.DumbMethod.Unclassified) > 0 {
+				<span>Excluded <strong class="tabular">{ d.DumbMethod.Excluded }</strong></span>
+			}
 			if d.DumbMethod.AsOf != "" {
 				<span class="text-base-content/50">as of { d.DumbMethod.AsOf }</span>
 			}
@@ -138,7 +141,7 @@ templ dumbMethodBody(d web.PageData) {
 		if len(d.DumbMethod.Unclassified) > 0 {
 			<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Unclassified</h2>
 			<p class="mb-2 text-xs text-base-content/60">
-				These holdings count toward the portfolio total but no rule routed them into a class.
+				These holdings are excluded from the allocation base. No rule routed them into a class, so they neither count toward the totals nor receive buys.
 			</p>
 			<div class="overflow-x-auto border border-base-300">
 				<table class="table table-xs">

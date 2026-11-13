@@ -133,22 +133,30 @@ func TestComputeForceZeroCountsButNeverBuys(t *testing.T) {
 	}
 }
 
-func TestComputeUnclassifiedCountsTowardTotal(t *testing.T) {
-	classes := []ClassInput{{ID: "acoes", Target: rat(t, "100")}}
+func TestComputeUnclassifiedExcludedFromAllocation(t *testing.T) {
+	classes := []ClassInput{{ID: "acoes", Target: rat(t, "50")}}
 	holdings := []HoldingInput{
 		holding("acoes", "PETR4", "B3_PETR4", "500", "1", 8),
 		holding("", "CASH", "BRL", "500", "1", 0),
 	}
 
 	p := Compute(rat(t, "1000"), classes, holdings)
-	if p.Total.Cmp(rat(t, "1000")) != 0 {
-		t.Fatalf("total %s want 1000", p.Total)
+	if p.Total.Cmp(rat(t, "500")) != 0 {
+		t.Fatalf("total %s want 500 (classified only)", p.Total)
+	}
+	if p.NewTotal.Cmp(rat(t, "1500")) != 0 {
+		t.Fatalf("new total %s want 1500", p.NewTotal)
+	}
+	if p.Excluded.Cmp(rat(t, "500")) != 0 {
+		t.Fatalf("excluded %s want 500", p.Excluded)
 	}
 	if len(p.Unclassified) != 1 {
 		t.Fatalf("unclassified %d want 1", len(p.Unclassified))
 	}
-	if p.Allocated.Cmp(rat(t, "1000")) != 0 {
-		t.Errorf("allocated %s want 1000", p.Allocated)
+	// 50% of 1500 = 750 desired, 500 current, so 250 to buy. Counting the
+	// excluded cash would have made the gap 500 instead.
+	if p.Allocated.Cmp(rat(t, "250")) != 0 {
+		t.Errorf("allocated %s want 250", p.Allocated)
 	}
 }
 

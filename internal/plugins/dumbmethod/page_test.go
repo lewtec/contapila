@@ -51,7 +51,9 @@ func TestPageLive(t *testing.T) {
 		"Contributions",
 		"PETR4",
 		"MXRF11",
-		"682.00", // 22 whole PETR4 units at 31.00
+		"868.00", // 28 whole PETR4 units at 31.00
+		"126.00", // 12 whole MXRF11 units at 10.50
+		"Excluded",
 		"Unclassified",
 		"Assets:BR:Cash",
 	} {

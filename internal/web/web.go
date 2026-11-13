@@ -269,10 +269,11 @@ type DumbMethodReport struct {
 	NewTotal   string
 	Allocated  string
 	Uninvested string
-	Classes    []DumbMethodClassRow
-	Assets     []DumbMethodAssetRow
-	// Unclassified holds asset lines that no rule routed into a class. They
-	// still count toward Total so new money dilutes them.
+	// Excluded is the value of unclassified holdings. They are shown in
+	// Unclassified but do not affect the allocation.
+	Excluded     string
+	Classes      []DumbMethodClassRow
+	Assets       []DumbMethodAssetRow
 	Unclassified []DumbMethodHoldingRow
 	Warnings     []string
 	// Hint is shown when the user has not authored settings.#Classify yet.
