@@ -110,3 +110,85 @@ plugins: dumb_method: {
 		t.Fatal("expected target sum > 100 to fail unification")
 	}
 }
+
+func TestWeightSumMustMatchTargets(t *testing.T) {
+	t.Run("defaults to 100", func(t *testing.T) {
+		cfg := testConfig(t, `
+plugins: dumb_method: {
+	enabled: true
+	settings: classes: {
+		a: {target: 60}
+		b: {target: 40}
+	}
+}
+`)
+		classes, warns := classTargets(cfg.Value)
+		if len(warns) != 0 {
+			t.Fatalf("warnings: %v", warns)
+		}
+		if len(classes) != 2 {
+			t.Fatalf("classes: %+v", classes)
+		}
+	})
+
+	t.Run("default rejects partial sum", func(t *testing.T) {
+		_, err := config.Load([]byte(`
+plugins: dumb_method: {
+	enabled: true
+	settings: classes: a: {target: 50}
+}
+`), "contapila.cue", nil, nil)
+		if err == nil {
+			t.Fatal("expected target sum 50 to fail the default 100 weight_sum")
+		}
+	})
+
+	t.Run("explicit lower sum", func(t *testing.T) {
+		cfg := testConfig(t, `
+plugins: dumb_method: {
+	enabled: true
+	settings: {
+		weight_sum: 50
+		classes: {
+			a: {target: 30}
+			b: {target: 20}
+		}
+	}
+}
+`)
+		classes, warns := classTargets(cfg.Value)
+		if len(warns) != 0 {
+			t.Fatalf("warnings: %v", warns)
+		}
+		if len(classes) != 2 {
+			t.Fatalf("classes: %+v", classes)
+		}
+	})
+
+	t.Run("explicit mismatch rejected", func(t *testing.T) {
+		_, err := config.Load([]byte(`
+plugins: dumb_method: {
+	enabled: true
+	settings: {
+		weight_sum: 60
+		classes: {
+			a: {target: 30}
+			b: {target: 20}
+		}
+	}
+}
+`), "contapila.cue", nil, nil)
+		if err == nil {
+			t.Fatal("expected target sum 50 to fail weight_sum 60")
+		}
+	})
+
+	t.Run("empty classes stay valid", func(t *testing.T) {
+		testConfig(t, `
+plugins: dumb_method: {
+	enabled: true
+	settings: classes: {}
+}
+`)
+	})
+}

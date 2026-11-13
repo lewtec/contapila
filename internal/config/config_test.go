@@ -32,7 +32,7 @@ func TestLoad(t *testing.T) {
 plugins: dumb_method: {
 	enabled: true
 	settings: {
-		classes: acoes: target: 50
+		classes: acoes: target: 100
 		#Classify: {
 			holdings: [...#Holding]
 			classified: [for h in holdings {h & {class: "acoes", force: 1}}]

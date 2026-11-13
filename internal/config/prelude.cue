@@ -151,9 +151,19 @@ ledgers: [Name=string]: #Ledger & {
 // the user-authored routing rule set described above.
 #DumbMethodSettings: {
 	classes: [string]: #DumbMethodClass
-	// Targets must leave room for uninvested cash.
+	// Exact sum the class targets must add up to. Defaults to a fully invested
+	// portfolio; lower it to keep the difference as uninvested cash.
+	weight_sum?: number & >=0 & <=100
 	_targetSum: list.Sum([for _, c in classes {c.target}])
-	_targetSum: <=100
+	_hasClasses: len([for _, _ in classes {true}]) > 0
+	if _hasClasses {
+		if weight_sum != _|_ {
+			_targetSum: weight_sum
+		}
+		if weight_sum == _|_ {
+			_targetSum: 100
+		}
+	}
 	#Classify?: #DumbMethodClassify
 }
 
