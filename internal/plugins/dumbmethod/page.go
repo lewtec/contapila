@@ -12,6 +12,7 @@ import (
 	"cuelang.org/go/cue"
 
 	"github.com/lucasew/contapila-go/internal/plugin"
+	"github.com/lucasew/contapila-go/internal/plugins/dumbmethod/alloc"
 	"github.com/lucasew/contapila-go/internal/web"
 )
 
@@ -72,9 +73,9 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 		rep.Warnings = append(rep.Warnings, err.Error())
 	}
 
-	inputs := make([]HoldingInput, 0, len(raw))
+	inputs := make([]alloc.Holding, 0, len(raw))
 	for _, h := range raw {
-		in := HoldingInput{
+		in := alloc.Holding{
 			Commodity: h.Commodity,
 			Account:   h.Account,
 			Units:     h.Units,
@@ -101,7 +102,7 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 		inputs = append(inputs, in)
 	}
 
-	plan := Compute(amount, classes, inputs)
+	plan := alloc.Compute(amount, classes, inputs)
 	rep.Total = money(plan.Total)
 	rep.NewTotal = money(plan.NewTotal)
 	rep.Allocated = money(plan.Allocated)
@@ -114,7 +115,7 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 			Class:      cp.ID,
 			Target:     percentText(cp.Target),
 			Current:    money(cp.Current),
-			CurrentPct: percentText(percent(cp.Current, plan.Total)),
+			CurrentPct: percentText(alloc.Percent(cp.Current, plan.Total)),
 			Desired:    money(cp.Desired),
 			Gap:        money(cp.Gap),
 			Budget:     money(cp.Budget),

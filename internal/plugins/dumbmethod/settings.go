@@ -9,6 +9,7 @@ import (
 	"cuelang.org/go/cue"
 
 	"github.com/lucasew/contapila-go/internal/plugin"
+	"github.com/lucasew/contapila-go/internal/plugins/dumbmethod/alloc"
 )
 
 // PluginKey is the CUE plugins map key and the page enable flag.
@@ -36,7 +37,7 @@ func settingsValue(cfg cue.Value) cue.Value {
 // classTargets reads exact target percentages from CUE. The prelude enforces
 // target type and sum <= 100, so failures here surface as warnings instead of
 // silently changing the plan.
-func classTargets(cfg cue.Value) ([]ClassInput, []string) {
+func classTargets(cfg cue.Value) ([]alloc.Class, []string) {
 	sv := settingsValue(cfg)
 	if !sv.Exists() {
 		return nil, []string{"plugins.dumb_method.settings is not defined"}
@@ -50,7 +51,7 @@ func classTargets(cfg cue.Value) ([]ClassInput, []string) {
 	if err != nil {
 		return nil, []string{fmt.Sprintf("read settings.classes: %v", err)}
 	}
-	var out []ClassInput
+	var out []alloc.Class
 	var warns []string
 	for iter.Next() {
 		id := iter.Selector().Unquoted()
@@ -64,7 +65,7 @@ func classTargets(cfg cue.Value) ([]ClassInput, []string) {
 			warns = append(warns, fmt.Sprintf("class %q target is not a number; skipped", id))
 			continue
 		}
-		out = append(out, ClassInput{ID: id, Target: target})
+		out = append(out, alloc.Class{ID: id, Target: target})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if c := out[i].Target.Cmp(out[j].Target); c != 0 {

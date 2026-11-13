@@ -1,4 +1,12 @@
-package dumbmethod
+// Package alloc is the dumb_method allocation algorithm.
+//
+// This is a pure, dependency-free core: no CUE, ledger, price, or web types.
+// Callers pass already-classified holdings with current values and quote
+// prices, plus the contribution amount, and get a buy-only plan back.
+//
+// The contribution total is an input. Deciding how much to contribute is not
+// part of this package; Compute only allocates a given amount.
+package alloc
 
 import (
 	"fmt"
@@ -6,14 +14,14 @@ import (
 	"sort"
 )
 
-// ClassInput is one configured asset class and its target share in percent.
-type ClassInput struct {
+// Class is one configured asset class and its target share in percent.
+type Class struct {
 	ID     string
 	Target *big.Rat
 }
 
-// HoldingInput is one asset holding after CUE classification.
-type HoldingInput struct {
+// Holding is one asset holding after CUE classification.
+type Holding struct {
 	Class   string
 	AssetID string
 	// AssetLabel is what the report shows for the asset: the user id when set,
@@ -63,7 +71,8 @@ type AssetPlan struct {
 
 // Plan is a complete buy-only contribution plan.
 type Plan struct {
-	Amount *big.Rat
+	// Contribution is the amount the caller asked to allocate.
+	Contribution *big.Rat
 	// Total is the value of classified holdings only (the allocation base).
 	Total      *big.Rat
 	NewTotal   *big.Rat
@@ -74,24 +83,24 @@ type Plan struct {
 	Excluded     *big.Rat
 	Classes      []ClassPlan
 	Assets       []AssetPlan
-	Unclassified []HoldingInput
+	Unclassified []Holding
 	Warnings     []string
 }
 
-// Compute splits amount across classes and assets using buy-only target
+// Compute splits contribution across classes and assets using buy-only target
 // convergence. Holdings with Value <= 0 are ignored. Holdings without a known
 // class are listed in Unclassified and excluded from the allocation base.
-func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Plan {
-	if amount == nil || amount.Sign() < 0 {
-		amount = new(big.Rat)
+func Compute(contribution *big.Rat, classes []Class, holdings []Holding) Plan {
+	if contribution == nil || contribution.Sign() < 0 {
+		contribution = new(big.Rat)
 	}
 	p := Plan{
-		Amount:     clone(amount),
-		Total:      new(big.Rat),
-		NewTotal:   new(big.Rat),
-		Allocated:  new(big.Rat),
-		Uninvested: new(big.Rat),
-		Excluded:   new(big.Rat),
+		Contribution: clone(contribution),
+		Total:        new(big.Rat),
+		NewTotal:     new(big.Rat),
+		Allocated:    new(big.Rat),
+		Uninvested:   new(big.Rat),
+		Excluded:     new(big.Rat),
 	}
 
 	classIndex := make(map[string]int, len(classes))
@@ -189,7 +198,7 @@ func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Pla
 		}
 	}
 
-	p.NewTotal.Add(p.Total, p.Amount)
+	p.NewTotal.Add(p.Total, p.Contribution)
 
 	for i := range p.Classes {
 		cp := &p.Classes[i]
@@ -204,14 +213,14 @@ func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Pla
 		gapSum.Add(&gapSum, p.Classes[i].Gap)
 	}
 	if gapSum.Sign() > 0 {
-		scaled := gapSum.Cmp(amount) > 0
+		scaled := gapSum.Cmp(contribution) > 0
 		for i := range p.Classes {
 			cp := &p.Classes[i]
 			if cp.Gap.Sign() <= 0 {
 				continue
 			}
 			if scaled {
-				cp.Budget.Quo(new(big.Rat).Mul(amount, cp.Gap), &gapSum)
+				cp.Budget.Quo(new(big.Rat).Mul(contribution, cp.Gap), &gapSum)
 			} else {
 				cp.Budget.Set(cp.Gap)
 			}
@@ -245,7 +254,7 @@ func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Pla
 		idx := byClass[cp.ID]
 		if len(idx) == 0 {
 			if cp.Budget.Sign() > 0 {
-				p.warnf("class %q has no holdings; %s left uninvested", cp.ID, money(cp.Budget))
+				p.warnf("class %q has no holdings; %s left uninvested", cp.ID, cp.Budget.FloatString(2))
 			}
 			continue
 		}
@@ -261,7 +270,7 @@ func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Pla
 		}
 		if weightSum <= 0 {
 			if cp.Budget.Sign() > 0 {
-				p.warnf("class %q has no buyable asset; %s left uninvested", cp.ID, money(cp.Budget))
+				p.warnf("class %q has no buyable asset; %s left uninvested", cp.ID, cp.Budget.FloatString(2))
 			}
 			continue
 		}
@@ -333,7 +342,7 @@ func Compute(amount *big.Rat, classes []ClassInput, holdings []HoldingInput) Pla
 	for i := range p.Assets {
 		p.Allocated.Add(p.Allocated, p.Assets[i].Buy)
 	}
-	p.Uninvested.Sub(p.Amount, p.Allocated)
+	p.Uninvested.Sub(p.Contribution, p.Allocated)
 	if p.Uninvested.Sign() < 0 {
 		p.Uninvested.SetInt64(0)
 	}
@@ -359,8 +368,8 @@ func percentOf(total, pct *big.Rat) *big.Rat {
 	return new(big.Rat).Quo(new(big.Rat).Mul(total, pct), big.NewRat(100, 1))
 }
 
-// percent returns 100*part/total, or 0 when total is zero.
-func percent(part, total *big.Rat) *big.Rat {
+// Percent returns 100*part/total, or 0 when total is zero.
+func Percent(part, total *big.Rat) *big.Rat {
 	if part == nil || total == nil || total.Sign() == 0 {
 		return new(big.Rat)
 	}

@@ -1,4 +1,4 @@
-package dumbmethod
+package alloc
 
 import (
 	"math/big"
@@ -19,8 +19,8 @@ func rat(t *testing.T, s string) *big.Rat {
 	return mustRat(s)
 }
 
-func holding(class, id, commodity string, value, price string, force float64) HoldingInput {
-	return HoldingInput{
+func holding(class, id, commodity string, value, price string, force float64) Holding {
+	return Holding{
 		Class:      class,
 		AssetID:    id,
 		AssetLabel: id,
@@ -36,14 +36,14 @@ func holding(class, id, commodity string, value, price string, force float64) Ho
 }
 
 func TestComputeScalesClassGaps(t *testing.T) {
-	classes := []ClassInput{
+	classes := []Class{
 		{ID: "acoes_br", Target: rat(t, "30")},
 		{ID: "fiis", Target: rat(t, "15")},
 		{ID: "exterior", Target: rat(t, "20")},
 		{ID: "renda_fixa", Target: rat(t, "25")},
 		{ID: "cripto", Target: rat(t, "10")},
 	}
-	holdings := []HoldingInput{
+	holdings := []Holding{
 		holding("acoes_br", "PETR4", "B3_PETR4", "4000", "1", 8),
 		holding("fiis", "MXRF11", "B3_MXRF11", "1000", "1", 8),
 		holding("exterior", "SPDW", "SPDW", "3000", "1", 9),
@@ -81,8 +81,8 @@ func TestComputeScalesClassGaps(t *testing.T) {
 }
 
 func TestComputeForceWeightedShares(t *testing.T) {
-	classes := []ClassInput{{ID: "fiis", Target: rat(t, "100")}}
-	holdings := []HoldingInput{
+	classes := []Class{{ID: "fiis", Target: rat(t, "100")}}
+	holdings := []Holding{
 		holding("fiis", "MXRF11", "B3_MXRF11", "600", "1", 8),
 		holding("fiis", "HGLG11", "B3_HGLG11", "400", "1", 2),
 	}
@@ -107,10 +107,10 @@ func TestComputeForceWeightedShares(t *testing.T) {
 }
 
 func TestComputeForceZeroCountsButNeverBuys(t *testing.T) {
-	classes := []ClassInput{{ID: "fiis", Target: rat(t, "100")}}
+	classes := []Class{{ID: "fiis", Target: rat(t, "100")}}
 	zero := holding("fiis", "ZERO", "B3_ZERO", "400", "1", 0)
 	zero.HasForce = true // explicit force 0 must never buy
-	holdings := []HoldingInput{
+	holdings := []Holding{
 		zero,
 		holding("fiis", "MXRF11", "B3_MXRF11", "600", "1", 10),
 	}
@@ -134,8 +134,8 @@ func TestComputeForceZeroCountsButNeverBuys(t *testing.T) {
 }
 
 func TestComputeUnclassifiedExcludedFromAllocation(t *testing.T) {
-	classes := []ClassInput{{ID: "acoes", Target: rat(t, "50")}}
-	holdings := []HoldingInput{
+	classes := []Class{{ID: "acoes", Target: rat(t, "50")}}
+	holdings := []Holding{
 		holding("acoes", "PETR4", "B3_PETR4", "500", "1", 8),
 		holding("", "CASH", "BRL", "500", "1", 0),
 	}
@@ -161,10 +161,10 @@ func TestComputeUnclassifiedExcludedFromAllocation(t *testing.T) {
 }
 
 func TestComputeFloorsUnitsAndLeavesRemainder(t *testing.T) {
-	classes := []ClassInput{{ID: "acoes", Target: rat(t, "100")}}
+	classes := []Class{{ID: "acoes", Target: rat(t, "100")}}
 	h := holding("acoes", "PETR4", "B3_PETR4", "300", "300", 8)
 	h.Precision = 0
-	p := Compute(rat(t, "1000"), classes, []HoldingInput{h})
+	p := Compute(rat(t, "1000"), classes, []Holding{h})
 
 	// Class after = 1300, gap = 1000. At 300/unit only 3 whole units fit.
 	if p.Allocated.Cmp(rat(t, "900")) != 0 {
@@ -179,8 +179,8 @@ func TestComputeFloorsUnitsAndLeavesRemainder(t *testing.T) {
 }
 
 func TestComputeNothingToDoKeepsCash(t *testing.T) {
-	classes := []ClassInput{{ID: "acoes", Target: rat(t, "50")}}
-	holdings := []HoldingInput{
+	classes := []Class{{ID: "acoes", Target: rat(t, "50")}}
+	holdings := []Holding{
 		holding("acoes", "PETR4", "B3_PETR4", "1000", "1", 8),
 	}
 	p := Compute(rat(t, "500"), classes, holdings)
