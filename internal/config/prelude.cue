@@ -1,3 +1,5 @@
+import "list"
+
 // Commodity policy (CUE) — journal `commodity` directives may carry matching
 // string attributes (name, asset-class, …). Host may inject discovered commodities later.
 #Commodity: {
@@ -104,6 +106,72 @@ ledgers: [Name=string]: #Ledger & {
 #Plugin: {
 	enabled:   bool | *false
 	settings?: _
+}
+
+// One holding snapshot injected by the host into the dumb_method contribution
+// planner (plugins.dumb_method.settings.#Classify.holdings). Money fields are
+// expressed in the ledger operating currency.
+#Holding: {
+	// Stable list index; rules that return "h & {…}" keep it, so the host can
+	// join a classified row back to its source holding.
+	index:     int
+	ledger:    string
+	account:   string
+	commodity: string
+	units:     number
+	value:     number
+	// Quote price of one unit in the operating currency (absent when unpriced).
+	price?:    number
+	// As-of date (YYYY-MM-DD) or "latest".
+	as_of:     string
+	unpriced:  bool | *false
+	...
+}
+
+// One user-defined target allocation for the dumb_method planner.
+#DumbMethodClass: {
+	target: number & >=0 & <=100
+	// Optional display label. Defaults to title case of the class id
+	// (renda_fixa -> Renda Fixa).
+	name?: string
+	...
+}
+
+// Asset-class routing contract. Author it under
+// plugins.dumb_method.settings.#Classify; the host unifies it with the current
+// holdings snapshot and reads classified. Conditions that do not match a
+// holding leave it unclassified.
+#DumbMethodClassify: {
+	holdings: [...#Holding]
+	classified: [...#Holding & {
+		class?: string
+		force?: number
+		id?:    string
+	}]
+}
+
+// plugins.dumb_method.settings. Classes hold target percentages; #Classify is
+// the user-authored routing rule set described above.
+#DumbMethodSettings: {
+	classes: [string]: #DumbMethodClass
+	// Exact sum the class targets must add up to. Defaults to a fully invested
+	// portfolio; lower it to keep the difference as uninvested cash.
+	weight_sum?: number & >=0 & <=100
+	_targetSum: list.Sum([for _, c in classes {c.target}])
+	_hasClasses: len([for _, _ in classes {true}]) > 0
+	if _hasClasses {
+		if weight_sum != _|_ {
+			_targetSum: weight_sum
+		}
+		if weight_sum == _|_ {
+			_targetSum: 100
+		}
+	}
+	#Classify?: #DumbMethodClassify
+}
+
+plugins: dumb_method?: {
+	settings?: #DumbMethodSettings
 }
 
 // Closed project root — unknown top-level keys (e.g. plugin: vs plugins:) fail unify.

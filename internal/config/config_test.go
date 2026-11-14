@@ -27,6 +27,33 @@ func TestLoad(t *testing.T) {
 		}
 	})
 
+	t.Run("user cue references prelude definitions", func(t *testing.T) {
+		user := `
+plugins: dumb_method: {
+	enabled: true
+	settings: {
+		classes: acoes: target: 100
+		#Classify: {
+			holdings: [...#Holding]
+			classified: [for h in holdings {h & {class: "acoes", force: 1}}]
+		}
+	}
+}
+#MyHolding: #Holding
+`
+		cfg, err := Load([]byte(user), "test.cue", nil, nil)
+		if err != nil {
+			t.Fatalf("load config: %v", err)
+		}
+		on, err := PluginEnabled(cfg.Value, "dumb_method")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !on {
+			t.Fatal("dumb_method should be enabled")
+		}
+	})
+
 	t.Run("invalid config", func(t *testing.T) {
 		_, err := Load([]byte("invalid cue"), "test.cue", nil, nil)
 		if err == nil {

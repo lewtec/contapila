@@ -202,6 +202,8 @@ type pageData struct {
 	AccountList []AccountListRow
 	// EventList is the /events report (plugin web_events).
 	EventList []EventListRow
+	// DumbMethod is the /dumb_method contribution planner (plugin dumb_method).
+	DumbMethod *DumbMethodReport
 	// QueryNav is named journal queries for the sidebar (any page).
 	QueryNav []QueryNavItem
 	// JumpAccounts / JumpCommodities feed the command palette (sorted keys).
@@ -256,6 +258,82 @@ type EventListRow struct {
 	Date string
 	Type string
 	Desc string
+}
+
+// DumbMethodReport is the /dumb_method buy-only contribution planner.
+type DumbMethodReport struct {
+	Amount     string
+	AsOf       string
+	OpCurrency string
+	Total      string
+	NewTotal   string
+	Allocated  string
+	Uninvested string
+	// Excluded is the value of unclassified holdings. They are shown in
+	// Unclassified but do not affect the allocation.
+	Excluded string
+	Classes  []DumbMethodClassRow
+	// NowSlices and TargetSlices are the pie geometry for the class charts,
+	// as fractions of the classified total and of the target sum.
+	NowSlices    []DumbMethodSlice
+	TargetSlices []DumbMethodSlice
+	Unclassified []DumbMethodHoldingRow
+	Warnings     []string
+	// Hint is shown when the user has not authored settings.#Classify yet.
+	Hint string
+}
+
+// DumbMethodClassRow is one class allocation line. Name is the display label
+// (settings.classes.<id>.name or title-cased id). Accounts nests the
+// classification tree: class -> account -> commodity holding.
+type DumbMethodClassRow struct {
+	Class      string
+	Name       string
+	Color      string
+	Target     string
+	Current    string
+	CurrentPct string
+	Desired    string
+	Gap        string
+	Budget     string
+	Spent      string
+	Accounts   []DumbMethodAccountRow
+}
+
+// DumbMethodSlice is one donut segment. Dash and Offset are ready-to-use
+// stroke-dasharray / stroke-dashoffset values for a circle of
+// DumbMethodDonutCircumference.
+type DumbMethodSlice struct {
+	Name   string
+	Pct    string
+	Color  string
+	Dash   string
+	Offset string
+}
+
+// DumbMethodAccountRow is one ledger account inside a class. Holdings nests
+// the commodity lines that were classified into this account.
+type DumbMethodAccountRow struct {
+	Account  string
+	Current  string
+	Holdings []DumbMethodHoldingRow
+}
+
+// DumbMethodHoldingRow is one commodity line under an account, or an
+// unclassified asset line.
+type DumbMethodHoldingRow struct {
+	Account   string
+	Commodity string
+	Asset     string
+	Units     string
+	Value     string
+	Price     string
+	Force     string
+	Desired   string
+	Gap       string
+	Buy       string
+	Status    string
+	Note      string
 }
 
 // QueryNavItem is one named query in the sidebar.

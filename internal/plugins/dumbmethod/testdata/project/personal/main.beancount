@@ -1,0 +1,12 @@
+option "operating_currency" "BRL"
+
+2024-01-01 open Assets:BR:Cash BRL
+2024-01-01 open Assets:BR:B3:Acao
+2024-01-01 open Assets:BR:B3:FII
+2024-01-01 open Equity:Opening-Balances
+
+2024-01-02 * "Seed"
+  Assets:BR:Cash        1000.00 BRL
+  Assets:BR:B3:Acao     10 B3_PETR4 {31.00 BRL}
+  Assets:BR:B3:FII      100 B3_MXRF11 {10.50 BRL}
+  Equity:Opening-Balances
