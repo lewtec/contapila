@@ -279,10 +279,12 @@ type DumbMethodReport struct {
 	Hint string
 }
 
-// DumbMethodClassRow is one class allocation line. Accounts nests the
+// DumbMethodClassRow is one class allocation line. Name is the display label
+// (settings.classes.<id>.name or title-cased id). Accounts nests the
 // classification tree: class -> account -> commodity holding.
 type DumbMethodClassRow struct {
 	Class      string
+	Name       string
 	Target     string
 	Current    string
 	CurrentPct string

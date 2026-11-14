@@ -55,6 +55,12 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 
 	classes, warns := classTargets(cfg)
 	rep.Warnings = append(rep.Warnings, warns...)
+	allocClasses := make([]alloc.Class, len(classes))
+	names := make(map[string]string, len(classes))
+	for i, c := range classes {
+		allocClasses[i] = c.Class
+		names[c.ID] = c.Name
+	}
 
 	raw, hwarns, err := loadHoldings(pc.Ledger, pc.Prices, pc.AsOf, cfg)
 	rep.Warnings = append(rep.Warnings, hwarns...)
@@ -101,7 +107,7 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 		inputs = append(inputs, in)
 	}
 
-	plan := alloc.Compute(amount, classes, inputs)
+	plan := alloc.Compute(amount, allocClasses, inputs)
 	rep.Total = money(plan.Total)
 	rep.NewTotal = money(plan.NewTotal)
 	rep.Allocated = money(plan.Allocated)
@@ -124,6 +130,7 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 		classRows[cp.ID] = len(rep.Classes)
 		rep.Classes = append(rep.Classes, web.DumbMethodClassRow{
 			Class:      cp.ID,
+			Name:       names[cp.ID],
 			Target:     percentText(cp.Target),
 			Current:    money(cp.Current),
 			CurrentPct: percentText(alloc.Percent(cp.Current, plan.Total)),

@@ -50,6 +50,8 @@ func TestPageLive(t *testing.T) {
 	for _, want := range []string{
 		"Contributions",
 		"Classification",
+		"Acoes", // title-cased class id default
+		"Fiis",
 		"data-pnl-tree",
 		`data-account="acoes:Assets:BR:B3:Acao"`,
 		`data-account="acoes:Assets:BR:B3:Acao:B3_PETR4"`,

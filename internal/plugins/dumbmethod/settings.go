@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"unicode"
 
 	"cuelang.org/go/cue"
 
@@ -27,6 +28,13 @@ type Settings struct {
 // Class is one target allocation entry.
 type Class struct {
 	Target float64 `json:"target"`
+	Name   string  `json:"name"`
+}
+
+// targetClass is one configured class with its resolved display name.
+type targetClass struct {
+	alloc.Class
+	Name string
 }
 
 // settingsValue returns plugins.dumb_method.settings, or an empty value.
@@ -36,8 +44,9 @@ func settingsValue(cfg cue.Value) cue.Value {
 
 // classTargets reads exact target percentages from CUE. The prelude enforces
 // target type and sum <= 100, so failures here surface as warnings instead of
-// silently changing the plan.
-func classTargets(cfg cue.Value) ([]alloc.Class, []string) {
+// silently changing the plan. Name is the optional display label; it defaults
+// to title case of the class id.
+func classTargets(cfg cue.Value) ([]targetClass, []string) {
 	sv := settingsValue(cfg)
 	if !sv.Exists() {
 		return nil, []string{"plugins.dumb_method.settings is not defined"}
@@ -51,7 +60,7 @@ func classTargets(cfg cue.Value) ([]alloc.Class, []string) {
 	if err != nil {
 		return nil, []string{fmt.Sprintf("read settings.classes: %v", err)}
 	}
-	var out []alloc.Class
+	var out []targetClass
 	var warns []string
 	for iter.Next() {
 		id := iter.Selector().Unquoted()
@@ -65,7 +74,16 @@ func classTargets(cfg cue.Value) ([]alloc.Class, []string) {
 			warns = append(warns, fmt.Sprintf("class %q target is not a number; skipped", id))
 			continue
 		}
-		out = append(out, alloc.Class{ID: id, Target: target})
+		name := ""
+		if nv := iter.Value().LookupPath(cue.ParsePath("name")); nv.Exists() {
+			if s, err := nv.String(); err == nil {
+				name = strings.TrimSpace(s)
+			}
+		}
+		out = append(out, targetClass{
+			Class: alloc.Class{ID: id, Target: target},
+			Name:  displayName(id, name),
+		})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if c := out[i].Target.Cmp(out[j].Target); c != 0 {
@@ -77,6 +95,29 @@ func classTargets(cfg cue.Value) ([]alloc.Class, []string) {
 		warns = append(warns, "settings.classes has no usable target")
 	}
 	return out, warns
+}
+
+// displayName uses the explicit name when set, else title-cases the class id:
+// renda_fixa -> Renda Fixa.
+func displayName(id, name string) string {
+	if name != "" {
+		return name
+	}
+	parts := strings.FieldsFunc(id, func(r rune) bool {
+		return r == '_' || r == '-' || r == ' '
+	})
+	for i, p := range parts {
+		r := []rune(p)
+		if len(r) == 0 {
+			continue
+		}
+		r[0] = unicode.ToUpper(r[0])
+		parts[i] = string(r)
+	}
+	if len(parts) == 0 {
+		return id
+	}
+	return strings.Join(parts, " ")
 }
 
 // cueNumber reads an exact rational from a CUE number.

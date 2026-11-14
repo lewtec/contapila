@@ -131,6 +131,9 @@ ledgers: [Name=string]: #Ledger & {
 // One user-defined target allocation for the dumb_method planner.
 #DumbMethodClass: {
 	target: number & >=0 & <=100
+	// Optional display label. Defaults to title case of the class id
+	// (renda_fixa -> Renda Fixa).
+	name?: string
 	...
 }
 

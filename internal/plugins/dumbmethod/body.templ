@@ -79,7 +79,7 @@ templ dumbMethodBody(d web.PageData) {
 					<tbody>
 						for _, row := range d.DumbMethod.Classes {
 							<tr>
-								<td class="font-mono text-[0.7rem]">{ row.Class }</td>
+								<td class="text-[0.7rem]" title={ row.Class }>{ row.Name }</td>
 								<td class="tabular text-right">{ row.Target }</td>
 								<td class="tabular text-right">{ row.Current }</td>
 								<td class="tabular text-right">{ row.CurrentPct }</td>
@@ -119,9 +119,9 @@ templ dumbMethodBody(d web.PageData) {
 					<tbody>
 						for _, c := range d.DumbMethod.Classes {
 							<tr class="font-semibold bg-base-200/40" data-account={ c.Class }>
-								<td class="font-mono text-xs">
+								<td class="text-xs" title={ c.Class }>
 									@treeToggle(len(c.Accounts) > 0)
-									{ c.Class }
+									{ c.Name }
 								</td>
 								<td></td>
 								<td></td>

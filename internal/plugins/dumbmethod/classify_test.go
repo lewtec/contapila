@@ -192,3 +192,33 @@ plugins: dumb_method: {
 `)
 	})
 }
+
+func TestClassDisplayNames(t *testing.T) {
+	cfg := testConfig(t, `
+plugins: dumb_method: {
+	enabled: true
+	settings: classes: {
+		renda_fixa:  {target: 60}
+		acoes_br:    {target: 20, name: "Ações Brasil"}
+		criptomoedas: {target: 20}
+	}
+}
+`)
+	classes, warns := classTargets(cfg.Value)
+	if len(warns) != 0 {
+		t.Fatalf("warnings: %v", warns)
+	}
+	names := map[string]string{}
+	for _, c := range classes {
+		names[c.ID] = c.Name
+	}
+	if got := names["renda_fixa"]; got != "Renda Fixa" {
+		t.Errorf("renda_fixa display name %q want %q", got, "Renda Fixa")
+	}
+	if got := names["criptomoedas"]; got != "Criptomoedas" {
+		t.Errorf("criptomoedas display name %q want %q", got, "Criptomoedas")
+	}
+	if got := names["acoes_br"]; got != "Ações Brasil" {
+		t.Errorf("explicit display name %q want %q", got, "Ações Brasil")
+	}
+}
