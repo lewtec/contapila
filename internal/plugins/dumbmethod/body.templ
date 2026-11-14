@@ -94,48 +94,84 @@ templ dumbMethodBody(d web.PageData) {
 			</div>
 		}
 
-		<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Assets</h2>
-		if len(d.DumbMethod.Assets) == 0 {
-			<p class="mb-4 text-xs text-base-content/60">No classified assets yet.</p>
+		<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Classification</h2>
+		<p class="mb-2 text-xs text-base-content/60">
+			Class → asset → account holding. Collapse a row to hide its children.
+		</p>
+		if len(d.DumbMethod.Classes) == 0 {
+			<p class="mb-4 text-xs text-base-content/60">No target classes configured.</p>
 		} else {
 			<div class="mb-4 overflow-x-auto border border-base-300">
-				<table class="table table-xs">
+				<table class="table table-xs pnl-tree" data-pnl-tree>
 					<thead>
 						<tr>
-							<th>Class</th>
-							<th>Asset</th>
-							<th>Commodity</th>
-							<th>Accounts</th>
+							<th>Class / Asset / Account</th>
 							<th class="text-right">Force</th>
-							<th class="text-right">Current</th>
+							<th class="text-right">Units</th>
 							<th class="text-right">Price</th>
+							<th class="text-right">Current</th>
 							<th class="text-right">Desired</th>
 							<th class="text-right">Gap</th>
 							<th class="text-right">Buy</th>
-							<th class="text-right">Units</th>
 							<th>Status</th>
 						</tr>
 					</thead>
 					<tbody>
-						for _, row := range d.DumbMethod.Assets {
-							<tr>
-								<td class="font-mono text-[0.7rem]">{ row.Class }</td>
-								<td class="font-mono text-[0.7rem]">{ row.Asset }</td>
-								<td class="font-mono text-[0.7rem]">{ row.Commodity }</td>
-								<td class="font-mono text-[0.7rem] max-w-xl truncate" title={ row.Accounts }>{ row.Accounts }</td>
-								<td class="tabular text-right">{ row.Force }</td>
-								<td class="tabular text-right">{ row.Current }</td>
-								<td class="tabular text-right">{ row.Price }</td>
-								<td class="tabular text-right">{ row.Desired }</td>
-								<td class="tabular text-right">{ row.Gap }</td>
-								<td class="tabular text-right font-medium">{ row.Buy }</td>
-								<td class="tabular text-right">{ row.Units }</td>
-								<td class="text-xs text-base-content/60">{ row.Status }</td>
+						for _, c := range d.DumbMethod.Classes {
+							<tr class="font-semibold bg-base-200/40" data-account={ c.Class }>
+								<td class="font-mono text-xs">
+									@treeToggle(len(c.Assets) > 0)
+									{ c.Class }
+								</td>
+								<td></td>
+								<td></td>
+								<td></td>
+								<td class="tabular text-right">{ c.Current }</td>
+								<td class="tabular text-right">{ c.Desired }</td>
+								<td class="tabular text-right">{ c.Gap }</td>
+								<td class="tabular text-right font-medium">{ c.Spent }</td>
+								<td class="text-xs text-base-content/60">target { c.Target } · now { c.CurrentPct }</td>
 							</tr>
+							for _, a := range c.Assets {
+								<tr data-account={ c.Class + ":" + a.Asset + ":" + a.Commodity }>
+									<td class="font-mono text-xs" style="padding-left: 1.25rem">
+										@treeToggle(len(a.Holdings) > 0)
+										{ a.Asset }
+										if a.Commodity != "" {
+											<span class="text-base-content/60"> { a.Commodity }</span>
+										}
+									</td>
+									<td class="tabular text-right">{ a.Force }</td>
+									<td class="tabular text-right">{ a.Units }</td>
+									<td class="tabular text-right">{ a.Price }</td>
+									<td class="tabular text-right">{ a.Current }</td>
+									<td class="tabular text-right">{ a.Desired }</td>
+									<td class="tabular text-right">{ a.Gap }</td>
+									<td class="tabular text-right font-medium">{ a.Buy }</td>
+									<td class="text-xs text-base-content/60">{ a.Status }</td>
+								</tr>
+								for _, h := range a.Holdings {
+									<tr data-account={ c.Class + ":" + a.Asset + ":" + a.Commodity + ":" + h.Account + "|" + h.Commodity }>
+										<td class="font-mono text-[0.7rem]" style="padding-left: 2.5rem">
+											@treeToggle(false)
+											{ h.Account }
+										</td>
+										<td class="tabular text-right">{ h.Force }</td>
+										<td class="tabular text-right">{ h.Units }</td>
+										<td class="tabular text-right">{ h.Price }</td>
+										<td class="tabular text-right">{ h.Value }</td>
+										<td></td>
+										<td></td>
+										<td></td>
+										<td class="text-xs text-base-content/60">{ h.Note }</td>
+									</tr>
+								}
+							}
 						}
 					</tbody>
 				</table>
 			</div>
+			<script src="/static/pnl-tree.js" defer></script>
 		}
 
 		if len(d.DumbMethod.Unclassified) > 0 {
@@ -168,5 +204,15 @@ templ dumbMethodBody(d web.PageData) {
 				</table>
 			</div>
 		}
+	}
+}
+
+// treeToggle mirrors web's collapsible-tree control so plugin pages can reuse
+// the shared pnl-tree behavior.
+templ treeToggle(rollup bool) {
+	if rollup {
+		<button type="button" class="pnl-toggle btn btn-ghost btn-xs btn-square align-middle h-5 min-h-0 w-5 p-0" data-pnl-toggle aria-expanded="true" title="Collapse">▼</button>
+	} else {
+		<span class="inline-block h-5 w-5 align-middle" aria-hidden="true"></span>
 	}
 }

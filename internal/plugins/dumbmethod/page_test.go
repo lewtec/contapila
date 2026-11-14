@@ -49,6 +49,9 @@ func TestPageLive(t *testing.T) {
 	body := rr.Body.String()
 	for _, want := range []string{
 		"Contributions",
+		"Classification",
+		"data-pnl-tree",
+		"Assets:BR:B3:Acao", // holding row nested under its class/asset
 		"PETR4",
 		"MXRF11",
 		"868.00", // 28 whole PETR4 units at 31.00

@@ -110,7 +110,9 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 	rep.Excluded = money(plan.Excluded)
 	rep.Warnings = append(rep.Warnings, plan.Warnings...)
 
+	classRows := make(map[string]int, len(plan.Classes))
 	for _, cp := range plan.Classes {
+		classRows[cp.ID] = len(rep.Classes)
 		rep.Classes = append(rep.Classes, web.DumbMethodClassRow{
 			Class:      cp.ID,
 			Target:     percentText(cp.Target),
@@ -123,7 +125,7 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 		})
 	}
 	for _, ap := range plan.Assets {
-		rep.Assets = append(rep.Assets, web.DumbMethodAssetRow{
+		row := web.DumbMethodAssetRow{
 			Class:     ap.Class,
 			Asset:     ap.Label,
 			Commodity: ap.Commodity,
@@ -136,7 +138,24 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 			Buy:       money(ap.Buy),
 			Units:     unitsText(ap.Units, ap.Precision),
 			Status:    ap.Status,
-		})
+		}
+		for _, in := range inputs {
+			if in.Class != ap.Class || in.AssetID != ap.ID || in.Commodity != ap.Commodity {
+				continue
+			}
+			row.Holdings = append(row.Holdings, web.DumbMethodHoldingRow{
+				Account:   in.Account,
+				Commodity: in.Commodity,
+				Units:     unitsText(in.Units, in.Precision),
+				Value:     money(in.Value),
+				Price:     money(in.Price),
+				Force:     forceText(in.Force, in.HasForce),
+				Note:      holdingNote(in),
+			})
+		}
+		if idx, ok := classRows[ap.Class]; ok {
+			rep.Classes[idx].Assets = append(rep.Classes[idx].Assets, row)
+		}
 	}
 	for _, h := range plan.Unclassified {
 		note := "no class"
@@ -152,6 +171,14 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 		})
 	}
 	return rep
+}
+
+// holdingNote flags a holding whose value cannot support a buy suggestion.
+func holdingNote(h alloc.Holding) string {
+	if !h.Priced || h.Price == nil {
+		return "no price"
+	}
+	return ""
 }
 
 func amountQuery(r *http.Request) string {

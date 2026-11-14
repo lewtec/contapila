@@ -273,14 +273,14 @@ type DumbMethodReport struct {
 	// Unclassified but do not affect the allocation.
 	Excluded     string
 	Classes      []DumbMethodClassRow
-	Assets       []DumbMethodAssetRow
 	Unclassified []DumbMethodHoldingRow
 	Warnings     []string
 	// Hint is shown when the user has not authored settings.#Classify yet.
 	Hint string
 }
 
-// DumbMethodClassRow is one class allocation line.
+// DumbMethodClassRow is one class allocation line. Assets nests the
+// classification tree: class -> asset -> account holding.
 type DumbMethodClassRow struct {
 	Class      string
 	Target     string
@@ -290,6 +290,7 @@ type DumbMethodClassRow struct {
 	Gap        string
 	Budget     string
 	Spent      string
+	Assets     []DumbMethodAssetRow
 }
 
 // DumbMethodAssetRow is one asset suggestion.
@@ -306,14 +307,18 @@ type DumbMethodAssetRow struct {
 	Buy       string
 	Units     string
 	Status    string
+	Holdings  []DumbMethodHoldingRow
 }
 
-// DumbMethodHoldingRow is one unclassified asset line.
+// DumbMethodHoldingRow is one holding line shown under its asset, or an
+// unclassified asset line.
 type DumbMethodHoldingRow struct {
 	Account   string
 	Commodity string
 	Units     string
 	Value     string
+	Price     string
+	Force     string
 	Note      string
 }
 
