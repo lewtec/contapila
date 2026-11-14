@@ -52,6 +52,10 @@ func TestPageLive(t *testing.T) {
 		"Classification",
 		"Acoes", // title-cased class id default
 		"Fiis",
+		`data-donut="Now"`,
+		`data-donut="Target"`,
+		`aria-label="Now class allocation"`,
+		"stroke-dasharray",
 		"data-pnl-tree",
 		`data-account="acoes:Assets:BR:B3:Acao"`,
 		`data-account="acoes:Assets:BR:B3:Acao:B3_PETR4"`,

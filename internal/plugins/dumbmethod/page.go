@@ -126,20 +126,38 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 	}
 
 	classRows := make(map[string]int, len(plan.Classes))
+	targetSum := 0.0
+	for _, cp := range plan.Classes {
+		t, _ := cp.Target.Float64()
+		targetSum += t
+	}
+	currentShares := make([]float64, 0, len(plan.Classes))
+	targetShares := make([]float64, 0, len(plan.Classes))
 	for _, cp := range plan.Classes {
 		classRows[cp.ID] = len(rep.Classes)
+		currentPct := alloc.Percent(cp.Current, plan.Total)
+		currentShare, _ := currentPct.Float64()
+		currentShares = append(currentShares, currentShare/100)
+		targetShare, _ := cp.Target.Float64()
+		if targetSum > 0 {
+			targetShare /= targetSum
+		}
+		targetShares = append(targetShares, targetShare)
 		rep.Classes = append(rep.Classes, web.DumbMethodClassRow{
 			Class:      cp.ID,
 			Name:       names[cp.ID],
+			Color:      pieColor(len(rep.Classes)),
 			Target:     percentText(cp.Target),
 			Current:    money(cp.Current),
-			CurrentPct: percentText(alloc.Percent(cp.Current, plan.Total)),
+			CurrentPct: percentText(currentPct),
 			Desired:    money(cp.Desired),
 			Gap:        money(cp.Gap),
 			Budget:     money(cp.Budget),
 			Spent:      money(cp.Spent),
 		})
 	}
+	rep.NowSlices = classSlices(rep.Classes, func(i int) float64 { return currentShares[i] })
+	rep.TargetSlices = classSlices(rep.Classes, func(i int) float64 { return targetShares[i] })
 
 	// Group classified holdings as class -> account -> commodity. The plan is
 	// asset-based, so plan numbers are looked up per (class, asset id,

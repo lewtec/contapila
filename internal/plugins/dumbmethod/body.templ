@@ -58,6 +58,38 @@ templ dumbMethodBody(d web.PageData) {
 			</div>
 		}
 
+		if len(d.DumbMethod.NowSlices) > 0 || len(d.DumbMethod.TargetSlices) > 0 {
+			<section class="mb-4 border border-base-300 px-3 py-3">
+				<div class="flex flex-wrap gap-4">
+					<div class="flex gap-4">
+						if len(d.DumbMethod.NowSlices) > 0 {
+							@dmDonut("Now", d.DumbMethod.NowSlices)
+						}
+						if len(d.DumbMethod.TargetSlices) > 0 {
+							@dmDonut("Target", d.DumbMethod.TargetSlices)
+						}
+					</div>
+					<ul class="grid gap-1 text-xs" style="min-width: 14rem">
+						for _, row := range d.DumbMethod.Classes {
+							if row.Current != "0.00" || row.Target != "0.00%" {
+								<li class="flex items-center gap-2">
+									<span style={ "background: " + row.Color + "; display: inline-block; height: 0.625rem; width: 0.625rem; flex: none; border-radius: 0.125rem" }></span>
+									<span style="min-width: 8rem">{ row.Name }</span>
+									<span class="tabular text-base-content/60">now { row.CurrentPct } · target { row.Target }</span>
+								</li>
+							}
+						}
+					</ul>
+				</div>
+				<p class="mt-2 text-[0.65rem] text-base-content/50">
+					Now is the share of the classified total; Target is the share of the configured target sum.
+					if d.DumbMethod.Excluded != "" && d.DumbMethod.Excluded != "0.00" {
+						<span> Unclassified holdings ({ d.DumbMethod.Excluded }) are excluded from both rings.</span>
+					}
+				</p>
+			</section>
+		}
+
 		<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Classes</h2>
 		if len(d.DumbMethod.Classes) == 0 {
 			<p class="mb-4 text-xs text-base-content/60">No target classes configured.</p>
@@ -223,4 +255,30 @@ templ treeToggle(rollup bool) {
 	} else {
 		<span class="inline-block h-5 w-5 align-middle" aria-hidden="true"></span>
 	}
+}
+
+// dmDonut draws one class-allocation ring. Radius must match
+// DumbMethodDonutRadius in pie.go.
+templ dmDonut(label string, slices []web.DumbMethodSlice) {
+	<figure class="m-0 flex flex-col items-center gap-1" data-donut={ label }>
+		<svg viewBox="0 0 120 120" width="128" height="128" role="img" aria-label={ label + " class allocation" }>
+			<circle cx="60" cy="60" r="48" fill="none" style="stroke: var(--color-base-300)" stroke-width="16"></circle>
+			for _, s := range slices {
+				<circle
+					cx="60"
+					cy="60"
+					r="48"
+					fill="none"
+					style={ "stroke: " + s.Color }
+					stroke-width="16"
+					stroke-dasharray={ s.Dash }
+					stroke-dashoffset={ s.Offset }
+					transform="rotate(-90 60 60)"
+				>
+					<title>{ s.Name } — { s.Pct }</title>
+				</circle>
+			}
+		</svg>
+		<figcaption class="text-[0.65rem] uppercase tracking-wide text-base-content/50">{ label }</figcaption>
+	</figure>
 }

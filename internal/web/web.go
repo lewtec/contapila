@@ -271,8 +271,12 @@ type DumbMethodReport struct {
 	Uninvested string
 	// Excluded is the value of unclassified holdings. They are shown in
 	// Unclassified but do not affect the allocation.
-	Excluded     string
-	Classes      []DumbMethodClassRow
+	Excluded string
+	Classes  []DumbMethodClassRow
+	// NowSlices and TargetSlices are the pie geometry for the class charts,
+	// as fractions of the classified total and of the target sum.
+	NowSlices    []DumbMethodSlice
+	TargetSlices []DumbMethodSlice
 	Unclassified []DumbMethodHoldingRow
 	Warnings     []string
 	// Hint is shown when the user has not authored settings.#Classify yet.
@@ -285,6 +289,7 @@ type DumbMethodReport struct {
 type DumbMethodClassRow struct {
 	Class      string
 	Name       string
+	Color      string
 	Target     string
 	Current    string
 	CurrentPct string
@@ -293,6 +298,17 @@ type DumbMethodClassRow struct {
 	Budget     string
 	Spent      string
 	Accounts   []DumbMethodAccountRow
+}
+
+// DumbMethodSlice is one donut segment. Dash and Offset are ready-to-use
+// stroke-dasharray / stroke-dashoffset values for a circle of
+// DumbMethodDonutCircumference.
+type DumbMethodSlice struct {
+	Name   string
+	Pct    string
+	Color  string
+	Dash   string
+	Offset string
 }
 
 // DumbMethodAccountRow is one ledger account inside a class. Holdings nests
