@@ -279,8 +279,8 @@ type DumbMethodReport struct {
 	Hint string
 }
 
-// DumbMethodClassRow is one class allocation line. Assets nests the
-// classification tree: class -> asset -> account holding.
+// DumbMethodClassRow is one class allocation line. Accounts nests the
+// classification tree: class -> account -> commodity holding.
 type DumbMethodClassRow struct {
 	Class      string
 	Target     string
@@ -290,35 +290,31 @@ type DumbMethodClassRow struct {
 	Gap        string
 	Budget     string
 	Spent      string
-	Assets     []DumbMethodAssetRow
+	Accounts   []DumbMethodAccountRow
 }
 
-// DumbMethodAssetRow is one asset suggestion.
-type DumbMethodAssetRow struct {
-	Class     string
-	Asset     string
-	Commodity string
-	Accounts  string
-	Force     string
-	Current   string
-	Price     string
-	Desired   string
-	Gap       string
-	Buy       string
-	Units     string
-	Status    string
-	Holdings  []DumbMethodHoldingRow
+// DumbMethodAccountRow is one ledger account inside a class. Holdings nests
+// the commodity lines that were classified into this account.
+type DumbMethodAccountRow struct {
+	Account  string
+	Current  string
+	Holdings []DumbMethodHoldingRow
 }
 
-// DumbMethodHoldingRow is one holding line shown under its asset, or an
+// DumbMethodHoldingRow is one commodity line under an account, or an
 // unclassified asset line.
 type DumbMethodHoldingRow struct {
 	Account   string
 	Commodity string
+	Asset     string
 	Units     string
 	Value     string
 	Price     string
 	Force     string
+	Desired   string
+	Gap       string
+	Buy       string
+	Status    string
 	Note      string
 }
 

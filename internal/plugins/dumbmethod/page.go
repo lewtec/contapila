@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"strings"
 
 	"cuelang.org/go/cue"
 
@@ -110,6 +109,16 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 	rep.Excluded = money(plan.Excluded)
 	rep.Warnings = append(rep.Warnings, plan.Warnings...)
 
+	type assetKey struct {
+		class     string
+		id        string
+		commodity string
+	}
+	assets := make(map[assetKey]alloc.AssetPlan, len(plan.Assets))
+	for _, ap := range plan.Assets {
+		assets[assetKey{ap.Class, ap.ID, ap.Commodity}] = ap
+	}
+
 	classRows := make(map[string]int, len(plan.Classes))
 	for _, cp := range plan.Classes {
 		classRows[cp.ID] = len(rep.Classes)
@@ -124,39 +133,67 @@ func buildReport(pc web.PageContext) *web.DumbMethodReport {
 			Spent:      money(cp.Spent),
 		})
 	}
-	for _, ap := range plan.Assets {
-		row := web.DumbMethodAssetRow{
-			Class:     ap.Class,
-			Asset:     ap.Label,
-			Commodity: ap.Commodity,
-			Accounts:  strings.Join(ap.Accounts, ", "),
-			Force:     forceText(ap.Force, ap.HasForce),
-			Current:   money(ap.Current),
-			Price:     money(ap.Price),
-			Desired:   money(ap.Desired),
-			Gap:       money(ap.Gap),
-			Buy:       money(ap.Buy),
-			Units:     unitsText(ap.Units, ap.Precision),
-			Status:    ap.Status,
+
+	// Group classified holdings as class -> account -> commodity. The plan is
+	// asset-based, so plan numbers are looked up per (class, asset id,
+	// commodity) and attached to the matching commodity line.
+	type accountBuild struct {
+		row     *web.DumbMethodAccountRow
+		current *big.Rat
+	}
+	type classBuild struct {
+		accounts map[string]*accountBuild
+		order    []string
+	}
+	builds := make([]classBuild, len(rep.Classes))
+	for i := range builds {
+		builds[i].accounts = map[string]*accountBuild{}
+	}
+	for _, in := range inputs {
+		classIdx, ok := classRows[in.Class]
+		if !ok {
+			continue
 		}
-		for _, in := range inputs {
-			if in.Class != ap.Class || in.AssetID != ap.ID || in.Commodity != ap.Commodity {
-				continue
+		b := &builds[classIdx]
+		ab, ok := b.accounts[in.Account]
+		if !ok {
+			ab = &accountBuild{
+				row:     &web.DumbMethodAccountRow{Account: in.Account},
+				current: new(big.Rat),
 			}
-			row.Holdings = append(row.Holdings, web.DumbMethodHoldingRow{
-				Account:   in.Account,
-				Commodity: in.Commodity,
-				Units:     unitsText(in.Units, in.Precision),
-				Value:     money(in.Value),
-				Price:     money(in.Price),
-				Force:     forceText(in.Force, in.HasForce),
-				Note:      holdingNote(in),
-			})
+			b.accounts[in.Account] = ab
+			b.order = append(b.order, in.Account)
 		}
-		if idx, ok := classRows[ap.Class]; ok {
-			rep.Classes[idx].Assets = append(rep.Classes[idx].Assets, row)
+		ab.current.Add(ab.current, in.Value)
+
+		h := web.DumbMethodHoldingRow{
+			Account:   in.Account,
+			Commodity: in.Commodity,
+			Asset:     in.AssetLabel,
+			Units:     unitsText(in.Units, in.Precision),
+			Value:     money(in.Value),
+			Price:     money(in.Price),
+			Force:     forceText(in.Force, in.HasForce),
+			Note:      holdingNote(in),
+		}
+		if ap, ok := assets[assetKey{in.Class, in.AssetID, in.Commodity}]; ok {
+			h.Desired = money(ap.Desired)
+			h.Gap = money(ap.Gap)
+			h.Buy = money(ap.Buy)
+			h.Status = ap.Status
+		} else {
+			h.Status = "excluded from plan"
+		}
+		ab.row.Holdings = append(ab.row.Holdings, h)
+	}
+	for i := range builds {
+		for _, account := range builds[i].order {
+			ab := builds[i].accounts[account]
+			ab.row.Current = money(ab.current)
+			rep.Classes[i].Accounts = append(rep.Classes[i].Accounts, *ab.row)
 		}
 	}
+
 	for _, h := range plan.Unclassified {
 		note := "no class"
 		if h.Class != "" {

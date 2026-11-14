@@ -62,7 +62,7 @@ templ dumbMethodBody(d web.PageData) {
 		if len(d.DumbMethod.Classes) == 0 {
 			<p class="mb-4 text-xs text-base-content/60">No target classes configured.</p>
 		} else {
-			<div class="mb-4 overflow-x-auto border border-base-300">
+			<div class="mb-4 border border-base-300">
 				<table class="table table-xs">
 					<thead>
 						<tr>
@@ -96,16 +96,16 @@ templ dumbMethodBody(d web.PageData) {
 
 		<h2 class="mb-2 text-[0.7rem] font-semibold uppercase tracking-wide text-base-content/60">Classification</h2>
 		<p class="mb-2 text-xs text-base-content/60">
-			Class → asset → account holding. Collapse a row to hide its children.
+			Class → account → commodity. Collapse a row to hide its children.
 		</p>
 		if len(d.DumbMethod.Classes) == 0 {
 			<p class="mb-4 text-xs text-base-content/60">No target classes configured.</p>
 		} else {
-			<div class="mb-4 overflow-x-auto border border-base-300">
+			<div class="mb-4 border border-base-300">
 				<table class="table table-xs pnl-tree" data-pnl-tree>
 					<thead>
 						<tr>
-							<th>Class / Asset / Account</th>
+							<th>Class / Account / Commodity</th>
 							<th class="text-right">Force</th>
 							<th class="text-right">Units</th>
 							<th class="text-right">Price</th>
@@ -120,7 +120,7 @@ templ dumbMethodBody(d web.PageData) {
 						for _, c := range d.DumbMethod.Classes {
 							<tr class="font-semibold bg-base-200/40" data-account={ c.Class }>
 								<td class="font-mono text-xs">
-									@treeToggle(len(c.Assets) > 0)
+									@treeToggle(len(c.Accounts) > 0)
 									{ c.Class }
 								</td>
 								<td></td>
@@ -132,38 +132,46 @@ templ dumbMethodBody(d web.PageData) {
 								<td class="tabular text-right font-medium">{ c.Spent }</td>
 								<td class="text-xs text-base-content/60">target { c.Target } · now { c.CurrentPct }</td>
 							</tr>
-							for _, a := range c.Assets {
-								<tr data-account={ c.Class + ":" + a.Asset + ":" + a.Commodity }>
+							for _, a := range c.Accounts {
+								<tr data-account={ c.Class + ":" + a.Account }>
 									<td class="font-mono text-xs" style="padding-left: 1.25rem">
 										@treeToggle(len(a.Holdings) > 0)
-										{ a.Asset }
-										if a.Commodity != "" {
-											<span class="text-base-content/60"> { a.Commodity }</span>
-										}
+										{ a.Account }
 									</td>
-									<td class="tabular text-right">{ a.Force }</td>
-									<td class="tabular text-right">{ a.Units }</td>
-									<td class="tabular text-right">{ a.Price }</td>
+									<td></td>
+									<td></td>
+									<td></td>
 									<td class="tabular text-right">{ a.Current }</td>
-									<td class="tabular text-right">{ a.Desired }</td>
-									<td class="tabular text-right">{ a.Gap }</td>
-									<td class="tabular text-right font-medium">{ a.Buy }</td>
-									<td class="text-xs text-base-content/60">{ a.Status }</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td></td>
 								</tr>
 								for _, h := range a.Holdings {
-									<tr data-account={ c.Class + ":" + a.Asset + ":" + a.Commodity + ":" + h.Account + "|" + h.Commodity }>
+									<tr data-account={ c.Class + ":" + a.Account + ":" + h.Commodity }>
 										<td class="font-mono text-[0.7rem]" style="padding-left: 2.5rem">
 											@treeToggle(false)
-											{ h.Account }
+											{ h.Commodity }
+											if h.Asset != "" && h.Asset != h.Commodity {
+												<span class="text-base-content/60"> { h.Asset }</span>
+											}
 										</td>
 										<td class="tabular text-right">{ h.Force }</td>
 										<td class="tabular text-right">{ h.Units }</td>
 										<td class="tabular text-right">{ h.Price }</td>
 										<td class="tabular text-right">{ h.Value }</td>
-										<td></td>
-										<td></td>
-										<td></td>
-										<td class="text-xs text-base-content/60">{ h.Note }</td>
+										<td class="tabular text-right">{ h.Desired }</td>
+										<td class="tabular text-right">{ h.Gap }</td>
+										<td class="tabular text-right font-medium">{ h.Buy }</td>
+										<td class="text-xs text-base-content/60">
+											{ h.Status }
+											if h.Note != "" {
+												if h.Status != "" {
+													<span> · </span>
+												}
+												<span class="text-warning">{ h.Note }</span>
+											}
+										</td>
 									</tr>
 								}
 							}
@@ -179,7 +187,7 @@ templ dumbMethodBody(d web.PageData) {
 			<p class="mb-2 text-xs text-base-content/60">
 				These holdings are excluded from the allocation base. No rule routed them into a class, so they neither count toward the totals nor receive buys.
 			</p>
-			<div class="overflow-x-auto border border-base-300">
+			<div class="border border-base-300">
 				<table class="table table-xs">
 					<thead>
 						<tr>

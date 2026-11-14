@@ -51,7 +51,8 @@ func TestPageLive(t *testing.T) {
 		"Contributions",
 		"Classification",
 		"data-pnl-tree",
-		"Assets:BR:B3:Acao", // holding row nested under its class/asset
+		`data-account="acoes:Assets:BR:B3:Acao"`,
+		`data-account="acoes:Assets:BR:B3:Acao:B3_PETR4"`,
 		"PETR4",
 		"MXRF11",
 		"868.00", // 28 whole PETR4 units at 31.00
