@@ -1,0 +1,251 @@
+// Package dumbmethod is the dumb_method contribution planner: buy-only target
+// allocation routing over user-defined asset classes and force scores.
+package dumbmethod
+
+import (
+	"errors"
+	"fmt"
+	"math/big"
+	"net/http"
+
+	"cuelang.org/go/cue"
+
+	"github.com/lucasew/contapila-go/internal/plugin"
+	"github.com/lucasew/contapila-go/internal/plugins/dumbmethod/alloc"
+	"github.com/lucasew/contapila-go/internal/web"
+)
+
+func init() {
+	plugin.RegisterTyped(PluginKey, func(reg *plugin.Reg[Settings]) {
+		reg.Page(web.Page{
+			ID:      PageID,
+			Label:   "Contributions",
+			Order:   55,
+			Sidebar: true,
+			Build:   true,
+			Fill:    fill,
+			Body:    dumbMethodBody,
+		})
+	})
+}
+
+func fill(pc web.PageContext, data *web.PageData) {
+	data.DumbMethod = buildReport(pc)
+}
+
+func buildReport(pc web.PageContext) *web.DumbMethodReport {
+	rep := &web.DumbMethodReport{AsOf: asOfLabel(pc.AsOf)}
+	if pc.Ledger == nil {
+		rep.Warnings = append(rep.Warnings, "no ledger loaded")
+		return rep
+	}
+	rep.OpCurrency = pc.Ledger.OpCurrency
+
+	amount, err := parseAmount(amountQuery(pc.Request))
+	if err != nil {
+		rep.Warnings = append(rep.Warnings, err.Error())
+		amount = new(big.Rat)
+	}
+	rep.Amount = money(amount)
+
+	var cfg cue.Value
+	if pc.Project != nil && pc.Project.Config != nil {
+		cfg = pc.Project.Config.Value
+	}
+
+	classes, warns := classTargets(cfg)
+	rep.Warnings = append(rep.Warnings, warns...)
+	allocClasses := make([]alloc.Class, len(classes))
+	names := make(map[string]string, len(classes))
+	for i, c := range classes {
+		allocClasses[i] = c.Class
+		names[c.ID] = c.Name
+	}
+
+	raw, hwarns, err := loadHoldings(pc.Ledger, pc.Prices, pc.AsOf, cfg)
+	rep.Warnings = append(rep.Warnings, hwarns...)
+	if err != nil {
+		rep.Warnings = append(rep.Warnings, err.Error())
+		return rep
+	}
+
+	classified, cwarns, err := classify(cfg, raw)
+	rep.Warnings = append(rep.Warnings, cwarns...)
+	switch {
+	case errors.Is(err, ErrNoClassify):
+		rep.Hint = "Add plugins.dumb_method.settings.#Classify to contapila.cue: declare holdings: [...#Holding] and classified: [for h in holdings {h & {...}}] with class, force, and id rules."
+	case err != nil:
+		rep.Warnings = append(rep.Warnings, err.Error())
+	}
+
+	inputs := make([]alloc.Holding, 0, len(raw))
+	for _, h := range raw {
+		in := alloc.Holding{
+			Commodity: h.Commodity,
+			Account:   h.Account,
+			Units:     h.Units,
+			Value:     h.Value,
+			Price:     h.Price,
+			Priced:    h.Price != nil,
+			Precision: h.Precision,
+		}
+		if c, ok := classified[h.Index]; ok {
+			in.Class = c.Class
+			in.Force = c.Force
+			in.HasForce = c.HasForce
+			in.AssetID = c.ID
+			if c.ID != "" {
+				in.AssetLabel = c.ID
+			}
+		}
+		if in.AssetID == "" {
+			in.AssetID = h.Account + "|" + h.Commodity
+		}
+		if in.AssetLabel == "" {
+			in.AssetLabel = h.Commodity
+		}
+		inputs = append(inputs, in)
+	}
+
+	plan := alloc.Compute(amount, allocClasses, inputs)
+	rep.Total = money(plan.Total)
+	rep.NewTotal = money(plan.NewTotal)
+	rep.Allocated = money(plan.Allocated)
+	rep.Uninvested = money(plan.Uninvested)
+	rep.Excluded = money(plan.Excluded)
+	rep.Warnings = append(rep.Warnings, plan.Warnings...)
+
+	type assetKey struct {
+		class     string
+		id        string
+		commodity string
+	}
+	assets := make(map[assetKey]alloc.AssetPlan, len(plan.Assets))
+	for _, ap := range plan.Assets {
+		assets[assetKey{ap.Class, ap.ID, ap.Commodity}] = ap
+	}
+
+	classRows := make(map[string]int, len(plan.Classes))
+	targetSum := 0.0
+	for _, cp := range plan.Classes {
+		t, _ := cp.Target.Float64()
+		targetSum += t
+	}
+	currentShares := make([]float64, 0, len(plan.Classes))
+	targetShares := make([]float64, 0, len(plan.Classes))
+	for _, cp := range plan.Classes {
+		classRows[cp.ID] = len(rep.Classes)
+		currentPct := alloc.Percent(cp.Current, plan.Total)
+		currentShare, _ := currentPct.Float64()
+		currentShares = append(currentShares, currentShare/100)
+		targetShare, _ := cp.Target.Float64()
+		if targetSum > 0 {
+			targetShare /= targetSum
+		}
+		targetShares = append(targetShares, targetShare)
+		rep.Classes = append(rep.Classes, web.DumbMethodClassRow{
+			Class:      cp.ID,
+			Name:       names[cp.ID],
+			Color:      pieColor(len(rep.Classes)),
+			Target:     percentText(cp.Target),
+			Current:    money(cp.Current),
+			CurrentPct: percentText(currentPct),
+			Desired:    money(cp.Desired),
+			Gap:        money(cp.Gap),
+			Budget:     money(cp.Budget),
+			Spent:      money(cp.Spent),
+		})
+	}
+	rep.NowSlices = classSlices(rep.Classes, func(i int) float64 { return currentShares[i] })
+	rep.TargetSlices = classSlices(rep.Classes, func(i int) float64 { return targetShares[i] })
+
+	// Group classified holdings as class -> account -> commodity. The plan is
+	// asset-based, so plan numbers are looked up per (class, asset id,
+	// commodity) and attached to the matching commodity line.
+	type accountBuild struct {
+		row     *web.DumbMethodAccountRow
+		current *big.Rat
+	}
+	type classBuild struct {
+		accounts map[string]*accountBuild
+		order    []string
+	}
+	builds := make([]classBuild, len(rep.Classes))
+	for i := range builds {
+		builds[i].accounts = map[string]*accountBuild{}
+	}
+	for _, in := range inputs {
+		classIdx, ok := classRows[in.Class]
+		if !ok {
+			continue
+		}
+		b := &builds[classIdx]
+		ab, ok := b.accounts[in.Account]
+		if !ok {
+			ab = &accountBuild{
+				row:     &web.DumbMethodAccountRow{Account: in.Account},
+				current: new(big.Rat),
+			}
+			b.accounts[in.Account] = ab
+			b.order = append(b.order, in.Account)
+		}
+		ab.current.Add(ab.current, in.Value)
+
+		h := web.DumbMethodHoldingRow{
+			Account:   in.Account,
+			Commodity: in.Commodity,
+			Asset:     in.AssetLabel,
+			Units:     unitsText(in.Units, in.Precision),
+			Value:     money(in.Value),
+			Price:     money(in.Price),
+			Force:     forceText(in.Force, in.HasForce),
+			Note:      holdingNote(in),
+		}
+		if ap, ok := assets[assetKey{in.Class, in.AssetID, in.Commodity}]; ok {
+			h.Desired = money(ap.Desired)
+			h.Gap = money(ap.Gap)
+			h.Buy = money(ap.Buy)
+			h.Status = ap.Status
+		} else {
+			h.Status = "excluded from plan"
+		}
+		ab.row.Holdings = append(ab.row.Holdings, h)
+	}
+	for i := range builds {
+		for _, account := range builds[i].order {
+			ab := builds[i].accounts[account]
+			ab.row.Current = money(ab.current)
+			rep.Classes[i].Accounts = append(rep.Classes[i].Accounts, *ab.row)
+		}
+	}
+
+	for _, h := range plan.Unclassified {
+		note := "no class"
+		if h.Class != "" {
+			note = fmt.Sprintf("unknown class %q", h.Class)
+		}
+		rep.Unclassified = append(rep.Unclassified, web.DumbMethodHoldingRow{
+			Account:   h.Account,
+			Commodity: h.Commodity,
+			Units:     unitsText(h.Units, h.Precision),
+			Value:     money(h.Value),
+			Note:      note,
+		})
+	}
+	return rep
+}
+
+// holdingNote flags a holding whose value cannot support a buy suggestion.
+func holdingNote(h alloc.Holding) string {
+	if !h.Priced || h.Price == nil {
+		return "no price"
+	}
+	return ""
+}
+
+func amountQuery(r *http.Request) string {
+	if r == nil {
+		return ""
+	}
+	return r.URL.Query().Get("amount")
+}

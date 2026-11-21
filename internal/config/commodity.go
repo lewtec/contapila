@@ -57,6 +57,34 @@ func PolicyFor(m map[string]CommodityPolicy, comm string) CommodityPolicy {
 	return DefaultCommodityPolicy()
 }
 
+// CommodityPolicyFor resolves one commodity through the unified CUE config,
+// including pattern constraints such as [=~"^B3_"]: {precision: 0}.
+//
+// CommodityPolicies only enumerates concrete fields; this probes the pattern by
+// unifying a single concrete key, which is how reports resolve unknown names.
+func CommodityPolicyFor(v cue.Value, comm string) CommodityPolicy {
+	if !v.Exists() || comm == "" {
+		return DefaultCommodityPolicy()
+	}
+	comms := v.LookupPath(cue.ParsePath("commodities"))
+	if !comms.Exists() {
+		return DefaultCommodityPolicy()
+	}
+	ctx := comms.Context()
+	if ctx == nil {
+		return DefaultCommodityPolicy()
+	}
+	probe := comms.Unify(ctx.Encode(map[string]any{comm: map[string]any{}}))
+	if err := probe.Validate(); err != nil {
+		return DefaultCommodityPolicy()
+	}
+	cv := probe.LookupPath(cue.MakePath(cue.Str(comm)))
+	if !cv.Exists() {
+		return DefaultCommodityPolicy()
+	}
+	return policyFromValue(cv)
+}
+
 func policyFromValue(v cue.Value) CommodityPolicy {
 	p := DefaultCommodityPolicy()
 	if prec := v.LookupPath(cue.ParsePath("precision")); prec.Exists() {

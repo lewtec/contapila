@@ -86,7 +86,9 @@ func LoadWithPlugins(userCue []byte, userFilename string, discovered []Ledger, p
 		return nil, fmt.Errorf("compile journal plugins: %w", err)
 	}
 
-	user := ctx.CompileBytes(userCue, cue.Filename(userFilename))
+	// Scope lets contapila.cue reference prelude definitions (#Holding, #Config,
+	// …) without re-declaring them. Unification still happens below.
+	user := ctx.CompileBytes(userCue, cue.Filename(userFilename), cue.Scope(prelude))
 	if err := user.Err(); err != nil {
 		return nil, fmt.Errorf("compile user config: %w", err)
 	}

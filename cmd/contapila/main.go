@@ -38,6 +38,7 @@ import (
 
 	// First-party web pages (stream expanders are called from engine, not registered).
 	_ "github.com/lucasew/contapila-go/internal/plugins/accountslist"
+	_ "github.com/lucasew/contapila-go/internal/plugins/dumbmethod"
 	_ "github.com/lucasew/contapila-go/internal/plugins/events"
 	_ "github.com/lucasew/contapila-go/internal/plugins/queries"
 )
